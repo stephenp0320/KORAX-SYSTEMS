@@ -2,6 +2,7 @@
 #ifndef DECODER_H
 #define DECODER_H
 #define DRONE_ID_ERR 1
+#define DRONE_LOCATION_ERR 1
 #define DJI_MAX_SIZE 20
 #define MIN_DIR         0       // Minimum direction
 #define MAX_DIR         360     // Maximum direction
@@ -149,5 +150,6 @@ typedef struct DRONE_ID_Location_data {
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_string(DRONE_ID_uatype_t uatype);
 const char *idtype_to_string(DRONE_ID_idtype_t idtype);
+int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data); 
 #endif
 

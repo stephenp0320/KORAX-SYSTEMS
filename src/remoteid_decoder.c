@@ -29,6 +29,54 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 	return 0;
 }
 
+int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data){
+    if (!packet || !location_data){
+        return DRONE_LOCATION_ERR;
+    }
+    if (packet_len < 25){
+        return DRONE_LOCATION_ERR;
+    }
+    location_data->Status = packet[1] & 0x0F;
+    location_data->Direction = packet[2] & 0x0F;
+    location_data->SpeedHorizontal = packet[3] & 0x0F;
+    location_data->SpeedVertical = packet[4] & 0x0F;
+    uint32_t latitude_raw = 
+        ((uint32_t)packet[5] << 24) | 
+        ((uint32_t)packet[6] << 16) | 
+        ((uint32_t)packet[7] << 8)  | 
+        ((uint32_t)packet[8]);
+    location_data->Latitude = latitude_raw / 10000000.0;
+    uint32_t longitude_raw = 
+        ((uint32_t)packet[9] << 24) | 
+        ((uint32_t)packet[10] << 16)| 
+        ((uint32_t)packet[11] << 8) | 
+        ((uint32_t)packet[12]);
+    location_data->Longitude = longitude_raw / 10000000.0;
+    uint16_t barometric_alt_raw = 
+        ((uint16_t)packet[13] << 8) |
+        (uint16_t)packet[14];
+    location_data->AltitudeBaro = (barometric_alt_raw * 0.5f) - 1000.0f; 
+    uint16_t gedetic_alt_raw = 
+        ((uint16_t)packet[15] << 8) |
+        (uint16_t)packet[16];
+    location_data->AltitudeGeo = (gedetic_alt_raw * 0.5f) - 1000.0f; 
+    location_data->Height = packet[17] & 0x0F;
+    location_data->HorizAccuracy = packet[18] & 0x0F;
+    location_data->VertAccuracy = packet[19] & 0x0F;
+    location_data->BaroAccuracy = packet[20] & 0x0F;
+    location_data->SpeedAccuracy = packet[21] & 0x0F;
+    location_data->TSAccuracy = packet[22] & 0x0F;
+    uint16_t timestamp_raw = 
+        ((uint16_t)packet[23] << 8) |
+         (uint16_t)packet[24];
+    if (timestamp_raw != INV_TIMESTAMP){
+        location_data->TimeStamp = timestamp_raw / 10.0f;
+    } else {
+        location_data->TimeStamp = -1.0f;
+    }
+    return 0;
+}
+
 const char *idtype_to_string(DRONE_ID_idtype_t type){
     switch (type){
         case DRONE_ID_IDTYPE_SERIAL_NUMBER:
