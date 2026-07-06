@@ -147,6 +147,7 @@ typedef struct DRONE_ID_Location_data {
 } DRONE_ID_Location_data;
 
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
-
+const char *uatype_to_string(DRONE_ID_uatype_t uatype);
+const char *idtype_to_string(DRONE_ID_idtype_t idtype);
 #endif
 
