@@ -16,8 +16,8 @@ int main(void){
     }
 
     printf("===== Basic ID =====\n");
-    printf("UA Type: %s\n", uatype_to_string(basicID.UAType));
-    printf("ID Type: %s\n", idtype_to_string(basicID.IDType));
+    printf("UA Type: %s\n", uatype_to_str(basicID.UAType));
+    printf("ID Type: %s\n", idtype_to_str(basicID.IDType));
     printf("UAS ID : %s\n\n", basicID.UASID);
     uint8_t location_packet[] = {
         0x10, 0x20, 0x5A, 0x14, 0x82,
@@ -37,9 +37,59 @@ int main(void){
     }
 
     printf("===== Location Vector =====\n");
+    printf("Status   : %s\n", status_to_str(location.Status));
     printf("Latitude : %.7f\n", location.Latitude);
     printf("Longitude: %.7f\n", location.Longitude);
     printf("Altitude : %.1f m\n", location.AltitudeGeo);
-    printf("Timestamp: %.1f s\n", location.TimeStamp);
-    return 0;
+    printf("Timestamp: %.1f s\n\n", location.TimeStamp);
+
+    authentication_data auth_data;
+    uint8_t auth_packet[] = {
+        0x20,       // Message Type (Authentication)
+        0x01,       // Authentication Type
+        0x00,       // Data Page = 0
+        0x02,       // Last Page Index = 2
+        0x3F,       // Total Authentication Length = 63 bytes
+        0x00, 0x01, 0xE2, 0x40,   // Timestamp = 123456
+        // Authentication Data (16 bytes)
+        0xA1, 0xB2, 0xC3, 0xD4,
+        0x11, 0x22, 0x33, 0x44,
+        0x55, 0x66, 0x77, 0x88,
+        0x99, 0xAA, 0xBB, 0xCC
+};
+    uint8_t auth_packet_page1[] = {
+        0x20,
+        0x01,
+        0x01,
+        0xDD, 0xEE, 0xFF, 0x10,
+        0x20, 0x30, 0x40, 0x50,
+        0x60, 0x70, 0x80, 0x90,
+        0x12, 0x34, 0x56, 0x78,
+        0x9A, 0xBC, 0xDE, 0xF0,
+        0x01, 0x02
+};
+
+    int authentication_result = decode_auth(auth_packet, sizeof(auth_packet), &auth_data);
+    if (authentication_result != 0){
+        printf("failed to decode authentication");
+        return -1;
+    }
+    printf("===== Authentication =====\n");
+    printf("Message Type    : %s\n", msg_type_to_str(auth_data.msg_type));
+    printf("Auth Type       : %s\n", auth_type_to_str(auth_data.auth_type));
+    printf("Data Page       : %u\n", auth_data.data_page);
+    printf("Last Page Index : %u\n", auth_data.last_page_idx);
+    printf("Length          : %u bytes\n", auth_data.length);
+    printf("Timestamp       : %u\n", auth_data.timestamp);
+
+    printf("Authentication Data:\n");
+    int bytes = (auth_data.data_page == 0) ? 16 : 22;
+    for (int i = 0; i < bytes; i++){
+        printf("%02X ", auth_data.AuthData[i]);
+
+            if ((i + 1) % 8 == 0)
+                printf("\n");
+    }
+    printf("\n");
+        return 0;
 }

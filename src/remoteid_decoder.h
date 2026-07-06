@@ -3,6 +3,7 @@
 #define DECODER_H
 #define DRONE_ID_ERR 1
 #define DRONE_LOCATION_ERR 1
+#define AUTH_ERR 1
 #define DJI_MAX_SIZE 20
 #define MIN_DIR         0       // Minimum direction
 #define MAX_DIR         360     // Maximum direction
@@ -147,9 +148,51 @@ typedef struct DRONE_ID_Location_data {
     float TimeStamp;          // seconds after the full hour relative to UTC. Invalid, No Value, or Unknown: 0xFFFF
 } DRONE_ID_Location_data;
 
+typedef enum messagetype {
+    MESSAGETYPE_BASIC_ID = 0,
+    MESSAGETYPE_LOCATION = 1,
+    MESSAGETYPE_AUTH = 2,
+    MESSAGETYPE_SELF_ID = 3,
+    MESSAGETYPE_SYSTEM = 4,
+    MESSAGETYPE_OPERATOR_ID = 5,
+    MESSAGETYPE_PACKED = 0xF,
+    MESSAGETYPE_INVALID = 0xFF,
+} messagetype_t;
+
+typedef enum authentication_type {
+    AUTH_NONE = 0,
+    AUTH_UAS_ID_SIGNATURE = 1,
+    AUTH_OPERATOR_ID_SIGNATURE = 2,
+    AUTH_MSG_SET_SIGNATURE = 3,
+    AUTH_NET_REMOTE_ID = 4,
+    AUTH_SPECIFIC_AUTH = 5,
+} auth_type_t;
+
+typedef struct authentication_data {
+    uint8_t msg_type;
+    uint8_t data_page;
+    auth_type_t auth_type;
+    uint8_t last_page_idx;
+    uint8_t length;
+    uint32_t timestamp;
+    uint8_t AuthData[23+1]; 
+} authentication_data;
+
+typedef enum loc_status {
+    STATUS_UNDECLARED = 0,
+    STATUS_GROUND = 1,
+    STATUS_AIRBORNE = 2,
+    STATUS_EMERGENCY = 3,
+    STATUS_REMOTE_ID_SYSTEM_FAILURE = 4,
+} loc_status_t
+;
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
-const char *uatype_to_string(DRONE_ID_uatype_t uatype);
-const char *idtype_to_string(DRONE_ID_idtype_t idtype);
+const char *uatype_to_str(DRONE_ID_uatype_t uatype);
+const char *idtype_to_str(DRONE_ID_idtype_t idtype);
+const char *msg_type_to_str(messagetype_t msg_type);
+const char *auth_type_to_str(auth_type_t msg_type);
+const char *status_to_str(loc_status_t status_type);
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data); 
+int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data);
 #endif
 

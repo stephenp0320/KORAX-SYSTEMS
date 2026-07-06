@@ -37,20 +37,20 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
         return DRONE_LOCATION_ERR;
     }
     location_data->Status = packet[1] & 0x0F;
-    location_data->Direction = packet[2] & 0x0F;
-    location_data->SpeedHorizontal = packet[3] & 0x0F;
-    location_data->SpeedVertical = packet[4] & 0x0F;
-    uint32_t latitude_raw = 
-        ((uint32_t)packet[5] << 24) | 
-        ((uint32_t)packet[6] << 16) | 
-        ((uint32_t)packet[7] << 8)  | 
-        ((uint32_t)packet[8]);
+    location_data->Direction = packet[2];
+    location_data->SpeedHorizontal = packet[3];
+    location_data->SpeedVertical = packet[4];
+    int32_t latitude_raw = 
+        ((int32_t)packet[5] << 24) | 
+        ((int32_t)packet[6] << 16) | 
+        ((int32_t)packet[7] << 8)  | 
+        ((int32_t)packet[8]);
     location_data->Latitude = latitude_raw / 10000000.0;
-    uint32_t longitude_raw = 
-        ((uint32_t)packet[9] << 24) | 
-        ((uint32_t)packet[10] << 16)| 
-        ((uint32_t)packet[11] << 8) | 
-        ((uint32_t)packet[12]);
+    int32_t longitude_raw = 
+        ((int32_t)packet[9] << 24) | 
+        ((int32_t)packet[10] << 16)| 
+        ((int32_t)packet[11] << 8) | 
+        ((int32_t)packet[12]);
     location_data->Longitude = longitude_raw / 10000000.0;
     uint16_t barometric_alt_raw = 
         ((uint16_t)packet[13] << 8) |
@@ -77,7 +77,7 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     return 0;
 }
 
-const char *idtype_to_string(DRONE_ID_idtype_t type){
+const char *idtype_to_str(DRONE_ID_idtype_t type){
     switch (type){
         case DRONE_ID_IDTYPE_SERIAL_NUMBER:
             return "IDTYPE_SERIAL_NUMBER";
@@ -94,7 +94,7 @@ const char *idtype_to_string(DRONE_ID_idtype_t type){
     }
 }
 
-const char *uatype_to_string(DRONE_ID_uatype_t type){
+const char *uatype_to_str(DRONE_ID_uatype_t type){
     switch (type){
         case DRONE_ID_UATYPE_AEROPLANE:
             return "UATYPE_AEROPLANE";
@@ -129,6 +129,88 @@ const char *uatype_to_string(DRONE_ID_uatype_t type){
         default:
             return "UATYPE_UNKNOWN";
     }
+}
+
+const char *msg_type_to_str(messagetype_t msg_type){
+    switch(msg_type){
+        case MESSAGETYPE_BASIC_ID:
+            return "MESSAGETYPE_BASIC_ID";
+        case MESSAGETYPE_AUTH:
+            return "MESSAGETYPE_AUTH";
+        case MESSAGETYPE_LOCATION:
+            return "MESSAGETYPE_LOCATION";
+        case MESSAGETYPE_OPERATOR_ID:
+            return "MESSAGETYPE_OPERATOR_ID";
+        case MESSAGETYPE_PACKED:
+            return "MESSAGETYPE_PACKED";
+        case MESSAGETYPE_SYSTEM:
+            return "MESSAGETYPE_SYSTEM";
+        default:
+            return "MESSAGETYPE_INVALID";
+    }
+}
+
+const char *status_to_str(loc_status_t status_type){
+    switch(status_type){
+        case STATUS_GROUND:
+            return "STATUS_GROUND";
+        case STATUS_AIRBORNE:
+            return "STATUS_AIRBORNE";
+        case STATUS_EMERGENCY:
+            return "STATUS_EMERGENCY";
+        case STATUS_REMOTE_ID_SYSTEM_FAILURE:
+            return "STATUS_REMOTE_ID_SYSTEM_FAILURE";
+        case STATUS_UNDECLARED:
+            return "STATUS_UNDECLARED";
+        default:
+            return "UNKNOWN_STATUS";
+    }
+
+}
+
+const char *auth_type_to_str(auth_type_t auth_type){
+    switch(auth_type){
+        case AUTH_UAS_ID_SIGNATURE:
+            return "AUTH_UAS_ID_SIGNATURE";
+        case AUTH_OPERATOR_ID_SIGNATURE:
+            return "AUTH_OPERATOR_ID_SIGNATURE";
+        case AUTH_MSG_SET_SIGNATURE:
+            return "AUTH_MSG_SET_SIGNATURE";
+        case AUTH_NET_REMOTE_ID:
+            return "AUTH_NET_REMOTE_ID";
+        case AUTH_SPECIFIC_AUTH:
+            return "AUTH_SPECIFIC_AUTH";
+        case AUTH_NONE:
+            return "AUTH_NONE";
+        default:
+            return "UNKNOWN_AUTH";
+    }
+
+}
+
+int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data){
+    if (!packet || !auth_data){
+        return AUTH_ERR;
+    }
+    if (packet_len < 25){
+        return AUTH_ERR;
+    }
+    auth_data->msg_type = (packet[0] >> 4) & 0x0F;
+    auth_data->auth_type = packet[1] & 0x0F;
+    auth_data->data_page = packet[2] & 0x0F;
+    if (auth_data->data_page == 0){
+        auth_data->last_page_idx = packet[3];
+        auth_data->length = packet[4];
+        auth_data->timestamp =
+            ((uint32_t)packet[5] << 24) |
+            ((uint32_t)packet[6] << 16) |
+            ((uint32_t)packet[7] << 8)  |
+            ((uint32_t)packet[8]);
+        memcpy(auth_data->AuthData, &packet[9], 16);
+    } else {
+        memcpy(auth_data->AuthData, &packet[3], 22);
+    }
+    return 0;
 }
 
 int decoder(char *droneID, droneID_basicID_data *basicID){
