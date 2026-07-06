@@ -1,7 +1,149 @@
 #ifndef DECODER_H
 #define DECODER_H
-#define OPEN_DRONE_ID_ERR 1
+#define DRONE_ID_ERR 1
 #define DJI_MAX_SIZE 20
+#define MIN_DIR         0       // Minimum direction
+#define MAX_DIR         360     // Maximum direction
+#define INV_DIR         361     // Invalid direction
+#define MIN_SPEED_H     0       // Minimum speed horizontal
+#define MAX_SPEED_H     254.25f // Maximum speed horizontal
+#define INV_SPEED_H     255     // Invalid speed horizontal
+#define MIN_SPEED_V     (-62)   // Minimum speed vertical
+#define MAX_SPEED_V     62      // Maximum speed vertical
+#define INV_SPEED_V     63      // Invalid speed vertical
+#define MIN_LAT         (-90)   // Minimum latitude
+#define MAX_LAT         90      // Maximum latitude
+#define MIN_LON         (-180)  // Minimum longitude
+#define MAX_LON         180     // Maximum longitude
+#define MIN_ALT         (-1000) // Minimum altitude
+#define MAX_ALT         31767.5f// Maximum altitude
+#define INV_ALT         MIN_ALT // Invalid altitude
+#define MAX_TIMESTAMP   (60 * 60) // 1 hour in seconds
+#define INV_TIMESTAMP   0xFFFF  
+#define MAX_AREA_RADIUS 2550
+#define DRONE_ID_SIZE 20
+
+typedef enum DRONE_ID_uatype {
+    DRONE_ID_UATYPE_NONE = 0,
+    DRONE_ID_UATYPE_AEROPLANE = 1,
+    DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR = 2,
+    DRONE_ID_UATYPE_GYROPLANE = 3,
+    DRONE_ID_UATYPE_HYBRID_LIFT = 4,
+    DRONE_ID_UATYPE_ORNITHOPTER = 5,
+    DRONE_ID_UATYPE_GLIDER = 6,
+    DRONE_ID_UATYPE_KITE = 7,
+    DRONE_ID_UATYPE_FREE_BALLOON = 8,
+    DRONE_ID_UATYPE_CAPTIVE_BALLOON = 9,
+    DRONE_ID_UATYPE_AIRSHIP = 10, 
+    DRONE_ID_UATYPE_FREE_FALL_PARACHUTE = 11, 
+    DRONE_ID_UATYPE_ROCKET = 12,
+    DRONE_ID_UATYPE_TETHERED_POWERED_AIRCRAFT = 13,
+    DRONE_ID_UATYPE_GROUND_OBSTACLE = 14,
+    DRONE_ID_UATYPE_OTHER = 15,
+} DRONE_ID_uatype_t;
+
+typedef enum DRONE_ID_idtype {
+    DRONE_ID_IDTYPE_NONE = 0,
+    DRONE_ID_IDTYPE_SERIAL_NUMBER = 1,
+    DRONE_ID_IDTYPE_CAA_REGISTRATION_ID = 2, // Civil Aviation Authority
+    DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID = 3,   // UAS (Unmanned Aircraft System) Traffic Management
+    DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID = 4, // The exact id type is specified by the first byte of UASID and these type
+                                         // values are managed by ICAO. 0 is reserved. 1 - 224 are managed by ICAO.
+                                         // 225 - 255 are available for private experimental usage only
+} DRONE_ID_idtype_t;
+
+typedef struct droneID_basicID_data {
+	DRONE_ID_uatype_t UAType;
+	DRONE_ID_idtype_t IDType;
+	char UASID[DRONE_ID_SIZE+1];
+} droneID_basicID_data;
+
+typedef enum DRONE_ID_status {
+    DRONE_ID_STATUS_UNDECLARED = 0,
+    DRONE_ID_STATUS_GROUND = 1,
+    DRONE_ID_STATUS_AIRBORNE = 2,
+    DRONE_ID_STATUS_EMERGENCY = 3,
+    DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE = 4,
+    // 3 to 15 reserved
+} DRONE_ID_status_t;
+
+typedef enum DRONE_ID_Height_reference {
+    DRONE_ID_HEIGHT_REF_OVER_TAKEOFF = 0,
+    DRONE_ID_HEIGHT_REF_OVER_GROUND = 1,
+} DRONE_ID_Height_reference_t;
+
+typedef enum DRONE_ID_Horizontal_accuracy {
+    DRONE_ID_HOR_ACC_UNKNOWN = 0,
+    DRONE_ID_HOR_ACC_10NM = 1,      // Nautical Miles. 18.52 km
+    DRONE_ID_HOR_ACC_4NM = 2,       // 7.408 km
+    DRONE_ID_HOR_ACC_2NM = 3,       // 3.704 km
+    DRONE_ID_HOR_ACC_1NM = 4,       // 1.852 km
+    DRONE_ID_HOR_ACC_0_5NM = 5,     // 926 m
+    DRONE_ID_HOR_ACC_0_3NM = 6,     // 555.6 m
+    DRONE_ID_HOR_ACC_0_1NM = 7,     // 185.2 m
+    DRONE_ID_HOR_ACC_0_05NM = 8,    // 92.6 m
+    DRONE_ID_HOR_ACC_30_METER = 9,
+    DRONE_ID_HOR_ACC_10_METER = 10,
+    DRONE_ID_HOR_ACC_3_METER = 11,
+    DRONE_ID_HOR_ACC_1_METER = 12,
+    // 13 to 15 reserved
+} DRONE_ID_Horizontal_accuracy_t;
+
+typedef enum DRONE_ID_Vertical_accuracy {
+    DRONE_ID_VER_ACC_UNKNOWN = 0,
+    DRONE_ID_VER_ACC_150_METER = 1,
+    DRONE_ID_VER_ACC_45_METER = 2,
+    DRONE_ID_VER_ACC_25_METER = 3,
+    DRONE_ID_VER_ACC_10_METER = 4,
+    DRONE_ID_VER_ACC_3_METER = 5,
+    DRONE_ID_VER_ACC_1_METER = 6,
+} DRONE_ID_Vertical_accuracy_t;
+
+typedef enum DRONE_ID_Speed_accuracy {
+    DRONE_ID_SPEED_ACC_UNKNOWN = 0,
+    DRONE_ID_SPEED_ACC_10_METERS_PER_SECOND = 1,
+    DRONE_ID_SPEED_ACC_3_METERS_PER_SECOND = 2,
+    DRONE_ID_SPEED_ACC_1_METERS_PER_SECOND = 3,
+    DRONE_ID_SPEED_ACC_0_3_METERS_PER_SECOND = 4,
+} DRONE_ID_Speed_accuracy_t;
+
+typedef enum DRONE_ID_Timestamp_accuracy {
+    DRONE_ID_TIME_ACC_UNKNOWN = 0,
+    DRONE_ID_TIME_ACC_0_1_SECOND = 1,
+    DRONE_ID_TIME_ACC_0_2_SECOND = 2,
+    DRONE_ID_TIME_ACC_0_3_SECOND = 3,
+    DRONE_ID_TIME_ACC_0_4_SECOND = 4,
+    DRONE_ID_TIME_ACC_0_5_SECOND = 5,
+    DRONE_ID_TIME_ACC_0_6_SECOND = 6,
+    DRONE_ID_TIME_ACC_0_7_SECOND = 7,
+    DRONE_ID_TIME_ACC_0_8_SECOND = 8,
+    DRONE_ID_TIME_ACC_0_9_SECOND = 9,
+    DRONE_ID_TIME_ACC_1_0_SECOND = 10,
+    DRONE_ID_TIME_ACC_1_1_SECOND = 11,
+    DRONE_ID_TIME_ACC_1_2_SECOND = 12,
+    DRONE_ID_TIME_ACC_1_3_SECOND = 13,
+    DRONE_ID_TIME_ACC_1_4_SECOND = 14,
+    DRONE_ID_TIME_ACC_1_5_SECOND = 15,
+} DRONE_ID_Timestamp_accuracy_t;
+
+typedef struct DRONE_ID_Location_data {
+    DRONE_ID_status_t Status;
+    float Direction;          // Degrees. 0 <= x < 360. Route course based on true North. Invalid, No Value, or Unknown: 361deg
+    float SpeedHorizontal;    // m/s. Positive only. Invalid, No Value, or Unknown: 255m/s. If speed is >= 254.25 m/s: 254.25m/s
+    float SpeedVertical;      // m/s. Invalid, No Value, or Unknown: 63m/s. If speed is >= 62m/s: 62m/s
+    double Latitude;          // Invalid, No Value, or Unknown: 0 deg (both Lat/Lon)
+    double Longitude;         // Invalid, No Value, or Unknown: 0 deg (both Lat/Lon)
+    float AltitudeBaro;       // meter (Ref 29.92 inHg, 1013.24 mb). Invalid, No Value, or Unknown: -1000m
+    float AltitudeGeo;        // meter (WGS84-HAE). Invalid, No Value, or Unknown: -1000m
+    DRONE_ID_Height_reference_t HeightType;
+    float Height;             // meter. Invalid, No Value, or Unknown: -1000m
+    DRONE_ID_Horizontal_accuracy_t HorizAccuracy;
+    DRONE_ID_Vertical_accuracy_t VertAccuracy;
+    DRONE_ID_Vertical_accuracy_t BaroAccuracy;
+    DRONE_ID_Speed_accuracy_t SpeedAccuracy;
+    DRONE_ID_Timestamp_accuracy_t TSAccuracy;
+    float TimeStamp;          // seconds after the full hour relative to UTC. Invalid, No Value, or Unknown: 0xFFFF
+} DRONE_ID_Location_data;
 
 int decoder(char *openDroneID);
 
