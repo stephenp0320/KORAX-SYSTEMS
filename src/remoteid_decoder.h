@@ -1,3 +1,4 @@
+#include <stdint.h>
 #ifndef DECODER_H
 #define DECODER_H
 #define DRONE_ID_ERR 1
@@ -145,7 +146,7 @@ typedef struct DRONE_ID_Location_data {
     float TimeStamp;          // seconds after the full hour relative to UTC. Invalid, No Value, or Unknown: 0xFFFF
 } DRONE_ID_Location_data;
 
-int decoder(char *openDroneID);
+int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 
 #endif
 
