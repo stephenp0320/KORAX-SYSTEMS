@@ -150,22 +150,21 @@ const char *msg_type_to_str(messagetype_t msg_type){
     }
 }
 
-const char *status_to_str(loc_status_t status_type){
+const char *status_to_str(DRONE_ID_status_t status_type){
     switch(status_type){
-        case STATUS_GROUND:
+        case DRONE_ID_STATUS_GROUND:
             return "STATUS_GROUND";
-        case STATUS_AIRBORNE:
+        case DRONE_ID_STATUS_AIRBORNE:
             return "STATUS_AIRBORNE";
-        case STATUS_EMERGENCY:
+        case DRONE_ID_STATUS_EMERGENCY:
             return "STATUS_EMERGENCY";
-        case STATUS_REMOTE_ID_SYSTEM_FAILURE:
+        case DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE:
             return "STATUS_REMOTE_ID_SYSTEM_FAILURE";
-        case STATUS_UNDECLARED:
+        case DRONE_ID_STATUS_UNDECLARED:
             return "STATUS_UNDECLARED";
         default:
             return "UNKNOWN_STATUS";
     }
-
 }
 
 const char *auth_type_to_str(auth_type_t auth_type){

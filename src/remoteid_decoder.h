@@ -67,7 +67,6 @@ typedef enum DRONE_ID_status {
     DRONE_ID_STATUS_AIRBORNE = 2,
     DRONE_ID_STATUS_EMERGENCY = 3,
     DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE = 4,
-    // 3 to 15 reserved
 } DRONE_ID_status_t;
 
 typedef enum DRONE_ID_Height_reference {
@@ -178,20 +177,13 @@ typedef struct authentication_data {
     uint8_t AuthData[23+1]; 
 } authentication_data;
 
-typedef enum loc_status {
-    STATUS_UNDECLARED = 0,
-    STATUS_GROUND = 1,
-    STATUS_AIRBORNE = 2,
-    STATUS_EMERGENCY = 3,
-    STATUS_REMOTE_ID_SYSTEM_FAILURE = 4,
-} loc_status_t
 ;
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
 const char *msg_type_to_str(messagetype_t msg_type);
 const char *auth_type_to_str(auth_type_t msg_type);
-const char *status_to_str(loc_status_t status_type);
+const char *status_to_str(DRONE_ID_status_t status_type);
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data); 
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data);
 #endif
