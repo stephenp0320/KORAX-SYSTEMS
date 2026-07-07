@@ -1,7 +1,13 @@
 #include <stdint.h>
 #ifndef DECODER_H
 #define DECODER_H
+#define MSG_SUCCESS 0
 #define DRONE_ID_ERR 1
+#define AUTH_PACK_SIZE 22
+#define DRONE_ID_PACK_SIZE 22
+#define SELFID_PACK_SIZE 25
+#define SYSMSG_PACK_SIZE 25
+#define OPID_PACK_SIZE 25
 #define DRONE_LOCATION_ERR 1
 #define OPP_ID_ERR 1
 #define AUTH_ERR 1

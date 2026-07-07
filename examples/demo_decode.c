@@ -57,7 +57,7 @@ int main(void){
         0x55, 0x66, 0x77, 0x88,
         0x99, 0xAA, 0xBB, 0xCC
 };
-    uint8_t auth_packet_page1[] = {
+/*    uint8_t auth_packet_page1[] = {
         0x20,
         0x01,
         0x01,
@@ -68,6 +68,7 @@ int main(void){
         0x9A, 0xBC, 0xDE, 0xF0,
         0x01, 0x02
 };
+    */
 
     int authentication_result = decode_auth(auth_packet, sizeof(auth_packet), &auth_data);
     if (authentication_result != 0){

@@ -11,17 +11,14 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 	if (!packet || !basicID){
 		return DRONE_ID_ERR;
 	}
-	if (packet_len < 22){
+	if (packet_len < DRONE_ID_PACK_SIZE){
 		return DRONE_ID_ERR;
 	}
 	uint8_t msg_type = (packet[0] >> 4) & 0x0F;
-	if (msg_type != 0){
+	if (msg_type != MSG_SUCCESS){
 		return DRONE_ID_ERR;
 	}
-//	uint8_t protocol_version = packet[1];
-//	if (protocol_version != 1){
-//		return DRONE_ID_ERR;
-//	}
+
 	basicID->UAType = (DRONE_ID_uatype_t)packet[1] & 0x0F;
 	basicID->IDType = (DRONE_ID_idtype_t)(packet[1] >> 4) & 0x0F; 
 	memcpy(basicID->UASID, &packet[2], DRONE_ID_SIZE);
@@ -191,7 +188,7 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     if (!packet || !auth_data){
         return AUTH_ERR;
     }
-    if (packet_len < 25){
+    if (packet_len < AUTH_PACK_SIZE){
         return AUTH_ERR;
     }
     auth_data->msg_type = (packet[0] >> 4) & 0x0F;
@@ -216,7 +213,7 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
     if (!packet || !selfID){
         return DRONE_ID_ERR;
     } 
-    if (packet_len < 25){
+    if (packet_len < SELFID_PACK_SIZE){
         return DRONE_ID_ERR;
     }
     selfID->msg_type = packet[0];
@@ -230,8 +227,7 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
     if (!packet || !system_msg) {
         return DRONE_ID_ERR;
     }
-
-    if (packet_len < 25) {
+    if (packet_len < SYSMSG_PACK_SIZE) {
         return DRONE_ID_ERR;
     }
 
@@ -276,7 +272,7 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
     if (!packet || !op_id){
         return OPP_ID_ERR;
     }
-    if (packet_len < 25){
+    if (packet_len < OPID_PACK_SIZE){
         return OPP_ID_ERR;
     }
     op_id->msg_type = packet[0];
