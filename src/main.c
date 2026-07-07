@@ -91,5 +91,56 @@ int main(void){
                 printf("\n");
     }
     printf("\n");
-        return 0;
+
+    selfID_data selfID_data;
+    uint8_t self_packet[] = {
+        0x30,
+        0x01,
+        'I','n','s','p','e','c','t','i','o','n',' ',
+        'F','l','i','g','h','t',
+        0,0,0,0,0,0
+};
+    int selfID_result = decode_selfID(self_packet, sizeof(self_packet), &selfID_data);
+    if (selfID_result != 0){
+        printf("failed to decode selfID\n");
+        return -1;
+    }
+    printf("===== Self Identification =====\n");
+    printf("Message Type     : %u\n", selfID_data.msg_type);
+    printf("Description Type : %u\n", selfID_data.DescType);
+    printf("Description      : %s\n\n", selfID_data.desc);
+
+    sys_data sys_msg_data;
+    uint8_t system_packet[] = {
+    0x40,
+    0x1F, 0x65, 0x4A, 0x80,
+    0xFA, 0xDB, 0x8E, 0x80,
+    0x02,
+    0x64,
+    0x08, 0x98,
+    0x07, 0xF8,
+    0x21,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00
+};
+    int sys_msg_Result = decode_system_msg(system_packet, sizeof(system_packet), &sys_msg_data);
+    if (sys_msg_Result != 0){
+        printf("failed to decode system message\n");
+        return -1;
+    }
+    printf("===== System Message =====\n");
+    printf("Message Type       : %u\n", sys_msg_data.msg_type);
+    printf("Operator Loc Type  : %u\n", sys_msg_data.OperatorLocType);
+    printf("Classification Type: %u\n", sys_msg_data.ClassificationType);
+    printf("Area Count         : %u\n", sys_msg_data.AreaCount);
+    printf("Operator Latitude  : %.7f\n", sys_msg_data.OperatorLatitude);
+    printf("Operator Longitude : %.7f\n", sys_msg_data.OperatorLongitude);
+    printf("Area Radius        : %u m\n", sys_msg_data.AreaRadius);
+    printf("Area Ceiling       : %.1f m\n", sys_msg_data.AreaCeiling);
+    printf("Area Floor         : %.1f m\n", sys_msg_data.AreaFloor);
+    printf("Category (EU)      : %u\n", sys_msg_data.CategoryEU);
+    printf("Class (EU)         : %u\n", sys_msg_data.ClassEU);
+    printf("Operator Altitude  : %.1f m\n", sys_msg_data.OperatorAltitudeGeo);
+    printf("Timestamp          : %u\n\n", sys_msg_data.Timestamp);
+    return 0;
 }

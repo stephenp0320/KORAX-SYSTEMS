@@ -25,6 +25,8 @@
 #define INV_TIMESTAMP   0xFFFF  
 #define MAX_AREA_RADIUS 2550
 #define DRONE_ID_SIZE 20
+#define DRONE_ID_STR_SIZE 23
+
 
 typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_NONE = 0,
@@ -177,7 +179,64 @@ typedef struct authentication_data {
     uint8_t AuthData[23+1]; 
 } authentication_data;
 
-;
+typedef enum desctype {
+    DESC_TYPE_TEXT = 0,
+    DESC_TYPE_EMERGENCY = 1,       // is == EMERGENCY
+    DESC_TYPE_EXTENDED_STATUS = 2, // not != EMERGENCY
+} desctype_t;
+
+typedef struct selfID_data {
+    uint8_t msg_type;
+    desctype_t DescType;
+    char desc[DRONE_ID_STR_SIZE + 1];
+} selfID_data;
+
+typedef enum operator_location_type {
+    OP_LOCATION_TYPE_TAKEOFF = 0,   // Takeoff location and altitude
+    OP_LOCATION_TYPE_LIVE_GNSS = 1, // Dynamic/Live location and altitude
+    OP_LOCATION_TYPE_FIXED = 2,     // Fixed location and altitude
+} operator_location_type_t;
+
+typedef enum classification_type {
+    CLASSIFICATION_TYPE_UNDECLARED = 0,
+    CLASSIFICATION_TYPE_EU = 1, // European Union
+} classification_type_t;
+
+typedef enum category_EU {
+    CATEGORY_EU_UNDECLARED = 0,
+    CATEGORY_EU_OPEN = 1,
+    CATEGORY_EU_SPECIFIC = 2,
+    CATEGORY_EU_CERTIFIED = 3,
+} category_EU_t;
+
+typedef enum class_EU {
+    CLASS_EU_UNDECLARED = 0,
+    CLASS_EU_CLASS_0 = 1,
+    CLASS_EU_CLASS_1 = 2,
+    CLASS_EU_CLASS_2 = 3,
+    CLASS_EU_CLASS_3 = 4,
+    CLASS_EU_CLASS_4 = 5,
+    CLASS_EU_CLASS_5 = 6,
+    CLASS_EU_CLASS_6 = 7,
+    // 8 to 15 reserved
+} class_EU_t;
+
+typedef struct sys_data {
+    uint8_t msg_type;
+    operator_location_type_t OperatorLocType;
+    classification_type_t ClassificationType;
+    uint16_t AreaCount;
+    double OperatorLatitude;
+    double OperatorLongitude;
+    uint16_t AreaRadius;
+    float AreaCeiling;
+    float AreaFloor;
+    category_EU_t CategoryEU; 
+    class_EU_t ClassEU;
+    float OperatorAltitudeGeo;
+    uint32_t Timestamp;
+} sys_data;
+
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
@@ -186,5 +245,7 @@ const char *auth_type_to_str(auth_type_t msg_type);
 const char *status_to_str(DRONE_ID_status_t status_type);
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data); 
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data);
+int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID);
+int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg);
 #endif
 

@@ -212,6 +212,65 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     return 0;
 }
 
+int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
+    if (!packet || !selfID){
+        return DRONE_ID_ERR;
+    } 
+    if (packet_len < 25){
+        return DRONE_ID_ERR;
+    }
+    selfID->msg_type = packet[0];
+    selfID->DescType = packet[1];
+    memcpy(selfID->desc, &packet[2], 23);
+    selfID->desc[23] = '\0';
+    return 0;
+}
+
+int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg){
+    if (!packet || !system_msg) {
+        return DRONE_ID_ERR;
+    }
+
+    if (packet_len < 25) {
+        return DRONE_ID_ERR;
+    }
+
+    system_msg->msg_type = packet[0];
+    system_msg->OperatorLocType = 0;
+    system_msg->ClassificationType = 0;
+
+    int32_t operator_lat_raw =
+        ((int32_t)packet[1] << 24) |
+        ((int32_t)packet[2] << 16) |
+        ((int32_t)packet[3] << 8)  |
+        ((int32_t)packet[4]);
+
+    system_msg->OperatorLatitude = operator_lat_raw / 10000000.0;
+    int32_t operator_lon_raw =
+        ((int32_t)packet[5] << 24) |
+        ((int32_t)packet[6] << 16) |
+        ((int32_t)packet[7] << 8)  |
+        ((int32_t)packet[8]);
+
+    system_msg->OperatorLongitude = operator_lon_raw / 10000000.0;
+    system_msg->AreaCount = packet[9];
+    system_msg->AreaRadius = packet[10];
+    uint16_t areaCeil_raw =
+        ((uint16_t)packet[11] << 8) |
+        (uint16_t)packet[12];
+
+    system_msg->AreaCeiling = (areaCeil_raw * 0.5f) - 1000.0f;
+    uint16_t areaFloor_raw =
+        ((uint16_t)packet[13] << 8) |
+        (uint16_t)packet[14];
+
+    system_msg->AreaFloor = (areaFloor_raw * 0.5f) - 1000.0f;
+    system_msg->CategoryEU = packet[15];
+    system_msg->ClassEU = 0;
+    system_msg->OperatorAltitudeGeo = 0.0f;
+    system_msg->Timestamp = 0;
+    return 0;
+}
 int decoder(char *droneID, droneID_basicID_data *basicID){
 	if (!droneID || !basicID){
 		return DRONE_ID_ERR;
