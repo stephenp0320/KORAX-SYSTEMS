@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "remoteid_decoder.h"
+#include "decode.h"
 int main(void){
     uint8_t basic_packet[] = {
         0x00,       // message type/version

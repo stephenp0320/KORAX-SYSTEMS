@@ -1,30 +1,25 @@
 CC = gcc
- CFLAGS = -Wall -Wextra -Wpedantic -std=c11 -Iinclude
+CFLAGS = -Wall -Wextra -std=c11 -Iinclude
 
- SRC_DIR = src
- TEST_DIR = tests
+SRC = src/decode/decode.c
+DEMO = examples/demo_decode.c
+TEST = tests/test_decode_full.c
 
- SRC = $(SRC_DIR)/remoteid_decoder.c
- MAIN = $(SRC_DIR)/main.c
- TEST = $(TEST_DIR)/test_decoder_full.c
+APP = wingprint_demo
+TEST_APP = test_decode
 
- APP = remoteid_decoder
- TEST_APP = test_decoder
+.PHONY: all test clean
 
- .PHONY: all test clean rebuild
+all: $(APP)
 
- all: $(APP)
+$(APP): $(DEMO) $(SRC)
+	$(CC) $(CFLAGS) $^ -o $@
 
- $(APP): $(MAIN) $(SRC)
-	 $(CC) $(CFLAGS) $^ -o $@
+$(TEST_APP): $(TEST) $(SRC)
+	$(CC) $(CFLAGS) $^ -o $@
 
- $(TEST_APP): $(TEST) $(SRC)
-	 $(CC) $(CFLAGS) $^ -o $@
+test: $(TEST_APP)
+	./$(TEST_APP)
 
- test: $(TEST_APP)
-	 ./$(TEST_APP)
-
- clean:
-	 rm -f $(APP) $(TEST_APP)
-
- rebuild: clean all $(APP) $(TEST_APP)
+clean:
+	rm -f $(APP) $(TEST_APP)

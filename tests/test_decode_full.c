@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "remoteid_decoder.h"
+#include "decode.h"
 
 static int tests_run = 0;
 static int tests_failed = 0;
