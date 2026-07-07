@@ -12,30 +12,30 @@ int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *out
     if (!packet || !out){
         return MSG_ERR;
     }
-    if (packet_len < BLE_PACK_SIZE){
+    if (packet_len < RID_MESSAGE_SIZE){
         return PACK_OVERFLOW_ERR;
     }
     uint8_t msg_type = packet[0] & 0x0F;
     switch (msg_type){
-        case 0x00:
+        case MESSAGETYPE_BASIC_ID:
             out->type = MESSAGETYPE_BASIC_ID;
             return decode_basic_id(packet, packet_len, &out->data.basic_id);
-        case 0x10:
+        case MESSAGETYPE_LOCATION:
             out->type = MESSAGETYPE_LOCATION;
             return decode_location_vector(packet, packet_len, &out->data.location);
-        case 0x20:
+        case MESSAGETYPE_AUTH:
             out->type = MESSAGETYPE_AUTH;
             return decode_auth(packet, packet_len, &out->data.auth);
-        case 0x30:
+        case MESSAGETYPE_SELF_ID:
             out->type = MESSAGETYPE_SELF_ID;
             return decode_selfID(packet, packet_len, &out->data.self_id);
-        case 0x40:
+        case MESSAGETYPE_SYSTEM:
             out->type = MESSAGETYPE_SYSTEM;
             return decode_system_msg(packet, packet_len, &out->data.system);
-        case 0x50:
+        case MESSAGETYPE_OPERATOR_ID:
             out->type = MESSAGETYPE_OPERATOR_ID;
             return decode_operator_id(packet, packet_len, &out->data.operator_id);
-        case 0x60:
+        case MESSAGETYPE_PACKED:
             out->type = MESSAGETYPE_PACKED;
             return MESSAGETYPE_PACKED_NOT_IMPLEMENTED;
         default:
