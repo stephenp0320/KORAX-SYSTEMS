@@ -3,6 +3,7 @@
 #define DECODER_H
 #define DRONE_ID_ERR 1
 #define DRONE_LOCATION_ERR 1
+#define OPP_ID_ERR 1
 #define AUTH_ERR 1
 #define DJI_MAX_SIZE 20
 #define MIN_DIR         0       // Minimum direction
@@ -26,7 +27,7 @@
 #define MAX_AREA_RADIUS 2550
 #define DRONE_ID_SIZE 20
 #define DRONE_ID_STR_SIZE 23
-
+#define OPERATOR_ID_SIZE 20
 
 typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_NONE = 0,
@@ -237,6 +238,16 @@ typedef struct sys_data {
     uint32_t Timestamp;
 } sys_data;
 
+typedef enum operatorIdType {
+    ODID_OPERATOR_ID = 0,
+} operatorIdType_t;
+
+typedef struct OperatorID_data {
+    uint8_t msg_type;
+    operatorIdType_t OperatorIdType;
+    char OperatorId[OPERATOR_ID_SIZE+1];
+} OperatorID_data;
+
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
@@ -247,5 +258,6 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data);
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID);
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg);
+int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id);
 #endif
 

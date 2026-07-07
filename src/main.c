@@ -143,5 +143,23 @@ int main(void){
     printf("Class (EU)         : %u\n", sys_msg_data.ClassEU);
     printf("Operator Altitude  : %.1f m\n", sys_msg_data.OperatorAltitudeGeo);
     printf("Timestamp          : %u\n\n", sys_msg_data.Timestamp);
+
+    OperatorID_data op_id_data;
+    uint8_t operator_packet[] = {
+    0x50,
+    0x01,
+    'I','E','-','O','P','-','1','2','3','4',
+    '5','6','7','8','9','A','B','C','D','E',
+    0x00, 0x00, 0x00
+};
+    int operator_id_result = decode_operator_id(operator_packet, sizeof(operator_packet), &op_id_data);
+    if (operator_id_result != 0){
+        printf("failed to decode operator id\n");
+        return -1;
+    }
+    printf("===== Operator ID =====\n");
+    printf("Message Type     : %u\n", op_id_data.msg_type);
+    printf("Operator ID Type : %u\n", op_id_data.OperatorIdType);
+    printf("Operator ID      : %s\n\n", op_id_data.OperatorId);
     return 0;
 }

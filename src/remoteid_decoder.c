@@ -271,6 +271,21 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
     system_msg->Timestamp = 0;
     return 0;
 }
+
+int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id){
+    if (!packet || !op_id){
+        return OPP_ID_ERR;
+    }
+    if (packet_len < 25){
+        return OPP_ID_ERR;
+    }
+    op_id->msg_type = packet[0];
+    op_id->OperatorIdType = packet[1];
+     memcpy(op_id->OperatorId, &packet[2], 20);
+    op_id->OperatorId[20] = '\0';
+    return 0;
+}
+
 int decoder(char *droneID, droneID_basicID_data *basicID){
 	if (!droneID || !basicID){
 		return DRONE_ID_ERR;
