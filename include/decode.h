@@ -3,6 +3,9 @@
 #define DECODER_H
 #define MSG_SUCCESS 0
 #define DRONE_ID_ERR 1
+#define MSG_ERR 1
+#define BLE_PACK_SIZE 31
+#define PACK_OVERFLOW_ERR 1
 #define AUTH_PACK_SIZE 22
 #define DRONE_ID_PACK_SIZE 22
 #define SELFID_PACK_SIZE 25
@@ -167,6 +170,7 @@ typedef enum messagetype {
     MESSAGETYPE_INVALID = 0xFF,
 } messagetype_t;
 
+
 typedef enum authentication_type {
     AUTH_NONE = 0,
     AUTH_UAS_ID_SIGNATURE = 1,
@@ -254,6 +258,18 @@ typedef struct OperatorID_data {
     char OperatorId[OPERATOR_ID_SIZE+1];
 } OperatorID_data;
 
+typedef struct decoded_message {
+    messagetype_t type;
+    union {
+        droneID_basicID_data basic_id;
+        DRONE_ID_Location_data location;
+        authentication_data auth;
+        selfID_data self_id;
+        sys_data system;
+        OperatorID_data operator_id;
+    } data;
+
+} decoded_message_t;
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
@@ -265,5 +281,6 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID);
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg);
 int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id);
+int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *out);
 #endif
 
