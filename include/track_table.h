@@ -37,9 +37,9 @@ typedef struct {
     int num_tracks;
 } track_table_t;
 
-void track_table_init(track_table_t *table);
+void track_initialise(track_table_t *table);
 int find_track(track_table_t *table, const char *uas_id);
-int create_track(track_table_t *table, const char *uas_id);
+int track_table_create(track_table_t *table, const char *uas_id);
 int track_table_update(track_t *track, const decoded_message_t *msg);
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg);
+int decoded_message(track_table_t *table, const decoded_message_t *msg);
 #endif
