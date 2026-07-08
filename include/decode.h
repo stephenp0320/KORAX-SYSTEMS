@@ -38,6 +38,7 @@
 #define DRONE_ID_SIZE 20
 #define DRONE_ID_STR_SIZE 23
 #define OPERATOR_ID_SIZE 20
+#define RID_MSG_SIZE 25
 
 typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_NONE = 0,

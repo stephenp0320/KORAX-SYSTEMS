@@ -1,7 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude
 
-SRC = src/decode/decode.c
+SRC = \
+      src/decode/decode.c \
+      src/capture/capture_ble.c \
+      src/track/table_track.c
+
 DEMO = examples/demo_decode.c
 TEST = tests/test_decode_full.c
 

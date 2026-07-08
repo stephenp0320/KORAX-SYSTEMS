@@ -3,7 +3,6 @@
 #include <string.h>
 #include "decode.h"
 #include <stdbool.h>
-#define BLE_AD_TYPE_SERVICE_DATA_16BIT 0x16
 
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]){
     if (!ble_frame || !rid_msg) {

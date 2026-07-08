@@ -1,10 +1,12 @@
+#ifndef TRACK_TABLE_H
+#define TRACK_TABLE_H
+#include <time.h>
 #include "decode.h"
-#include "time.h"
-#define TRACK_ERR 1 
-#define TRACK_NOT_FOUND -1
-#define TRACK_TABLE_FULL -2
 #define MAX_TRACKS 100
-#define RID_MSG_SIZE 25
+#define TRACK_OK 0
+#define TRACK_ERR -1
+#define TRACK_NOT_FOUND -2
+#define TRACK_TABLE_FULL -3
 
 typedef struct {
     char uas_id[21];
@@ -24,6 +26,8 @@ typedef struct {
     int msg_count_location;
     int msg_count_system;
     int msg_count_operator_id;
+    int msg_count_auth;
+    int msg_count_self_id;
     time_t first_seen;
     time_t last_seen;
 } track_t;
@@ -32,3 +36,10 @@ typedef struct {
     track_t tracks[MAX_TRACKS];
     int num_tracks;
 } track_table_t;
+
+void track_table_init(track_table_t *table);
+int find_track(track_table_t *table, const char *uas_id);
+int create_track(track_table_t *table, const char *uas_id);
+int track_table_update(track_t *track, const decoded_message_t *msg);
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg);
+#endif

@@ -3,6 +3,13 @@
 #include <string.h>
 #include "capture.h"
 
+void track_initialise(track_table_t *table){
+	if (!table){
+		return;
+	}
+	memset(table, 0, sizeof(track_table_t));
+}
+
 int find_track(track_table_t *tracks, const char *uas_id){
 	if (!tracks || !uas_id){
 		return TRACK_NOT_FOUND;
@@ -16,43 +23,90 @@ int find_track(track_table_t *tracks, const char *uas_id){
 	return TRACK_NOT_FOUND;
 }
 
-int track_table_create(){
-	return 0;
+int track_table_create(track_table_t *table, const char *uas_id){
+	if (!table || !uas_id){
+		return TRACK_ERR;
+	}
+	if (table->num_tracks > MAX_TRACKS){
+		return TRACK_TABLE_FULL;
+	}
+	int track_num = table->num_tracks;
+	memset(&table->tracks[track_num], 0, sizeof(track_t));
+	strncpy(table->tracks[track_num].uas_id, uas_id, 20);
+	table->tracks[track_num].uas_id[20] = '\0';
+	table->tracks[track_num].first_seen = time(NULL);
+	table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
+	table->num_tracks++;
+	return track_num;
 }
 
-int track_table_update(track_t *drone_track, decoded_message_t *msg){
+int track_table_update(track_t *drone_track, const decoded_message_t *msg){
 	if (!drone_track || !msg){
 		return TRACK_ERR;
 	}
-		switch (msg->type){
+	switch (msg->type){
 		case MESSAGETYPE_BASIC_ID:
 			drone_track->basic_id = msg->data.basic_id;
+			strncpy(drone_track->uas_id, msg->data.basic_id.UASID, 20);
+			drone_track->uas_id[20] = '\0';
 			drone_track->has_basic_id = 1;
+			drone_track->msg_count_basic_id++;
 			break;
 		case MESSAGETYPE_LOCATION:
 			drone_track->location = msg->data.location;
 			drone_track->has_location = 1;
+			drone_track->msg_count_location++;
 			break;
 		case MESSAGETYPE_SYSTEM:
 			drone_track->system = msg->data.system;
 			drone_track->has_system = 1;
+			drone_track->msg_count_system++;
 			break;
 		case MESSAGETYPE_SELF_ID:
 			drone_track->self_id = msg->data.self_id;
 			drone_track->has_self_id = 1;
+			drone_track->msg_count_self_id++;
 			break;
 		case MESSAGETYPE_OPERATOR_ID:
 			drone_track->operator_id = msg->data.operator_id;
 			drone_track->has_operator_id = 1;
+			drone_track->msg_count_operator_id++;
 			break;
 		case MESSAGETYPE_AUTH:
 			drone_track->auth = msg->data.auth;
 			drone_track->has_auth = 1;
+			drone_track->msg_count_auth++;
 			break;
 		default:
 			return TRACK_ERR;
 	}
-	return 0;
+	drone_track->last_seen = time(NULL);
+	return TRACK_OK;
+}
+
+int decoded_message(track_table_t *table, const decoded_message_t *msg){
+	if (!table || !msg){
+		return TRACK_ERR;
+	}
+	const char *uas_id = NULL;
+	if (msg->type == MESSAGETYPE_BASIC_ID){
+		uas_id = msg->data.basic_id.UASID;
+	}
+
+	if (!uas_id){
+		if (table->num_tracks == 0){
+			return TRACK_NOT_FOUND;
+		}
+		return track_table_update(&table->tracks[0], msg);
+	}
+	int search = find_track(table, uas_id);
+	if (search == TRACK_NOT_FOUND){
+		search = track_table_create(table, uas_id);
+		if (search < 0){
+			return search;
+		}
+	}
+	return track_table_update(&table->tracks[search], msg);
 }
 
 void process_ble_frame(const ble_adv_frame_t *ble_frame, track_t *drone_track){
@@ -67,3 +121,4 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_t *drone_track){
 
 	track_table_update(drone_track, &msg);
 }
+
