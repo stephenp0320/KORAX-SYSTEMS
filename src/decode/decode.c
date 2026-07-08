@@ -2,11 +2,37 @@
 #include <string.h>
 #include <stdlib.h>
 #include "decode.h"
+#include "track_table.h"
 #define DJIMAXSIZE 20
 #define DJI 4
 #define WP_ID_MAX_LEN 20
 #define MESSAGETYPE_PACKED_NOT_IMPLEMENTED 1
 //decodes the drones identifer
+
+int decode_message_pack(uint8_t *packet, int len, track_table_t *table){
+    if (!packet || !table){
+        return MSG_ERR;
+    }
+
+    uint8_t msg_count = packet[0] & 0x0F; 
+    int expected_len = 1 + (msg_count * RID_MESSAGE_SIZE);
+    if (len < expected_len){
+        return PACK_OVERFLOW_ERR;
+    }
+    for (int i = 0; i < msg_count; i++){
+        const uint8_t *msg_start = packet + 1 + (i * RID_MESSAGE_SIZE);
+        decoded_message_t msg;
+        int decoded_res = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
+        if (decoded_res != 0){
+            return decoded_res;
+        }
+        int result = decoded_message(table, &msg);
+        if (result != 0){
+            return result;
+        }
+    }
+    return 0;
+}
 
 int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *out){
     if (!packet || !out){

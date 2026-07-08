@@ -39,6 +39,7 @@
 #define DRONE_ID_STR_SIZE 23
 #define OPERATOR_ID_SIZE 20
 #define RID_MSG_SIZE 25
+#define MAX_PACK_MSG 100
 
 typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_NONE = 0,
@@ -272,6 +273,12 @@ typedef struct decoded_message {
     } data;
 
 } decoded_message_t;
+
+typedef struct {
+    uint8_t num_messages;
+    uint8_t raw_messages[MAX_PACK_MSG][RID_MSG_SIZE];
+} message_pack_t;
+
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
