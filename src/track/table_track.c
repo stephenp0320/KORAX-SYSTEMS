@@ -84,7 +84,7 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
 	return TRACK_OK;
 }
 
-int decoded_message(track_table_t *table, const decoded_message_t *msg){
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
 	if (!table || !msg){
 		return TRACK_ERR;
 	}

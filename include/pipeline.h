@@ -1,0 +1,14 @@
+#ifndef PIPELINE_H
+#define PIPELINE_H
+#include "decode.h"
+#include "capture.h"
+#include "track_table.h"
+#define PIPELINE_ERR -1
+
+int process_rid_message(const uint8_t *rid_msg, int len, track_table_t *table);
+
+int process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table);
+
+int process_message_pack(const uint8_t *packet, int len, track_table_t *table);
+
+#endif

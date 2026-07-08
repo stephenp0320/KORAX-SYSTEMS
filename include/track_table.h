@@ -41,5 +41,6 @@ void track_initialise(track_table_t *table);
 int find_track(track_table_t *table, const char *uas_id);
 int track_table_create(track_table_t *table, const char *uas_id);
 int track_table_update(track_t *track, const decoded_message_t *msg);
-int decoded_message(track_table_t *table, const decoded_message_t *msg);
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg);
+int decode_message_pack(uint8_t *packet, int len, track_table_t *table);
 #endif

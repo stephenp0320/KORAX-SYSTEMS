@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "decode.h"
-
+#include "track_table.h"
 static int tests_run = 0;
 static int tests_failed = 0;
 
@@ -321,6 +321,49 @@ static void test_operator_id_success_and_failures(void)
     ASSERT_EQ_INT(decode_operator_id(packet, sizeof(packet), NULL), OPP_ID_ERR, "Operator ID null output fails");
 }
 
+static void test_message_pack(void){
+    uint8_t message_pack[1 + (3 * RID_MSG_SIZE)] = {
+    0x03,
+    // Message 1: Basic ID
+    0x00, 0x21,
+    '1','5','8','1','F','5','B','J','D','2',
+    '4','8','Q','0','0','A','8','X','V','X',
+    0x00, 0x00, 0x00,
+
+    // Message 2: Location
+    0x01, 0x00, 0x5A, 0x14, 0x82,
+    0x1F, 0x65, 0x4A, 0x80,
+    0xFA, 0xDB, 0x8E, 0x80,
+    0x08, 0x98,
+    0x08, 0x98,
+    0x3C,
+    0x0B, 0x06, 0x06, 0x04, 0x02,
+    0x05, 0xDC,
+
+    // Message 3: System
+    0x04,
+    0x1F, 0x65, 0x4A, 0x80,
+    0xFA, 0xDB, 0x8E, 0x80,
+    0x02,
+    0x64,
+    0x08, 0x98,
+    0x07, 0xF8,
+    0x21,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00
+};
+
+    track_table_t table;
+    track_initialise(&table);
+    int result = decode_message_pack(message_pack, sizeof(message_pack), &table);
+    ASSERT_TRUE(result == 0, "Message Pack decode failed");
+    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
+    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Basic ID missing");
+    ASSERT_TRUE(table.tracks[0].has_location == 1, "Location missing");
+    ASSERT_TRUE(table.tracks[0].has_system == 1, "System missing");
+}
+
 int main(void)
 {
     printf("Running full decoder tests...\n\n");
@@ -335,6 +378,7 @@ int main(void)
     test_self_id_success_and_failures();
     test_system_success_and_failures();
     test_operator_id_success_and_failures();
+    test_message_pack();
 
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);

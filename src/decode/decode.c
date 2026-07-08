@@ -26,7 +26,7 @@ int decode_message_pack(uint8_t *packet, int len, track_table_t *table){
         if (decoded_res != 0){
             return decoded_res;
         }
-        int result = decoded_message(table, &msg);
+        int result = process_decoded_message(table, &msg);
         if (result != 0){
             return result;
         }
