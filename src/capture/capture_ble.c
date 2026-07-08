@@ -35,7 +35,7 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
 
 int find_track(track_table_t *tracks, const char *uas_id){
 	if (!tracks || !uas_id){
-		TRACK_NOT_FOUND;
+		return TRACK_NOT_FOUND;
 	}
 	int curr_track;
 	for (curr_track = 0; curr_track < tracks->num_tracks; curr_track++){
@@ -46,6 +46,9 @@ int find_track(track_table_t *tracks, const char *uas_id){
 	return TRACK_NOT_FOUND;
 }
 
+int track_table_create(){
+	return 0;
+}
 
 int track_table_update(track_t *drone_track, decoded_message_t *msg){
 	if (!drone_track || !msg){
@@ -82,7 +85,7 @@ int track_table_update(track_t *drone_track, decoded_message_t *msg){
 	return 0;
 }
 
-void process_ble_frame(const ble_adv_frame_t *ble_frame){
+void process_ble_frame(const ble_adv_frame_t *ble_frame, track_t *drone_track){
 	uint8_t rid_msg[RID_MSG_SIZE];
 	decoded_message_t msg;
 	if (ble_rid_extraction(ble_frame, rid_msg) != 0){
@@ -92,5 +95,5 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame){
 		return;
 	}
 
-	track_table_update(&msg);
+	track_table_update( drone_track, &msg);
 }

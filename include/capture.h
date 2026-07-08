@@ -6,8 +6,8 @@
 #define RID_MSG_SIZE 25
 #define BLE_ADV_ERR 1
 #define TRACK_ERR 1 
-#define TRACK_NOT_FOUND 0
-#define TRACK_FOUND -1;
+#define TRACK_NOT_FOUND -1
+#define TRACK_TABLE_FULL -2
 #define MAX_TRACKS 100
 
 typedef struct ble_adv_frame_t {
