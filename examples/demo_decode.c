@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "decode.h"
-#include "capture.h"
 
 static void print_decoded_message(const decoded_message_t *msg){
     switch (msg->type) {

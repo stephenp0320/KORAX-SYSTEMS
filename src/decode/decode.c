@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "decode.h"
-#include "capture.h"
 #define DJIMAXSIZE 20
 #define DJI 4
 #define WP_ID_MAX_LEN 20
