@@ -7,6 +7,8 @@
 #define BLE_ADV_MAX_SIZE 31
 #define BLE_ADV_ERR 1
 #define BLE_AD_TYPE_SERVICE_DATA_16BIT 0x16
+#define WIFI_MAX_PACKET_SIZE 2048
+#define WIFI_ERR 1
 
 typedef struct ble_adv_frame_t {
 	uint8_t adv_data[BLE_ADV_MAX_SIZE];
@@ -15,6 +17,14 @@ typedef struct ble_adv_frame_t {
 	int8_t rssi_dbm;
 	uint64_t timestamp;
 } ble_adv_frame_t;
+
+typedef struct wifi_frame_t {
+	uint8_t wifi_packet[WIFI_MAX_PACKET_SIZE];
+	int packet_len;
+	uint8_t source_mac[6];
+    	int8_t rssi_dbm;
+    	uint64_t timestamp;
+} wifi_frame_t;
 
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]);
 #endif

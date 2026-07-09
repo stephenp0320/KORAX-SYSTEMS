@@ -109,7 +109,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
 	return track_table_update(&table->tracks[search], msg);
 }
 
-void process_ble_frame(const ble_adv_frame_t *ble_frame, track_t *drone_track){
+void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	uint8_t rid_msg[RID_MSG_SIZE];
 	decoded_message_t msg;
 	if (ble_rid_extraction(ble_frame, rid_msg) != 0){
@@ -118,7 +118,6 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_t *drone_track){
 	if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0){
 		return;
 	}
-
-	track_table_update(drone_track, &msg);
+	process_decoded_message(table, &msg);
 }
 
