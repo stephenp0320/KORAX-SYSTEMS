@@ -1,7 +1,7 @@
 #ifndef TRACK_TABLE_H
 #define TRACK_TABLE_H
 #include <time.h>
-#include "decode.h"
+#include "raven_decode.h"
 #define MAX_TRACKS 100
 #define TRACK_OK 0
 #define TRACK_ERR -1

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "decode.h"
-#include "track_table.h"
+#include "raven_decode.h"
+#include "rook_track.h"
 static int tests_run = 0;
 static int tests_failed = 0;
 

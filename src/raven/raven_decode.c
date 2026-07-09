@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "decode.h"
-#include "track_table.h"
+#include "raven_decode.h"
+#include "rook_track.h"
 #define DJIMAXSIZE 20
 #define DJI 4
 #define WP_ID_MAX_LEN 20

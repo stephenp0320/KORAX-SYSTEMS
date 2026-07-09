@@ -2,14 +2,14 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude
 
 SRC = \
-      src/decode/decode.c \
+      src/raven/raven_decode.c \
       src/capture/capture_ble.c \
-      src/track/table_track.c
+      src/rook/table_track.c
 
 DEMO = examples/demo_decode.c
 TEST = tests/test_decode_full.c
 
-APP = wingprint_demo
+APP = corvion_demo
 TEST_APP = test_decode
 
 .PHONY: all test clean
@@ -26,4 +26,4 @@ test: $(TEST_APP)
 	./$(TEST_APP)
 
 clean:
-	rm -f $(APP) $(TEST_APP)
+	rm -f corvion_demo test_decode

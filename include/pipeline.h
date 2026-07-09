@@ -1,8 +1,8 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
-#include "decode.h"
+#include "raven_decode.h"
 #include "capture.h"
-#include "track_table.h"
+#include "rook_track.h"
 #define PIPELINE_ERR -1
 
 int process_rid_message(const uint8_t *rid_msg, int len, track_table_t *table);

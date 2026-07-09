@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "capture.h"
 #include <string.h>
-#include "decode.h"
+#include "raven_decode.h"
 #include <stdbool.h>
 
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]){

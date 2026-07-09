@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
-#include "decode.h"
+#include "raven_decode.h"
 #define BLE_ADV_MAX_SIZE 31
 #define BLE_ADV_ERR 1
 #define BLE_AD_TYPE_SERVICE_DATA_16BIT 0x16

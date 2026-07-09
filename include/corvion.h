@@ -1,6 +1,6 @@
 #ifndef WINGPRINT_H
 #define WINGPRINT_H
 
-#include "decode.h"
+#include "raven_decode.h"
 
 #endif
