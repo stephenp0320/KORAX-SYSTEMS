@@ -15,6 +15,9 @@ int decode_message_pack(uint8_t *packet, int len, track_table_t *table){
     }
 
     uint8_t msg_count = packet[0] & 0x0F; 
+    if (msg_count == 0){
+        return MSG_ERR;
+    }
     int expected_len = 1 + (msg_count * RID_MESSAGE_SIZE);
     if (len < expected_len){
         return PACK_OVERFLOW_ERR;

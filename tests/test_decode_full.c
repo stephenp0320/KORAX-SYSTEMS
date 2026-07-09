@@ -364,6 +364,140 @@ static void test_message_pack(void){
     ASSERT_TRUE(table.tracks[0].has_system == 1, "System missing");
 }
 
+static int test_message_pack_valid_2_messages(void)
+{
+    track_table_t table;
+    track_initialise(&table);
+
+    uint8_t pack[1 + (2 * RID_MSG_SIZE)] = {
+        0x02,
+
+        // Basic ID
+        0x00, 0x21,
+        '1','5','8','1','F','5','B','J','D','2',
+        '4','8','Q','0','0','A','8','X','V','X',
+        0x00, 0x00, 0x00,
+
+        // Location
+        0x01, 0x00, 0x5A, 0x14, 0x82,
+        0x1F, 0x65, 0x4A, 0x80,
+        0xFA, 0xDB, 0x8E, 0x80,
+        0x08, 0x98, 0x08, 0x98,
+        0x3C, 0x0B, 0x06, 0x06, 0x04, 0x02,
+        0x05, 0xDC
+    };
+
+    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) == 0,
+                "Message Pack 2-message decode failed");
+
+    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
+    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Message Pack missing Basic ID");
+    ASSERT_TRUE(table.tracks[0].has_location == 1, "Message Pack missing Location");
+
+    return 0;
+}
+
+static int test_message_pack_valid_3_messages(void)
+{
+    track_table_t table;
+    track_initialise(&table);
+
+    uint8_t pack[1 + (3 * RID_MSG_SIZE)] = {
+        0x03,
+
+        // Basic ID
+        0x00, 0x21,
+        '1','5','8','1','F','5','B','J','D','2',
+        '4','8','Q','0','0','A','8','X','V','X',
+        0x00, 0x00, 0x00,
+
+        // Location
+        0x01, 0x00, 0x5A, 0x14, 0x82,
+        0x1F, 0x65, 0x4A, 0x80,
+        0xFA, 0xDB, 0x8E, 0x80,
+        0x08, 0x98, 0x08, 0x98,
+        0x3C, 0x0B, 0x06, 0x06, 0x04, 0x02,
+        0x05, 0xDC,
+
+        // System
+        0x04,
+        0x1F, 0x65, 0x4A, 0x80,
+        0xFA, 0xDB, 0x8E, 0x80,
+        0x02, 0x64,
+        0x08, 0x98,
+        0x07, 0xF8,
+        0x21,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00
+    };
+
+    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) == 0,
+                "Message Pack 3-message decode failed");
+
+    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
+    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Basic ID missing");
+    ASSERT_TRUE(table.tracks[0].has_location == 1, "Location missing");
+    ASSERT_TRUE(table.tracks[0].has_system == 1, "System missing");
+
+    return 0;
+}
+
+static int test_message_pack_truncated(void)
+{
+    track_table_t table;
+    track_initialise(&table);
+
+    uint8_t pack[10] = {
+        0x02,
+        0x00, 0x21, '1','5','8','1','F','5','B'
+    };
+
+    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
+                "Truncated Message Pack should fail");
+
+    return 0;
+}
+
+static int test_message_pack_zero_messages(void)
+{
+    track_table_t table;
+    track_initialise(&table);
+
+    uint8_t pack[] = {
+        0x00
+    };
+
+    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
+                "Zero-message Message Pack should fail");
+
+    return 0;
+}
+
+static int test_message_pack_nested_pack(void)
+{
+    track_table_t table;
+    track_initialise(&table);
+
+    uint8_t pack[1 + RID_MSG_SIZE] = {
+        0x01,
+
+        // Contained message has type 0x0F = Message Pack
+        0x0F,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
+
+    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
+                "Nested Message Pack should fail");
+
+    return 0;
+}
+
 int main(void)
 {
     printf("Running full decoder tests...\n\n");
@@ -379,6 +513,11 @@ int main(void)
     test_system_success_and_failures();
     test_operator_id_success_and_failures();
     test_message_pack();
+    test_message_pack_valid_2_messages();
+    test_message_pack_valid_3_messages();
+    test_message_pack_truncated();
+    test_message_pack_zero_messages();
+    test_message_pack_nested_pack();
 
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
