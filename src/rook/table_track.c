@@ -27,7 +27,7 @@ int track_table_create(track_table_t *table, const char *uas_id){
 	if (!table || !uas_id){
 		return TRACK_ERR;
 	}
-	if (table->num_tracks > MAX_TRACKS){
+	if (table->num_tracks >= MAX_TRACKS){
 		return TRACK_TABLE_FULL;
 	}
 	int track_num = table->num_tracks;
