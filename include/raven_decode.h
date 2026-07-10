@@ -41,6 +41,16 @@
 #define RID_MSG_SIZE 25
 #define MAX_PACK_MSG 100
 
+typedef enum {
+    DECODE_OK = 0,
+    DECODE_ERR_NULL, 
+    DECODE_ERR_TOO_SHORT,      // fewer bytes than the message needs
+    DECODE_ERR_BAD_TYPE,       // message-type header not recognised
+    DECODE_ERR_BAD_VERSION,    // protocol version this build doesn't handle
+    DECODE_ERR_RESERVED_BITS,  // reserved fields set - decoded, but flagged
+    DECODE_ERR_RANGE,          // a field value outside its spec-defined range
+} decode_result_t;
+
 typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_NONE = 0,
     DRONE_ID_UATYPE_AEROPLANE = 1,
@@ -290,6 +300,14 @@ static inline int32_t rd_i32le(const uint8_t *p) {
                | ((uint32_t)p[3] << 24);
     return (int32_t)v;
 }
+
+static inline uint32_t rd_u32le(const uint8_t *p) {
+    return (uint32_t)p[0]
+         | ((uint32_t)p[1] << 8)
+         | ((uint32_t)p[2] << 16)
+         | ((uint32_t)p[3] << 24);
+}
+
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);

@@ -6,30 +6,36 @@
 #define DJIMAXSIZE 20
 #define DJI 4
 #define WP_ID_MAX_LEN 20
-#define MESSAGETYPE_PACKED_NOT_IMPLEMENTED 1
+#define ODID_PACK_MAX_MESSAGES 9
 
 int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table){
     if (packet == NULL || track_table == NULL){
-        return MSG_ERR;
+        return DECODE_ERR_NULL;
     }
-
+    
+    if (packet_len < 3){
+        return DECODE_ERR_TOO_SHORT;
+    }
     uint8_t msg_type = (packet[0] >> 4) & 0x0F;
     if (msg_type != MESSAGETYPE_PACKED){
-        return MSG_ERR;
+        return DECODE_ERR_BAD_TYPE;
+    }
+    uint8_t single_msg_size =packet[1];
+    uint8_t msg_count = packet[2]; 
+    if (single_msg_size != RID_MSG_SIZE){
+        return DECODE_ERR_RANGE;
+    }
+    if (msg_count == 0 || msg_count > ODID_PACK_MAX_MESSAGES) {
+        return DECODE_ERR_RANGE;
     }
 
-    uint8_t msg_count = packet[0] & 0x0F; 
-    if (msg_count == 0){
-        return MSG_ERR;
-    }
-
-    int expected_len = 1 + (msg_count * RID_MESSAGE_SIZE);
+    int expected_len = 3 + (msg_count * RID_MESSAGE_SIZE);
     if (packet_len < expected_len){
-        return PACK_UNDERFLOW_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
    
     for (int i = 0; i < msg_count; i++){
-        const uint8_t *msg_start = packet + 1 + (i * RID_MESSAGE_SIZE);
+        const uint8_t *msg_start = packet + 3 + (i * RID_MESSAGE_SIZE);
         decoded_message_t msg;
 
         int decode_msg_result = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
@@ -47,10 +53,10 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
 
 int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *decoded_output){
     if (packet == NULL || decoded_output == NULL){
-        return MSG_ERR;
+        return DECODE_ERR_NULL;
     }
     if (packet_len < RID_MESSAGE_SIZE){
-        return PACK_UNDERFLOW_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
     uint8_t msg_type = (packet[0] >> 4) & 0x0F;
     switch (msg_type){
@@ -73,30 +79,27 @@ int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *dec
             decoded_output->type = MESSAGETYPE_OPERATOR_ID;
             return decode_operator_id(packet, packet_len, &decoded_output->data.operator_id);
         case MESSAGETYPE_PACKED:
-            decoded_output->type = MESSAGETYPE_PACKED;
-            return MESSAGETYPE_PACKED_NOT_IMPLEMENTED;
+            decoded_output->type = MESSAGETYPE_INVALID;
+            return DECODE_ERR_BAD_TYPE;
         default:
             decoded_output->type = MESSAGETYPE_INVALID;
-            return MSG_ERR;
+            return DECODE_ERR_BAD_TYPE;
     }
-    return 0;
-
 }
 
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID){
 	if (packet == NULL || basicID == NULL){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_NULL;
 	}
 	if (packet_len < DRONE_ID_PACK_SIZE){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_TOO_SHORT;
 	}
 	uint8_t msg_type = (packet[0] >> 4) & 0x0F;
 	if (msg_type != MESSAGETYPE_BASIC_ID){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_BAD_TYPE;
 	}
-
-	basicID->UAType = (DRONE_ID_uatype_t)packet[1] & 0x0F;
-	basicID->IDType = (DRONE_ID_idtype_t)(packet[1] >> 4) & 0x0F; 
+	basicID->UAType = (DRONE_ID_uatype_t)(packet[1] & 0x0F);
+	basicID->IDType = (DRONE_ID_idtype_t)((packet[1] >> 4) & 0x0F);
 	memcpy(basicID->UASID, &packet[2], DRONE_ID_SIZE);
 	basicID->UASID[DRONE_ID_SIZE] = '\0';
 	return 0;
@@ -104,10 +107,10 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data){
     if (packet == NULL || location_data == NULL){
-        return DRONE_LOCATION_ERR;
+        return DECODE_ERR_NULL;
     }
     if (packet_len < 25){
-        return DRONE_LOCATION_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
     location_data->Status = (packet[1] >> 4) & 0x0F;
     location_data->HeightType = (packet[1] >> 2) & 0x01;
@@ -246,22 +249,18 @@ const char *auth_type_to_str(auth_type_t auth_type){
 
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data){
     if (packet == NULL || auth_data == NULL){
-        return AUTH_ERR;
+        return DECODE_ERR_NULL;
     }
     if (packet_len < AUTH_PACK_SIZE){
-        return AUTH_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
     auth_data->msg_type = (packet[0] >> 4) & 0x0F;
-    auth_data->auth_type = packet[1] & 0x0F;
-    auth_data->data_page = packet[2] & 0x0F;
+    auth_data->auth_type = (packet[1] >> 4) & 0x0F;
+    auth_data->data_page = packet[1] & 0x0F;
     if (auth_data->data_page == 0){
-        auth_data->last_page_idx = packet[3];
-        auth_data->length = packet[4];
-        auth_data->timestamp =
-            ((uint32_t)packet[5] << 24) |
-            ((uint32_t)packet[6] << 16) |
-            ((uint32_t)packet[7] << 8)  |
-            ((uint32_t)packet[8]);
+        auth_data->last_page_idx = packet[2];
+        auth_data->length = packet[3];
+        auth_data->timestamp = rd_i32le(&packet[4]);
         memcpy(auth_data->AuthData, &packet[9], 16);
     } else {
         memcpy(auth_data->AuthData, &packet[3], 22);
@@ -271,10 +270,10 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
 
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
     if (packet == NULL || selfID == NULL){
-        return DRONE_ID_ERR;
+        return DECODE_ERR_NULL;
     } 
     if (packet_len < SELFID_PACK_SIZE){
-        return DRONE_ID_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
     selfID->msg_type = (packet[0] >> 4) & 0x0F;
     selfID->DescType = packet[1];
@@ -285,55 +284,33 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
 
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg){
     if (packet == NULL || system_msg == NULL) {
-        return DRONE_ID_ERR;
+        return DECODE_ERR_NULL;
     }
     if (packet_len < SYSMSG_PACK_SIZE) {
-        return DRONE_ID_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
-
-    system_msg->msg_type = (packet[0] >> 4) & 0x0F;
-    system_msg->OperatorLocType = 0;
-    system_msg->ClassificationType = 0;
-
-    int32_t operator_lat_raw =
-        ((int32_t)packet[1] << 24) |
-        ((int32_t)packet[2] << 16) |
-        ((int32_t)packet[3] << 8)  |
-        ((int32_t)packet[4]);
-
-    system_msg->OperatorLatitude = operator_lat_raw / 10000000.0;
-    int32_t operator_lon_raw =
-        ((int32_t)packet[5] << 24) |
-        ((int32_t)packet[6] << 16) |
-        ((int32_t)packet[7] << 8)  |
-        ((int32_t)packet[8]);
-
-    system_msg->OperatorLongitude = operator_lon_raw / 10000000.0;
-    system_msg->AreaCount = packet[9];
-    system_msg->AreaRadius = packet[10];
-    uint16_t areaCeil_raw =
-        ((uint16_t)packet[11] << 8) |
-        (uint16_t)packet[12];
-
-    system_msg->AreaCeiling = (areaCeil_raw * 0.5f) - 1000.0f;
-    uint16_t areaFloor_raw =
-        ((uint16_t)packet[13] << 8) |
-        (uint16_t)packet[14];
-
-    system_msg->AreaFloor = (areaFloor_raw * 0.5f) - 1000.0f;
-    system_msg->CategoryEU = packet[15];
-    system_msg->ClassEU = 0;
-    system_msg->OperatorAltitudeGeo = 0.0f;
-    system_msg->Timestamp = 0;
+    system_msg->msg_type            = (packet[0] >> 4) & 0x0F;
+    system_msg->OperatorLocType     =  packet[1] & 0x03;          // byte 1, bits 0-1
+    system_msg->ClassificationType  = (packet[1] >> 2) & 0x07;    // byte 1, bits 2-4
+    system_msg->OperatorLatitude    = rd_i32le(&packet[2]) / 1e7;
+    system_msg->OperatorLongitude   = rd_i32le(&packet[6]) / 1e7;
+    system_msg->AreaCount           = rd_u16le(&packet[10]);
+    system_msg->AreaRadius          = packet[12] * 10;            // encoded /10
+    system_msg->AreaCeiling         = rd_u16le(&packet[13]) * 0.5f - 1000.0f;
+    system_msg->AreaFloor           = rd_u16le(&packet[15]) * 0.5f - 1000.0f;
+    system_msg->ClassEU             =  packet[17] & 0x0F;         // byte 17 low nibble
+    system_msg->CategoryEU          = (packet[17] >> 4) & 0x0F;   // byte 17 high nibble
+    system_msg->OperatorAltitudeGeo = rd_u16le(&packet[18]) * 0.5f - 1000.0f;
+    system_msg->Timestamp           = rd_u32le(&packet[20]);
     return 0;
 }
 
 int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id){
     if (packet == NULL || op_id == NULL){
-        return OPP_ID_ERR;
+        return DECODE_ERR_NULL;
     }
     if (packet_len < OPID_PACK_SIZE){
-        return OPP_ID_ERR;
+        return DECODE_ERR_TOO_SHORT;
     }
     op_id->msg_type = (packet[0] >> 4) & 0x0F;
     op_id->OperatorIdType = packet[1];
@@ -344,11 +321,11 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
 
 int decoder(char *droneID, droneID_basicID_data *basicID){
 	if (droneID == NULL || basicID == NULL){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_NULL;
 	}
 	int len = strlen(droneID);
 	if (len < DJI + 1){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_TOO_SHORT;
 	}
 	char man_code[DJIMAXSIZE];
 	int pos = 0;
@@ -364,7 +341,7 @@ int decoder(char *droneID, droneID_basicID_data *basicID){
 	
 	pos += 1;
 	if (pos + value > len){
-		return DRONE_ID_ERR;
+		return DECODE_ERR_RANGE;
 	}
 	char ch_serial[WP_ID_MAX_LEN];
 	int j = 0;
