@@ -109,44 +109,54 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     if (packet_len < 25){
         return DRONE_LOCATION_ERR;
     }
-    location_data->Status = packet[1] & 0x0F;
-    location_data->Direction = packet[2];
-    location_data->SpeedHorizontal = packet[3];
-    location_data->SpeedVertical = packet[4];
+    location_data->Status = (packet[1] >> 4) & 0x0F;
+    location_data->HeightType = (packet[1] >> 2) & 0x01;
+    location_data->Direction = packet[2] + ((packet[1] >> 1) & 0x01) * 180;
+    location_data->SpeedHorizontal = (packet[1] & 0x01) ? (packet[3] * 0.75 + 63.75) : (packet[3] * 0.25);
+    int8_t speed_vertical_raw = (int8_t)packet[4];
+    location_data->SpeedVertical = speed_vertical_raw * 0.5;
+    
     int32_t latitude_raw = 
-        ((int32_t)packet[5] << 24) | 
-        ((int32_t)packet[6] << 16) | 
-        ((int32_t)packet[7] << 8)  | 
-        ((int32_t)packet[8]);
-    location_data->Latitude = latitude_raw / 10000000.0;
+        ((int32_t)packet[8] << 24) | 
+        ((int32_t)packet[7] << 16) | 
+        ((int32_t)packet[6] << 8)  | 
+        ((int32_t)packet[5]);
+    location_data->Latitude = latitude_raw / 1e7;
+    
     int32_t longitude_raw = 
-        ((int32_t)packet[9] << 24) | 
-        ((int32_t)packet[10] << 16)| 
-        ((int32_t)packet[11] << 8) | 
-        ((int32_t)packet[12]);
-    location_data->Longitude = longitude_raw / 10000000.0;
+        ((int32_t)packet[12] << 24) | 
+        ((int32_t)packet[11] << 16)| 
+        ((int32_t)packet[10] << 8) | 
+        ((int32_t)packet[9]);
+    location_data->Longitude = longitude_raw / 1e7;
+
     uint16_t barometric_alt_raw = 
-        ((uint16_t)packet[13] << 8) |
-        (uint16_t)packet[14];
-    location_data->AltitudeBaro = (barometric_alt_raw * 0.5f) - 1000.0f; 
+        ((uint16_t)packet[14] << 8) |
+        (uint16_t)packet[13];
+    location_data->AltitudeBaro = (barometric_alt_raw * 0.5) - 1000; 
+    
     uint16_t gedetic_alt_raw = 
-        ((uint16_t)packet[15] << 8) |
-        (uint16_t)packet[16];
-    location_data->AltitudeGeo = (gedetic_alt_raw * 0.5f) - 1000.0f; 
-    location_data->Height = packet[17] & 0x0F;
-    location_data->HorizAccuracy = packet[18] & 0x0F;
-    location_data->VertAccuracy = packet[19] & 0x0F;
-    location_data->BaroAccuracy = packet[20] & 0x0F;
-    location_data->SpeedAccuracy = packet[21] & 0x0F;
-    location_data->TSAccuracy = packet[22] & 0x0F;
+        ((uint16_t)packet[16] << 8) |
+        (uint16_t)packet[15];
+    location_data->AltitudeGeo = (gedetic_alt_raw * 0.5) - 1000; 
+   
+    uint16_t height_raw = 
+        ((uint16_t)packet[18] << 8) |
+        (uint16_t)packet[17];
+    location_data->Height = (height_raw * 0.5) - 1000; 
+    location_data->HorizAccuracy = packet[19] & 0x0F;
+    location_data->VertAccuracy = (packet[19] >> 4) & 0x0F;
+    location_data->SpeedAccuracy = packet[20] & 0x0F;
+    location_data->BaroAccuracy = (packet[20] >> 4) & 0x0F;
     uint16_t timestamp_raw = 
-        ((uint16_t)packet[23] << 8) |
-         (uint16_t)packet[24];
+        ((uint16_t)packet[22] << 8) |
+         (uint16_t)packet[21];
     if (timestamp_raw != INV_TIMESTAMP){
-        location_data->TimeStamp = timestamp_raw / 10.0f;
+        location_data->TimeStamp = timestamp_raw / 10.f;
     } else {
         location_data->TimeStamp = -1.0f;
     }
+    location_data->TSAccuracy = packet[23] & 0x0F;
     return 0;
 }
 
