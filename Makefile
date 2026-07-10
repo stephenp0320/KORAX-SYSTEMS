@@ -9,7 +9,7 @@ SRC = \
 DEMO = examples/demo_decode.c
 TEST = tests/test_decode_full.c
 
-APP = corvion_demo
+APP = korax_demo
 TEST_APP = test_decode
 
 .PHONY: all test clean

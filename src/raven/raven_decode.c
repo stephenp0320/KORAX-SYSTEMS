@@ -13,6 +13,11 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
         return MSG_ERR;
     }
 
+    uint8_t msg_type = (packet[0] >> 4) & 0x0F;
+    if (msg_type != MESSAGETYPE_PACKED){
+        return MSG_ERR;
+    }
+
     uint8_t msg_count = packet[0] & 0x0F; 
     if (msg_count == 0){
         return MSG_ERR;
@@ -47,7 +52,7 @@ int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *dec
     if (packet_len < RID_MESSAGE_SIZE){
         return PACK_UNDERFLOW_ERR;
     }
-    uint8_t msg_type = packet[0] & 0x0F;
+    uint8_t msg_type = (packet[0] >> 4) & 0x0F;
     switch (msg_type){
         case MESSAGETYPE_BASIC_ID:
             decoded_output->type = MESSAGETYPE_BASIC_ID;
@@ -86,7 +91,7 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 		return DRONE_ID_ERR;
 	}
 	uint8_t msg_type = (packet[0] >> 4) & 0x0F;
-	if (msg_type != MSG_SUCCESS){
+	if (msg_type != MESSAGETYPE_BASIC_ID){
 		return DRONE_ID_ERR;
 	}
 
@@ -287,7 +292,7 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
     if (packet_len < SELFID_PACK_SIZE){
         return DRONE_ID_ERR;
     }
-    selfID->msg_type = packet[0];
+    selfID->msg_type = (packet[0] >> 4) & 0x0F;
     selfID->DescType = packet[1];
     memcpy(selfID->desc, &packet[2], 23);
     selfID->desc[23] = '\0';
@@ -302,7 +307,7 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
         return DRONE_ID_ERR;
     }
 
-    system_msg->msg_type = packet[0];
+    system_msg->msg_type = (packet[0] >> 4) & 0x0F;
     system_msg->OperatorLocType = 0;
     system_msg->ClassificationType = 0;
 
@@ -346,7 +351,7 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
     if (packet_len < OPID_PACK_SIZE){
         return OPP_ID_ERR;
     }
-    op_id->msg_type = packet[0];
+    op_id->msg_type = (packet[0] >> 4) & 0x0F;
     op_id->OperatorIdType = packet[1];
      memcpy(op_id->OperatorId, &packet[2], 20);
     op_id->OperatorId[20] = '\0';
