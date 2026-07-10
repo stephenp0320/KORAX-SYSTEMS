@@ -3,530 +3,232 @@
 #include <string.h>
 #include "raven_decode.h"
 #include "rook_track.h"
+
 static int tests_run = 0;
 static int tests_failed = 0;
 
-#define ASSERT_TRUE(condition, message)                                      \
-    do {                                                                     \
-        tests_run++;                                                         \
-        if (!(condition)) {                                                  \
-            tests_failed++;                                                  \
-            printf("FAIL: %s (line %d)\n", message, __LINE__);             \
-        }                                                                    \
-    } while (0)
+#define ASSERT_TRUE(cond, msg)                                               \
+    do { tests_run++;                                                        \
+        if (!(cond)) { tests_failed++;                                       \
+            printf("FAIL: %s (line %d)\n", msg, __LINE__); } } while (0)
 
-#define ASSERT_EQ_INT(actual, expected, message)                             \
-    do {                                                                     \
-        tests_run++;                                                         \
-        long long a_ = (long long)(actual);                                  \
-        long long e_ = (long long)(expected);                                \
-        if (a_ != e_) {                                                      \
-            tests_failed++;                                                  \
-            printf("FAIL: %s (line %d) expected %lld got %lld\n",           \
-                   message, __LINE__, e_, a_);                               \
-        }                                                                    \
-    } while (0)
+#define ASSERT_EQ_INT(actual, expected, msg)                                 \
+    do { tests_run++;                                                        \
+        long long a_ = (long long)(actual), e_ = (long long)(expected);      \
+        if (a_ != e_) { tests_failed++;                                      \
+            printf("FAIL: %s (line %d) expected %lld got %lld\n",            \
+                   msg, __LINE__, e_, a_); } } while (0)
 
-#define ASSERT_EQ_STR(actual, expected, message)                             \
-    do {                                                                     \
-        tests_run++;                                                         \
-        const char *a_ = (actual);                                           \
-        const char *e_ = (expected);                                         \
-        if (strcmp(a_, e_) != 0) {                                           \
-            tests_failed++;                                                  \
-            printf("FAIL: %s (line %d) expected '%s' got '%s'\n",           \
-                   message, __LINE__, e_, a_);                               \
-        }                                                                    \
-    } while (0)
+#define ASSERT_EQ_STR(actual, expected, msg)                                 \
+    do { tests_run++;                                                        \
+        if (strcmp((actual), (expected)) != 0) { tests_failed++;            \
+            printf("FAIL: %s (line %d) expected '%s' got '%s'\n",            \
+                   msg, __LINE__, (expected), (actual)); } } while (0)
 
-#define ASSERT_NEAR(actual, expected, tolerance, message)                    \
-    do {                                                                     \
-        tests_run++;                                                         \
-        double a_ = (double)(actual);                                        \
-        double e_ = (double)(expected);                                      \
-        double diff_ = a_ - e_;                                              \
-        if (diff_ < 0) diff_ = -diff_;                                      \
-        if (diff_ > (tolerance)) {                                           \
-            tests_failed++;                                                  \
-            printf("FAIL: %s (line %d) expected %.7f got %.7f\n",           \
-                   message, __LINE__, e_, a_);                               \
-        }                                                                    \
-    } while (0)
+#define ASSERT_NEAR(actual, expected, tol, msg)                              \
+    do { tests_run++;                                                        \
+        double d_ = (double)(actual) - (double)(expected);                   \
+        if (d_ < 0) d_ = -d_;                                                \
+        if (d_ > (tol)) { tests_failed++;                                    \
+            printf("FAIL: %s (line %d) expected %.7f got %.7f\n",            \
+                   msg, __LINE__, (double)(expected), (double)(actual)); } } while (0)
+
+/* ---- Real ODID wire fixtures (generated, protocol version 2) ---- */
+
+/* Basic ID: UAType=2 (multirotor), IDType=1 (serial), UASID="1581F5BJD248Q00A8XVX" */
+static const uint8_t PKT_BASIC[25] = { 0x02, 0x12, 0x31, 0x35, 0x38, 0x31, 0x46, 0x35, 0x42, 0x4A, 0x44, 0x32, 0x34, 0x38, 0x51, 0x30, 0x30, 0x41, 0x38, 0x58, 0x56, 0x58, 0x00, 0x00, 0x00 };
+
+/* Location: airborne, HeightType=over-ground, Direction=215, SpeedH=12.0, SpeedV=-3.0,
+   Lat=51.4778, Lon=-0.0014, AltBaro=120, AltGeo=125.5, Height=60,
+   HorizAcc=11, VertAcc=6, BaroAcc=6, SpeedAcc=4, TSAcc=2, TimeStamp=1234.5 */
+static const uint8_t PKT_LOCATION[25] = { 0x12, 0x26, 0x23, 0x30, 0xFA, 0x90, 0xE3, 0xAE, 0x1E, 0x50, 0xC9, 0xFF, 0xFF, 0xC0, 0x08, 0xCB, 0x08, 0x48, 0x08, 0x6B, 0x64, 0x39, 0x30, 0x02, 0x00 };
+
+/* Auth page 0: AuthType=1, DataPage=0, LastPageIndex=2, Length=63, TS=0x12345678, AuthData=0x10..0x20 */
+static const uint8_t PKT_AUTH[25] = { 0x22, 0x10, 0x02, 0x3F, 0x78, 0x56, 0x34, 0x12, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20 };
+
+/* Self ID: DescType=1 (emergency), Desc="Inspection Flight" */
+static const uint8_t PKT_SELFID[25] = { 0x32, 0x01, 0x49, 0x6E, 0x73, 0x70, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20, 0x46, 0x6C, 0x69, 0x67, 0x68, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+/* System: OpLocType=2(fixed), Classification=1(EU), OpLat=52.3, OpLon=4.9, AreaCount=1,
+   AreaRadius=500, Ceiling=150, Floor=20, CategoryEU=1(open), ClassEU=2(class1),
+   OpAltGeo=105, Timestamp=12345678 */
+static const uint8_t PKT_SYSTEM[25] = { 0x42, 0x06, 0xC0, 0x58, 0x2C, 0x1F, 0x40, 0xAE, 0xEB, 0x02, 0x01, 0x00, 0x32, 0xFC, 0x08, 0xF8, 0x07, 0x12, 0xA2, 0x08, 0x4E, 0x61, 0xBC, 0x00, 0x00 };
+
+/* Operator ID: OperatorIdType=0, OperatorId="GBR-OP-12345678ABCDE" */
+static const uint8_t PKT_OPID[25] = { 0x52, 0x00, 0x47, 0x42, 0x52, 0x2D, 0x4F, 0x50, 0x2D, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x41, 0x42, 0x43, 0x44, 0x45, 0x00, 0x00, 0x00 };
+
+/* Message Pack: header (type F, SingleMessageSize=25, count=3) + BasicID, Location, System */
+static const uint8_t PKT_PACK[78] = { 0xF2, 0x19, 0x03, 0x02, 0x12, 0x31, 0x35, 0x38, 0x31, 0x46, 0x35, 0x42, 0x4A, 0x44, 0x32, 0x34, 0x38, 0x51, 0x30, 0x30, 0x41, 0x38, 0x58, 0x56, 0x58, 0x00, 0x00, 0x00, 0x12, 0x26, 0x23, 0x30, 0xFA, 0x90, 0xE3, 0xAE, 0x1E, 0x50, 0xC9, 0xFF, 0xFF, 0xC0, 0x08, 0xCB, 0x08, 0x48, 0x08, 0x6B, 0x64, 0x39, 0x30, 0x02, 0x00, 0x42, 0x06, 0xC0, 0x58, 0x2C, 0x1F, 0x40, 0xAE, 0xEB, 0x02, 0x01, 0x00, 0x32, 0xFC, 0x08, 0xF8, 0x07, 0x12, 0xA2, 0x08, 0x4E, 0x61, 0xBC, 0x00, 0x00 };
 
 static void test_string_helpers(void)
 {
-    ASSERT_EQ_STR(uatype_to_str(DRONE_ID_UATYPE_AEROPLANE), "UATYPE_AEROPLANE", "UA type aeroplane string");
-    ASSERT_EQ_STR(uatype_to_str(DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR), "UATYPE_HELICOPTER_OR_MULTIROTOR", "UA type multirotor string");
-    ASSERT_EQ_STR(uatype_to_str((DRONE_ID_uatype_t)99), "UATYPE_UNKNOWN", "UA type unknown string");
-
-    ASSERT_EQ_STR(idtype_to_str(DRONE_ID_IDTYPE_SERIAL_NUMBER), "IDTYPE_SERIAL_NUMBER", "ID type serial string");
-    ASSERT_EQ_STR(idtype_to_str(DRONE_ID_IDTYPE_CAA_REGISTRATION_ID), "IDTYPE_CAA_REGISTRATION_ID", "ID type CAA string");
-    ASSERT_EQ_STR(idtype_to_str((DRONE_ID_idtype_t)99), "IDTYPE_UNKNOWN", "ID type unknown string");
-
-    ASSERT_EQ_STR(msg_type_to_str(MESSAGETYPE_BASIC_ID), "MESSAGETYPE_BASIC_ID", "Message type basic string");
-    ASSERT_EQ_STR(msg_type_to_str(MESSAGETYPE_LOCATION), "MESSAGETYPE_LOCATION", "Message type location string");
-    ASSERT_EQ_STR(msg_type_to_str(MESSAGETYPE_AUTH), "MESSAGETYPE_AUTH", "Message type auth string");
-    ASSERT_EQ_STR(msg_type_to_str(MESSAGETYPE_SYSTEM), "MESSAGETYPE_SYSTEM", "Message type system string");
-    ASSERT_EQ_STR(msg_type_to_str((messagetype_t)99), "MESSAGETYPE_INVALID", "Message type invalid string");
-
-    ASSERT_EQ_STR(status_to_str(DRONE_ID_STATUS_UNDECLARED), "STATUS_UNDECLARED", "Status undeclared string");
-    ASSERT_EQ_STR(status_to_str(DRONE_ID_STATUS_AIRBORNE), "STATUS_AIRBORNE", "Status airborne string");
-    ASSERT_EQ_STR(status_to_str((DRONE_ID_status_t)99), "UNKNOWN_STATUS", "Status unknown string");
-
-    ASSERT_EQ_STR(auth_type_to_str(AUTH_UAS_ID_SIGNATURE), "AUTH_UAS_ID_SIGNATURE", "Auth UAS signature string");
-    ASSERT_EQ_STR(auth_type_to_str(AUTH_NONE), "AUTH_NONE", "Auth none string");
-    ASSERT_EQ_STR(auth_type_to_str((auth_type_t)99), "UNKNOWN_AUTH", "Auth unknown string");
+    ASSERT_EQ_STR(uatype_to_str(DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR), "UATYPE_HELICOPTER_OR_MULTIROTOR", "uatype multirotor");
+    ASSERT_EQ_STR(uatype_to_str((DRONE_ID_uatype_t)99), "UATYPE_UNKNOWN", "uatype unknown");
+    ASSERT_EQ_STR(idtype_to_str(DRONE_ID_IDTYPE_SERIAL_NUMBER), "IDTYPE_SERIAL_NUMBER", "idtype serial");
+    ASSERT_EQ_STR(msg_type_to_str(MESSAGETYPE_LOCATION), "MESSAGETYPE_LOCATION", "msgtype location");
+    ASSERT_EQ_STR(status_to_str(DRONE_ID_STATUS_AIRBORNE), "STATUS_AIRBORNE", "status airborne");
+    ASSERT_EQ_STR(auth_type_to_str(AUTH_UAS_ID_SIGNATURE), "AUTH_UAS_ID_SIGNATURE", "auth uas sig");
 }
 
-static void test_basic_id_success(void)
+static void test_basic_id(void)
 {
-    uint8_t packet[] = {
-        0x00,
-        0x21,
-        '1','5','8','1','F','5','B','J','D','2',
-        '4','8','Q','0','0','A','8','X','V','X'
-    };
-
-    droneID_basicID_data basicID;
-    memset(&basicID, 0, sizeof(basicID));
-
-    ASSERT_EQ_INT(decode_basic_id(packet, sizeof(packet), &basicID), 0, "Basic ID decode should succeed");
-    ASSERT_EQ_INT(basicID.UAType, DRONE_ID_UATYPE_AEROPLANE, "Basic ID UAType");
-    ASSERT_EQ_INT(basicID.IDType, DRONE_ID_IDTYPE_CAA_REGISTRATION_ID, "Basic ID IDType");
-    ASSERT_EQ_STR(basicID.UASID, "1581F5BJD248Q00A8XVX", "Basic ID UASID");
-    ASSERT_EQ_INT(basicID.UASID[DRONE_ID_SIZE], '\0', "Basic ID null terminator");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_BASIC, 25, &m), DECODE_OK, "basic id decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_BASIC_ID, "basic id type");
+    ASSERT_EQ_INT(m.data.basic_id.UAType, DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR, "basic UAType");
+    ASSERT_EQ_INT(m.data.basic_id.IDType, DRONE_ID_IDTYPE_SERIAL_NUMBER, "basic IDType");
+    ASSERT_EQ_STR(m.data.basic_id.UASID, "1581F5BJD248Q00A8XVX", "basic UASID");
 }
 
-static void test_basic_id_failures(void)
+static void test_location(void)
 {
-    uint8_t short_packet[] = {0x00, 0x21};
-    uint8_t wrong_type_packet[] = {
-        0x10,
-        0x21,
-        '1','5','8','1','F','5','B','J','D','2',
-        '4','8','Q','0','0','A','8','X','V','X'
-    };
-    droneID_basicID_data basicID;
-
-    ASSERT_EQ_INT(decode_basic_id(NULL, 22, &basicID), DRONE_ID_ERR, "Basic ID null packet fails");
-    ASSERT_EQ_INT(decode_basic_id(short_packet, sizeof(short_packet), &basicID), DRONE_ID_ERR, "Basic ID short packet fails");
-    ASSERT_EQ_INT(decode_basic_id(wrong_type_packet, sizeof(wrong_type_packet), &basicID), DRONE_ID_ERR, "Basic ID wrong message type fails");
-    ASSERT_EQ_INT(decode_basic_id(wrong_type_packet, sizeof(wrong_type_packet), NULL), DRONE_ID_ERR, "Basic ID null output fails");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, &m), DECODE_OK, "location decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_LOCATION, "location type");
+    DRONE_ID_Location_data *L = &m.data.location;
+    ASSERT_EQ_INT(L->Status, DRONE_ID_STATUS_AIRBORNE, "loc status");
+    ASSERT_EQ_INT(L->HeightType, DRONE_ID_HEIGHT_REF_OVER_GROUND, "loc height type");
+    ASSERT_NEAR(L->Direction, 215.0, 0.5, "loc direction (E/W bit)");
+    ASSERT_NEAR(L->SpeedHorizontal, 12.0, 0.01, "loc speed horizontal");
+    ASSERT_NEAR(L->SpeedVertical, -3.0, 0.01, "loc speed vertical (signed)");
+    ASSERT_NEAR(L->Latitude, 51.4778, 1e-6, "loc latitude (LE)");
+    ASSERT_NEAR(L->Longitude, -0.0014, 1e-6, "loc longitude (LE, negative)");
+    ASSERT_NEAR(L->AltitudeBaro, 120.0, 0.01, "loc alt baro");
+    ASSERT_NEAR(L->AltitudeGeo, 125.5, 0.01, "loc alt geo");
+    ASSERT_NEAR(L->Height, 60.0, 0.01, "loc height (2-byte)");
+    ASSERT_EQ_INT(L->HorizAccuracy, 11, "loc horiz accuracy");
+    ASSERT_EQ_INT(L->VertAccuracy, 6, "loc vert accuracy");
+    ASSERT_EQ_INT(L->BaroAccuracy, 6, "loc baro accuracy");
+    ASSERT_EQ_INT(L->SpeedAccuracy, 4, "loc speed accuracy");
+    ASSERT_EQ_INT(L->TSAccuracy, 2, "loc ts accuracy");
+    ASSERT_NEAR(L->TimeStamp, 1234.5, 0.05, "loc timestamp (LE, /10)");
 }
 
-static void test_location_success(void)
+static void test_auth(void)
 {
-    uint8_t packet[] = {
-        0x10,
-        0x02,
-        0x5A,
-        0x14,
-        0x82,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x08, 0x98,
-        0x08, 0x98,
-        0x3C,
-        0x0B,
-        0x06,
-        0x06,
-        0x04,
-        0x02,
-        0x05, 0xDC
-    };
-
-    DRONE_ID_Location_data location;
-    memset(&location, 0, sizeof(location));
-
-    ASSERT_EQ_INT(decode_location_vector(packet, sizeof(packet), &location), 0, "Location decode should succeed");
-    ASSERT_EQ_INT(location.Status, DRONE_ID_STATUS_AIRBORNE, "Location status");
-    ASSERT_NEAR(location.Direction, 90.0, 0.001, "Location direction");
-    ASSERT_NEAR(location.SpeedHorizontal, 20.0, 0.001, "Location horizontal speed raw decode");
-    ASSERT_NEAR(location.SpeedVertical, 130.0, 0.001, "Location vertical speed raw decode");
-    ASSERT_NEAR(location.Latitude, 52.6731904, 0.0000001, "Location latitude");
-    ASSERT_NEAR(location.Longitude, -8.6274432, 0.0000001, "Location longitude");
-    ASSERT_NEAR(location.AltitudeBaro, 100.0, 0.001, "Location barometric altitude");
-    ASSERT_NEAR(location.AltitudeGeo, 100.0, 0.001, "Location geodetic altitude");
-    ASSERT_NEAR(location.Height, 12.0, 0.001, "Location height lower nibble");
-    ASSERT_EQ_INT(location.HorizAccuracy, 11, "Location horizontal accuracy");
-    ASSERT_EQ_INT(location.VertAccuracy, 6, "Location vertical accuracy");
-    ASSERT_EQ_INT(location.BaroAccuracy, 6, "Location baro accuracy");
-    ASSERT_EQ_INT(location.SpeedAccuracy, 4, "Location speed accuracy");
-    ASSERT_EQ_INT(location.TSAccuracy, 2, "Location timestamp accuracy");
-    ASSERT_NEAR(location.TimeStamp, 150.0, 0.001, "Location timestamp");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_AUTH, 25, &m), DECODE_OK, "auth decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_AUTH, "auth type");
+    authentication_data *A = &m.data.auth;
+    ASSERT_EQ_INT(A->msg_type, MESSAGETYPE_AUTH, "auth msg_type");
+    ASSERT_EQ_INT(A->auth_type, AUTH_UAS_ID_SIGNATURE, "auth auth_type (high nibble)");
+    ASSERT_EQ_INT(A->data_page, 0, "auth data_page (low nibble)");
+    ASSERT_EQ_INT(A->last_page_idx, 2, "auth last_page_idx");
+    ASSERT_EQ_INT(A->length, 63, "auth length");
+    ASSERT_EQ_INT(A->timestamp, 0x12345678, "auth timestamp (LE u32)");
+    ASSERT_EQ_INT(A->AuthData[0], 0x10, "auth data first byte (offset 8)");
+    ASSERT_EQ_INT(A->AuthData[16], 0x20, "auth data 17th byte");
 }
 
-static void test_location_invalid_timestamp_and_failures(void)
+static void test_self_id(void)
 {
-    uint8_t packet[] = {
-        0x10, 0x00, 0x5A, 0x14, 0x82,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x08, 0x98, 0x08, 0x98,
-        0x3C, 0x0B, 0x06, 0x06, 0x04, 0x02,
-        0xFF, 0xFF
-    };
-    uint8_t short_packet[] = {0x10, 0x00, 0x5A};
-    DRONE_ID_Location_data location;
-
-    ASSERT_EQ_INT(decode_location_vector(packet, sizeof(packet), &location), 0, "Location invalid timestamp packet decodes");
-    ASSERT_NEAR(location.TimeStamp, -1.0, 0.001, "Location invalid timestamp becomes -1");
-    ASSERT_EQ_INT(decode_location_vector(NULL, 25, &location), DRONE_LOCATION_ERR, "Location null packet fails");
-    ASSERT_EQ_INT(decode_location_vector(short_packet, sizeof(short_packet), &location), DRONE_LOCATION_ERR, "Location short packet fails");
-    ASSERT_EQ_INT(decode_location_vector(packet, sizeof(packet), NULL), DRONE_LOCATION_ERR, "Location null output fails");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_SELFID, 25, &m), DECODE_OK, "self id decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_SELF_ID, "self id type");
+    ASSERT_EQ_INT(m.data.self_id.DescType, DESC_TYPE_EMERGENCY, "self id desc type");
+    ASSERT_EQ_STR(m.data.self_id.desc, "Inspection Flight", "self id desc");
 }
 
-static void test_auth_page_zero_success(void)
+static void test_system(void)
 {
-    uint8_t packet[] = {
-        0x20,
-        0x01,
-        0x00,
-        0x02,
-        0x3F,
-        0x00, 0x01, 0xE2, 0x40,
-        0xA1, 0xB2, 0xC3, 0xD4,
-        0x11, 0x22, 0x33, 0x44,
-        0x55, 0x66, 0x77, 0x88,
-        0x99, 0xAA, 0xBB, 0xCC
-    };
-
-    authentication_data auth;
-    memset(&auth, 0, sizeof(auth));
-
-    ASSERT_EQ_INT(decode_auth(packet, sizeof(packet), &auth), 0, "Auth page 0 decode should succeed");
-    ASSERT_EQ_INT(auth.msg_type, MESSAGETYPE_AUTH, "Auth message type");
-    ASSERT_EQ_INT(auth.auth_type, AUTH_UAS_ID_SIGNATURE, "Auth type");
-    ASSERT_EQ_INT(auth.data_page, 0, "Auth page 0 data page");
-    ASSERT_EQ_INT(auth.last_page_idx, 2, "Auth last page index");
-    ASSERT_EQ_INT(auth.length, 63, "Auth total length");
-    ASSERT_EQ_INT(auth.timestamp, 123456, "Auth timestamp");
-    ASSERT_EQ_INT(auth.AuthData[0], 0xA1, "Auth page 0 first data byte");
-    ASSERT_EQ_INT(auth.AuthData[15], 0xCC, "Auth page 0 last copied data byte");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_SYSTEM, 25, &m), DECODE_OK, "system decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_SYSTEM, "system type");
+    sys_data *S = &m.data.system;
+    ASSERT_EQ_INT(S->OperatorLocType, OP_LOCATION_TYPE_FIXED, "sys operator loc type");
+    ASSERT_EQ_INT(S->ClassificationType, CLASSIFICATION_TYPE_EU, "sys classification type");
+    ASSERT_NEAR(S->OperatorLatitude, 52.3, 1e-6, "sys operator latitude");
+    ASSERT_NEAR(S->OperatorLongitude, 4.9, 1e-6, "sys operator longitude");
+    ASSERT_EQ_INT(S->AreaCount, 1, "sys area count (u16)");
+    ASSERT_EQ_INT(S->AreaRadius, 500, "sys area radius (x10)");
+    ASSERT_NEAR(S->AreaCeiling, 150.0, 0.01, "sys area ceiling");
+    ASSERT_NEAR(S->AreaFloor, 20.0, 0.01, "sys area floor");
+    ASSERT_EQ_INT(S->CategoryEU, CATEGORY_EU_OPEN, "sys category EU (high nibble)");
+    ASSERT_EQ_INT(S->ClassEU, CLASS_EU_CLASS_1, "sys class EU (low nibble)");
+    ASSERT_NEAR(S->OperatorAltitudeGeo, 105.0, 0.01, "sys operator altitude geo");
+    ASSERT_EQ_INT(S->Timestamp, 12345678, "sys timestamp (LE u32)");
 }
 
-static void test_auth_nonzero_page_success_and_failures(void)
+static void test_operator_id(void)
 {
-    uint8_t packet[] = {
-        0x20,
-        0x01,
-        0x01,
-        0xDD, 0xEE, 0xFF, 0x10,
-        0x20, 0x30, 0x40, 0x50,
-        0x60, 0x70, 0x80, 0x90,
-        0x12, 0x34, 0x56, 0x78,
-        0x9A, 0xBC, 0xDE, 0xF0,
-        0x01, 0x02
-    };
-    uint8_t short_packet[] = {0x20, 0x01, 0x00};
-    authentication_data auth;
-    memset(&auth, 0, sizeof(auth));
-
-    ASSERT_EQ_INT(decode_auth(packet, sizeof(packet), &auth), 0, "Auth page 1 decode should succeed");
-    ASSERT_EQ_INT(auth.msg_type, MESSAGETYPE_AUTH, "Auth page 1 message type");
-    ASSERT_EQ_INT(auth.auth_type, AUTH_UAS_ID_SIGNATURE, "Auth page 1 type");
-    ASSERT_EQ_INT(auth.data_page, 1, "Auth page 1 data page");
-    ASSERT_EQ_INT(auth.AuthData[0], 0xDD, "Auth page 1 first data byte");
-    ASSERT_EQ_INT(auth.AuthData[21], 0x02, "Auth page 1 last copied data byte");
-
-    ASSERT_EQ_INT(decode_auth(NULL, 25, &auth), AUTH_ERR, "Auth null packet fails");
-    ASSERT_EQ_INT(decode_auth(short_packet, sizeof(short_packet), &auth), AUTH_ERR, "Auth short packet fails");
-    ASSERT_EQ_INT(decode_auth(packet, sizeof(packet), NULL), AUTH_ERR, "Auth null output fails");
+    decoded_message_t m;
+    ASSERT_EQ_INT(decode_message(PKT_OPID, 25, &m), DECODE_OK, "operator id decodes");
+    ASSERT_EQ_INT(m.type, MESSAGETYPE_OPERATOR_ID, "operator id type");
+    ASSERT_EQ_INT(m.data.operator_id.OperatorIdType, ODID_OPERATOR_ID, "op id type");
+    ASSERT_EQ_STR(m.data.operator_id.OperatorId, "GBR-OP-12345678ABCDE", "operator id string");
 }
 
-static void test_self_id_success_and_failures(void)
+static void test_error_paths(void)
 {
-    uint8_t packet[] = {
-        0x30,
-        0x01,
-        'I','n','s','p','e','c','t','i','o','n',' ',
-        'F','l','i','g','h','t',
-        0,0,0,0,0,0
-    };
-    uint8_t short_packet[] = {0x30, 0x01};
-    selfID_data selfID;
-    memset(&selfID, 0, sizeof(selfID));
+    decoded_message_t m;
+    uint8_t short_pkt[10] = { 0x12, 0x26, 0x23 };
+    uint8_t bad_type[25]  = { 0xE0 };
 
-    ASSERT_EQ_INT(decode_selfID(packet, sizeof(packet), &selfID), 0, "Self ID decode should succeed");
-    ASSERT_EQ_INT(selfID.msg_type, MESSAGETYPE_SELF_ID, "Self ID message type");
-    ASSERT_EQ_INT(selfID.DescType, DESC_TYPE_EMERGENCY, "Self ID description type");
-    ASSERT_EQ_STR(selfID.desc, "Inspection Flight", "Self ID description");
-    ASSERT_EQ_INT(selfID.desc[DRONE_ID_STR_SIZE], '\0', "Self ID null terminator");
-
-    ASSERT_EQ_INT(decode_selfID(NULL, 25, &selfID), DRONE_ID_ERR, "Self ID null packet fails");
-    ASSERT_EQ_INT(decode_selfID(short_packet, sizeof(short_packet), &selfID), DRONE_ID_ERR, "Self ID short packet fails");
-    ASSERT_EQ_INT(decode_selfID(packet, sizeof(packet), NULL), DRONE_ID_ERR, "Self ID null output fails");
+    ASSERT_EQ_INT(decode_message(NULL, 25, &m), DECODE_ERR_NULL, "null packet -> NULL");
+    ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, NULL), DECODE_ERR_NULL, "null out -> NULL");
+    ASSERT_EQ_INT(decode_message(short_pkt, 10, &m), DECODE_ERR_TOO_SHORT, "short -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message(bad_type, 25, &m), DECODE_ERR_BAD_TYPE, "bad type -> BAD_TYPE");
+    ASSERT_EQ_INT(decode_message(PKT_PACK, 25, &m), DECODE_ERR_BAD_TYPE, "pack as single -> BAD_TYPE");
 }
 
-static void test_system_success_and_failures(void)
-{
-    uint8_t packet[] = {
-        0x40,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x02,
-        0x64,
-        0x08, 0x98,
-        0x07, 0xF8,
-        0x21,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00
-    };
-    uint8_t short_packet[] = {0x40, 0x1F};
-    sys_data system;
-    memset(&system, 0, sizeof(system));
-
-    ASSERT_EQ_INT(decode_system_msg(packet, sizeof(packet), &system), 0, "System decode should succeed");
-    ASSERT_EQ_INT(system.msg_type, MESSAGETYPE_SYSTEM, "System message type");
-    ASSERT_EQ_INT(system.OperatorLocType, OP_LOCATION_TYPE_TAKEOFF, "System operator location type default");
-    ASSERT_EQ_INT(system.ClassificationType, CLASSIFICATION_TYPE_UNDECLARED, "System classification type default");
-    ASSERT_NEAR(system.OperatorLatitude, 52.6731904, 0.0000001, "System operator latitude");
-    ASSERT_NEAR(system.OperatorLongitude, -8.6274432, 0.0000001, "System operator longitude");
-    ASSERT_EQ_INT(system.AreaCount, 2, "System area count");
-    ASSERT_EQ_INT(system.AreaRadius, 100, "System area radius");
-    ASSERT_NEAR(system.AreaCeiling, 100.0, 0.001, "System area ceiling");
-    ASSERT_NEAR(system.AreaFloor, 20.0, 0.001, "System area floor");
-    ASSERT_EQ_INT(system.CategoryEU, 0x21, "System category EU raw value");
-    ASSERT_EQ_INT(system.ClassEU, CLASS_EU_UNDECLARED, "System class EU default");
-    ASSERT_NEAR(system.OperatorAltitudeGeo, 0.0, 0.001, "System operator altitude default");
-    ASSERT_EQ_INT(system.Timestamp, 0, "System timestamp default");
-
-    ASSERT_EQ_INT(decode_system_msg(NULL, 25, &system), DRONE_ID_ERR, "System null packet fails");
-    ASSERT_EQ_INT(decode_system_msg(short_packet, sizeof(short_packet), &system), DRONE_ID_ERR, "System short packet fails");
-    ASSERT_EQ_INT(decode_system_msg(packet, sizeof(packet), NULL), DRONE_ID_ERR, "System null output fails");
-}
-
-static void test_operator_id_success_and_failures(void)
-{
-    uint8_t packet[] = {
-        0x50,
-        0x00,
-        'I','E','-','O','P','-','1','2','3','4',
-        '5','6','7','8','9','A','B','C','D','E',
-        0x00, 0x00, 0x00
-    };
-    uint8_t short_packet[] = {0x50, 0x00};
-    OperatorID_data op;
-    memset(&op, 0, sizeof(op));
-
-    ASSERT_EQ_INT(decode_operator_id(packet, sizeof(packet), &op), 0, "Operator ID decode should succeed");
-    ASSERT_EQ_INT(op.msg_type, MESSAGETYPE_OPERATOR_ID, "Operator ID message type");
-    ASSERT_EQ_INT(op.OperatorIdType, ODID_OPERATOR_ID, "Operator ID type");
-    ASSERT_EQ_STR(op.OperatorId, "IE-OP-123456789ABCDE", "Operator ID string");
-    ASSERT_EQ_INT(op.OperatorId[OPERATOR_ID_SIZE], '\0', "Operator ID null terminator");
-
-    ASSERT_EQ_INT(decode_operator_id(NULL, 25, &op), OPP_ID_ERR, "Operator ID null packet fails");
-    ASSERT_EQ_INT(decode_operator_id(short_packet, sizeof(short_packet), &op), OPP_ID_ERR, "Operator ID short packet fails");
-    ASSERT_EQ_INT(decode_operator_id(packet, sizeof(packet), NULL), OPP_ID_ERR, "Operator ID null output fails");
-}
-
-static void test_message_pack(void){
-    uint8_t message_pack[1 + (3 * RID_MSG_SIZE)] = {
-    0xF3,
-    // Message 1: Basic ID
-    0x00, 0x21,
-    '1','5','8','1','F','5','B','J','D','2',
-    '4','8','Q','0','0','A','8','X','V','X',
-    0x00, 0x00, 0x00,
-
-    // Message 2: Location
-    0x10, 0x00, 0x5A, 0x14, 0x82,
-    0x1F, 0x65, 0x4A, 0x80,
-    0xFA, 0xDB, 0x8E, 0x80,
-    0x08, 0x98,
-    0x08, 0x98,
-    0x3C,
-    0x0B, 0x06, 0x06, 0x04, 0x02,
-    0x05, 0xDC,
-
-    // Message 3: System
-    0x40,
-    0x1F, 0x65, 0x4A, 0x80,
-    0xFA, 0xDB, 0x8E, 0x80,
-    0x02,
-    0x64,
-    0x08, 0x98,
-    0x07, 0xF8,
-    0x21,
-    0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00,
-    0x00
-};
-
-    track_table_t table;
-    track_table_init(&table);
-    int result = decode_message_pack(message_pack, sizeof(message_pack), &table);
-    ASSERT_TRUE(result == 0, "Message Pack decode failed");
-    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
-    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Basic ID missing");
-    ASSERT_TRUE(table.tracks[0].has_location == 1, "Location missing");
-    ASSERT_TRUE(table.tracks[0].has_system == 1, "System missing");
-}
-
-static int test_message_pack_valid_2_messages(void)
+static void test_message_pack_valid(void)
 {
     track_table_t table;
     track_table_init(&table);
 
-    uint8_t pack[1 + (2 * RID_MSG_SIZE)] = {
-        0xF2,
-
-        // Basic ID
-        0x00, 0x21,
-        '1','5','8','1','F','5','B','J','D','2',
-        '4','8','Q','0','0','A','8','X','V','X',
-        0x00, 0x00, 0x00,
-
-        // Location
-        0x10, 0x00, 0x5A, 0x14, 0x82,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x08, 0x98, 0x08, 0x98,
-        0x3C, 0x0B, 0x06, 0x06, 0x04, 0x02,
-        0x05, 0xDC
-    };
-
-    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) == 0,
-                "Message Pack 2-message decode failed");
-
-    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
-    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Message Pack missing Basic ID");
-    ASSERT_TRUE(table.tracks[0].has_location == 1, "Message Pack missing Location");
-
-    return 0;
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), &table), DECODE_OK, "pack decodes");
+    ASSERT_EQ_INT(table.num_tracks, 1, "pack -> one track");
+    ASSERT_EQ_INT(table.tracks[0].has_basic_id, 1, "pack track has basic id");
+    ASSERT_EQ_INT(table.tracks[0].has_location, 1, "pack track has location");
+    ASSERT_EQ_INT(table.tracks[0].has_system, 1, "pack track has system");
+    ASSERT_EQ_STR(table.tracks[0].uas_id, "1581F5BJD248Q00A8XVX", "pack track uas id");
+    ASSERT_NEAR(table.tracks[0].location.Latitude, 51.4778, 1e-6, "pack location latitude");
 }
 
-static int test_message_pack_valid_3_messages(void)
+static void test_message_pack_errors(void)
 {
     track_table_t table;
+
+    uint8_t zero_count[3] = { 0xF2, 0x19, 0x00 };
     track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), &table), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
 
-    uint8_t pack[1 + (3 * RID_MSG_SIZE)] = {
-        0xF3,
-
-        // Basic ID
-        0x00, 0x21,
-        '1','5','8','1','F','5','B','J','D','2',
-        '4','8','Q','0','0','A','8','X','V','X',
-        0x00, 0x00, 0x00,
-
-        // Location
-        0x10, 0x00, 0x5A, 0x14, 0x82,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x08, 0x98, 0x08, 0x98,
-        0x3C, 0x0B, 0x06, 0x06, 0x04, 0x02,
-        0x05, 0xDC,
-
-        // System
-        0x40,
-        0x1F, 0x65, 0x4A, 0x80,
-        0xFA, 0xDB, 0x8E, 0x80,
-        0x02, 0x64,
-        0x08, 0x98,
-        0x07, 0xF8,
-        0x21,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00
-    };
-
-    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) == 0,
-                "Message Pack 3-message decode failed");
-
-    ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
-    ASSERT_TRUE(table.tracks[0].has_basic_id == 1, "Basic ID missing");
-    ASSERT_TRUE(table.tracks[0].has_location == 1, "Location missing");
-    ASSERT_TRUE(table.tracks[0].has_system == 1, "System missing");
-
-    return 0;
-}
-
-static int test_message_pack_truncated(void)
-{
-    track_table_t table;
+    uint8_t big_count[3] = { 0xF2, 0x19, 0xFF };
     track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), &table), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
 
-    uint8_t pack[10] = {
-        0xF2,
-        0x00, 0x21, '1','5','8','1','F','5','B'
-    };
-
-    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
-                "Truncated Message Pack should fail");
-
-    return 0;
-}
-
-static int test_message_pack_zero_messages(void)
-{
-    track_table_t table;
+    uint8_t bad_size[3] = { 0xF2, 0x18, 0x03 };
     track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), &table), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
 
-    uint8_t pack[] = {
-        0xF0
-    };
-
-    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
-                "Zero-message Message Pack should fail");
-
-    return 0;
-}
-
-static int test_message_pack_nested_pack(void)
-{
-    track_table_t table;
+    uint8_t truncated[10] = { 0xF2, 0x19, 0x02, 0x02, 0x12, 0x31 };
     track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), &table), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
 
-    uint8_t pack[1 + RID_MSG_SIZE] = {
-        0xF1,
+    uint8_t tiny[2] = { 0xF2, 0x19 };
+    track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), &table), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
 
-        // Contained message has type 0x0F = Message Pack
-        0xF0,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00
-    };
-
-    ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
-                "Nested Message Pack should fail");
-
-    return 0;
+    track_table_init(&table);
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), &table), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
 }
 
 int main(void)
 {
-    printf("Running full decoder tests...\n\n");
-
+    printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
-    test_basic_id_success();
-    test_basic_id_failures();
-    test_location_success();
-    test_location_invalid_timestamp_and_failures();
-    test_auth_page_zero_success();
-    test_auth_nonzero_page_success_and_failures();
-    test_self_id_success_and_failures();
-    test_system_success_and_failures();
-    test_operator_id_success_and_failures();
-    test_message_pack();
-    test_message_pack_valid_2_messages();
-    test_message_pack_valid_3_messages();
-    test_message_pack_truncated();
-    test_message_pack_zero_messages();
-    test_message_pack_nested_pack();
-
+    test_basic_id();
+    test_location();
+    test_auth();
+    test_self_id();
+    test_system();
+    test_operator_id();
+    test_error_paths();
+    test_message_pack_valid();
+    test_message_pack_errors();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
-
-    if (tests_failed == 0) {
-        printf("\nALL TESTS PASSED\n");
-        return 0;
-    }
-
+    if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }
     printf("\nSOME TESTS FAILED\n");
     return 1;
 }

@@ -260,10 +260,10 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     if (auth_data->data_page == 0){
         auth_data->last_page_idx = packet[2];
         auth_data->length = packet[3];
-        auth_data->timestamp = rd_i32le(&packet[4]);
-        memcpy(auth_data->AuthData, &packet[9], 16);
+        auth_data->timestamp = rd_u32le(&packet[4]);
+        memcpy(auth_data->AuthData, &packet[8], 17);
     } else {
-        memcpy(auth_data->AuthData, &packet[3], 22);
+        memcpy(auth_data->AuthData, &packet[2], 23);
     }
     return 0;
 }
