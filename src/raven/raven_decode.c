@@ -84,7 +84,7 @@ int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *dec
 }
 
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID){
-	if (!packet || !basicID){
+	if (packet == NULL || basicID == NULL){
 		return DRONE_ID_ERR;
 	}
 	if (packet_len < DRONE_ID_PACK_SIZE){
@@ -103,7 +103,7 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 }
 
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data){
-    if (!packet || !location_data){
+    if (packet == NULL || location_data == NULL){
         return DRONE_LOCATION_ERR;
     }
     if (packet_len < 25){
@@ -261,7 +261,7 @@ const char *auth_type_to_str(auth_type_t auth_type){
 }
 
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data){
-    if (!packet || !auth_data){
+    if (packet == NULL || auth_data == NULL){
         return AUTH_ERR;
     }
     if (packet_len < AUTH_PACK_SIZE){
@@ -286,7 +286,7 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
 }
 
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
-    if (!packet || !selfID){
+    if (packet == NULL || selfID == NULL){
         return DRONE_ID_ERR;
     } 
     if (packet_len < SELFID_PACK_SIZE){
@@ -300,7 +300,7 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
 }
 
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg){
-    if (!packet || !system_msg) {
+    if (packet == NULL || system_msg == NULL) {
         return DRONE_ID_ERR;
     }
     if (packet_len < SYSMSG_PACK_SIZE) {
@@ -345,7 +345,7 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
 }
 
 int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id){
-    if (!packet || !op_id){
+    if (packet == NULL || op_id == NULL){
         return OPP_ID_ERR;
     }
     if (packet_len < OPID_PACK_SIZE){
@@ -359,7 +359,7 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
 }
 
 int decoder(char *droneID, droneID_basicID_data *basicID){
-	if (!droneID || !basicID){
+	if (droneID == NULL || basicID == NULL){
 		return DRONE_ID_ERR;
 	}
 	int len = strlen(droneID);
