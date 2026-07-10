@@ -7,10 +7,9 @@
 #define DJI 4
 #define WP_ID_MAX_LEN 20
 #define MESSAGETYPE_PACKED_NOT_IMPLEMENTED 1
-//decodes the drones identifer
 
-int decode_message_pack(uint8_t *packet, int len, track_table_t *table){
-    if (!packet || !table){
+int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table){
+    if (packet == NULL || track_table == NULL){
         return MSG_ERR;
     }
 
@@ -18,57 +17,61 @@ int decode_message_pack(uint8_t *packet, int len, track_table_t *table){
     if (msg_count == 0){
         return MSG_ERR;
     }
+
     int expected_len = 1 + (msg_count * RID_MESSAGE_SIZE);
-    if (len < expected_len){
-        return PACK_OVERFLOW_ERR;
+    if (packet_len < expected_len){
+        return PACK_UNDERFLOW_ERR;
     }
+   
     for (int i = 0; i < msg_count; i++){
         const uint8_t *msg_start = packet + 1 + (i * RID_MESSAGE_SIZE);
         decoded_message_t msg;
-        int decoded_res = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
-        if (decoded_res != 0){
-            return decoded_res;
+
+        int decode_msg_result = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
+        if (decode_msg_result != 0){
+            return decode_msg_result;
         }
-        int result = process_decoded_message(table, &msg);
-        if (result != 0){
-            return result;
+
+        int processed_decoded_msg = process_decoded_message(track_table, &msg);
+        if (processed_decoded_msg != 0) {
+            return processed_decoded_msg;
         }
     }
     return 0;
 }
 
-int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *out){
-    if (!packet || !out){
+int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *decoded_output){
+    if (packet == NULL || decoded_output == NULL){
         return MSG_ERR;
     }
     if (packet_len < RID_MESSAGE_SIZE){
-        return PACK_OVERFLOW_ERR;
+        return PACK_UNDERFLOW_ERR;
     }
     uint8_t msg_type = packet[0] & 0x0F;
     switch (msg_type){
         case MESSAGETYPE_BASIC_ID:
-            out->type = MESSAGETYPE_BASIC_ID;
-            return decode_basic_id(packet, packet_len, &out->data.basic_id);
+            decoded_output->type = MESSAGETYPE_BASIC_ID;
+            return decode_basic_id(packet, packet_len, &decoded_output->data.basic_id);
         case MESSAGETYPE_LOCATION:
-            out->type = MESSAGETYPE_LOCATION;
-            return decode_location_vector(packet, packet_len, &out->data.location);
+            decoded_output->type = MESSAGETYPE_LOCATION;
+            return decode_location_vector(packet, packet_len, &decoded_output->data.location);
         case MESSAGETYPE_AUTH:
-            out->type = MESSAGETYPE_AUTH;
-            return decode_auth(packet, packet_len, &out->data.auth);
+            decoded_output->type = MESSAGETYPE_AUTH;
+            return decode_auth(packet, packet_len, &decoded_output->data.auth);
         case MESSAGETYPE_SELF_ID:
-            out->type = MESSAGETYPE_SELF_ID;
-            return decode_selfID(packet, packet_len, &out->data.self_id);
+            decoded_output->type = MESSAGETYPE_SELF_ID;
+            return decode_selfID(packet, packet_len, &decoded_output->data.self_id);
         case MESSAGETYPE_SYSTEM:
-            out->type = MESSAGETYPE_SYSTEM;
-            return decode_system_msg(packet, packet_len, &out->data.system);
+            decoded_output->type = MESSAGETYPE_SYSTEM;
+            return decode_system_msg(packet, packet_len, &decoded_output->data.system);
         case MESSAGETYPE_OPERATOR_ID:
-            out->type = MESSAGETYPE_OPERATOR_ID;
-            return decode_operator_id(packet, packet_len, &out->data.operator_id);
+            decoded_output->type = MESSAGETYPE_OPERATOR_ID;
+            return decode_operator_id(packet, packet_len, &decoded_output->data.operator_id);
         case MESSAGETYPE_PACKED:
-            out->type = MESSAGETYPE_PACKED;
+            decoded_output->type = MESSAGETYPE_PACKED;
             return MESSAGETYPE_PACKED_NOT_IMPLEMENTED;
         default:
-            out->type = MESSAGETYPE_INVALID;
+            decoded_output->type = MESSAGETYPE_INVALID;
             return MSG_ERR;
     }
     return 0;

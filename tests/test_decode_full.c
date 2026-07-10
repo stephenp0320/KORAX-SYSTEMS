@@ -355,7 +355,7 @@ static void test_message_pack(void){
 };
 
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
     int result = decode_message_pack(message_pack, sizeof(message_pack), &table);
     ASSERT_TRUE(result == 0, "Message Pack decode failed");
     ASSERT_TRUE(table.num_tracks == 1, "Message Pack should create one track");
@@ -367,7 +367,7 @@ static void test_message_pack(void){
 static int test_message_pack_valid_2_messages(void)
 {
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
 
     uint8_t pack[1 + (2 * RID_MSG_SIZE)] = {
         0x02,
@@ -400,7 +400,7 @@ static int test_message_pack_valid_2_messages(void)
 static int test_message_pack_valid_3_messages(void)
 {
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
 
     uint8_t pack[1 + (3 * RID_MSG_SIZE)] = {
         0x03,
@@ -446,7 +446,7 @@ static int test_message_pack_valid_3_messages(void)
 static int test_message_pack_truncated(void)
 {
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
 
     uint8_t pack[10] = {
         0x02,
@@ -462,7 +462,7 @@ static int test_message_pack_truncated(void)
 static int test_message_pack_zero_messages(void)
 {
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
 
     uint8_t pack[] = {
         0x00
@@ -477,7 +477,7 @@ static int test_message_pack_zero_messages(void)
 static int test_message_pack_nested_pack(void)
 {
     track_table_t table;
-    track_initialise(&table);
+    track_table_init(&table);
 
     uint8_t pack[1 + RID_MSG_SIZE] = {
         0x01,

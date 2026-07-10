@@ -6,7 +6,7 @@
 #define MSG_ERR 1
 #define BLE_LEGACY_ADV_MAX_SIZE   31
 #define RID_MESSAGE_SIZE          25
-#define PACK_OVERFLOW_ERR 1
+#define PACK_UNDERFLOW_ERR 1
 #define AUTH_PACK_SIZE 22
 #define DRONE_ID_PACK_SIZE 22
 #define SELFID_PACK_SIZE 25

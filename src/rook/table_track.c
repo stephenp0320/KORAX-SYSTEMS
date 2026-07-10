@@ -3,7 +3,7 @@
 #include <string.h>
 #include "capture.h"
 
-void track_initialise(track_table_t *table){
+void track_table_init(track_table_t *table){
 	if (!table){
 		return;
 	}
