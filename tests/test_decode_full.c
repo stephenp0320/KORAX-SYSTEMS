@@ -248,7 +248,7 @@ static void test_self_id_success_and_failures(void)
     memset(&selfID, 0, sizeof(selfID));
 
     ASSERT_EQ_INT(decode_selfID(packet, sizeof(packet), &selfID), 0, "Self ID decode should succeed");
-    ASSERT_EQ_INT(selfID.msg_type, 0x30, "Self ID message type");
+    ASSERT_EQ_INT(selfID.msg_type, MESSAGETYPE_SELF_ID, "Self ID message type");
     ASSERT_EQ_INT(selfID.DescType, DESC_TYPE_EMERGENCY, "Self ID description type");
     ASSERT_EQ_STR(selfID.desc, "Inspection Flight", "Self ID description");
     ASSERT_EQ_INT(selfID.desc[DRONE_ID_STR_SIZE], '\0', "Self ID null terminator");
@@ -278,7 +278,7 @@ static void test_system_success_and_failures(void)
     memset(&system, 0, sizeof(system));
 
     ASSERT_EQ_INT(decode_system_msg(packet, sizeof(packet), &system), 0, "System decode should succeed");
-    ASSERT_EQ_INT(system.msg_type, 0x40, "System message type");
+    ASSERT_EQ_INT(system.msg_type, MESSAGETYPE_SYSTEM, "System message type");
     ASSERT_EQ_INT(system.OperatorLocType, OP_LOCATION_TYPE_TAKEOFF, "System operator location type default");
     ASSERT_EQ_INT(system.ClassificationType, CLASSIFICATION_TYPE_UNDECLARED, "System classification type default");
     ASSERT_NEAR(system.OperatorLatitude, 52.6731904, 0.0000001, "System operator latitude");
@@ -311,7 +311,7 @@ static void test_operator_id_success_and_failures(void)
     memset(&op, 0, sizeof(op));
 
     ASSERT_EQ_INT(decode_operator_id(packet, sizeof(packet), &op), 0, "Operator ID decode should succeed");
-    ASSERT_EQ_INT(op.msg_type, 0x50, "Operator ID message type");
+    ASSERT_EQ_INT(op.msg_type, MESSAGETYPE_OPERATOR_ID, "Operator ID message type");
     ASSERT_EQ_INT(op.OperatorIdType, ODID_OPERATOR_ID, "Operator ID type");
     ASSERT_EQ_STR(op.OperatorId, "IE-OP-123456789ABCDE", "Operator ID string");
     ASSERT_EQ_INT(op.OperatorId[OPERATOR_ID_SIZE], '\0', "Operator ID null terminator");
@@ -323,7 +323,7 @@ static void test_operator_id_success_and_failures(void)
 
 static void test_message_pack(void){
     uint8_t message_pack[1 + (3 * RID_MSG_SIZE)] = {
-    0x03,
+    0xF3,
     // Message 1: Basic ID
     0x00, 0x21,
     '1','5','8','1','F','5','B','J','D','2',
@@ -331,7 +331,7 @@ static void test_message_pack(void){
     0x00, 0x00, 0x00,
 
     // Message 2: Location
-    0x01, 0x00, 0x5A, 0x14, 0x82,
+    0x10, 0x00, 0x5A, 0x14, 0x82,
     0x1F, 0x65, 0x4A, 0x80,
     0xFA, 0xDB, 0x8E, 0x80,
     0x08, 0x98,
@@ -341,7 +341,7 @@ static void test_message_pack(void){
     0x05, 0xDC,
 
     // Message 3: System
-    0x04,
+    0x40,
     0x1F, 0x65, 0x4A, 0x80,
     0xFA, 0xDB, 0x8E, 0x80,
     0x02,
@@ -370,7 +370,7 @@ static int test_message_pack_valid_2_messages(void)
     track_table_init(&table);
 
     uint8_t pack[1 + (2 * RID_MSG_SIZE)] = {
-        0x02,
+        0xF2,
 
         // Basic ID
         0x00, 0x21,
@@ -379,7 +379,7 @@ static int test_message_pack_valid_2_messages(void)
         0x00, 0x00, 0x00,
 
         // Location
-        0x01, 0x00, 0x5A, 0x14, 0x82,
+        0x10, 0x00, 0x5A, 0x14, 0x82,
         0x1F, 0x65, 0x4A, 0x80,
         0xFA, 0xDB, 0x8E, 0x80,
         0x08, 0x98, 0x08, 0x98,
@@ -403,7 +403,7 @@ static int test_message_pack_valid_3_messages(void)
     track_table_init(&table);
 
     uint8_t pack[1 + (3 * RID_MSG_SIZE)] = {
-        0x03,
+        0xF3,
 
         // Basic ID
         0x00, 0x21,
@@ -412,7 +412,7 @@ static int test_message_pack_valid_3_messages(void)
         0x00, 0x00, 0x00,
 
         // Location
-        0x01, 0x00, 0x5A, 0x14, 0x82,
+        0x10, 0x00, 0x5A, 0x14, 0x82,
         0x1F, 0x65, 0x4A, 0x80,
         0xFA, 0xDB, 0x8E, 0x80,
         0x08, 0x98, 0x08, 0x98,
@@ -420,7 +420,7 @@ static int test_message_pack_valid_3_messages(void)
         0x05, 0xDC,
 
         // System
-        0x04,
+        0x40,
         0x1F, 0x65, 0x4A, 0x80,
         0xFA, 0xDB, 0x8E, 0x80,
         0x02, 0x64,
@@ -449,7 +449,7 @@ static int test_message_pack_truncated(void)
     track_table_init(&table);
 
     uint8_t pack[10] = {
-        0x02,
+        0xF2,
         0x00, 0x21, '1','5','8','1','F','5','B'
     };
 
@@ -465,7 +465,7 @@ static int test_message_pack_zero_messages(void)
     track_table_init(&table);
 
     uint8_t pack[] = {
-        0x00
+        0xF0
     };
 
     ASSERT_TRUE(decode_message_pack(pack, sizeof(pack), &table) != 0,
@@ -480,10 +480,10 @@ static int test_message_pack_nested_pack(void)
     track_table_init(&table);
 
     uint8_t pack[1 + RID_MSG_SIZE] = {
-        0x01,
+        0xF1,
 
         // Contained message has type 0x0F = Message Pack
-        0x0F,
+        0xF0,
         0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00,
