@@ -115,42 +115,16 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     location_data->SpeedHorizontal = (packet[1] & 0x01) ? (packet[3] * 0.75 + 63.75) : (packet[3] * 0.25);
     int8_t speed_vertical_raw = (int8_t)packet[4];
     location_data->SpeedVertical = speed_vertical_raw * 0.5;
-    
-    int32_t latitude_raw = 
-        ((int32_t)packet[8] << 24) | 
-        ((int32_t)packet[7] << 16) | 
-        ((int32_t)packet[6] << 8)  | 
-        ((int32_t)packet[5]);
-    location_data->Latitude = latitude_raw / 1e7;
-    
-    int32_t longitude_raw = 
-        ((int32_t)packet[12] << 24) | 
-        ((int32_t)packet[11] << 16)| 
-        ((int32_t)packet[10] << 8) | 
-        ((int32_t)packet[9]);
-    location_data->Longitude = longitude_raw / 1e7;
-
-    uint16_t barometric_alt_raw = 
-        ((uint16_t)packet[14] << 8) |
-        (uint16_t)packet[13];
-    location_data->AltitudeBaro = (barometric_alt_raw * 0.5) - 1000; 
-    
-    uint16_t gedetic_alt_raw = 
-        ((uint16_t)packet[16] << 8) |
-        (uint16_t)packet[15];
-    location_data->AltitudeGeo = (gedetic_alt_raw * 0.5) - 1000; 
-   
-    uint16_t height_raw = 
-        ((uint16_t)packet[18] << 8) |
-        (uint16_t)packet[17];
-    location_data->Height = (height_raw * 0.5) - 1000; 
+    location_data->Latitude = rd_i32le(&packet[5]) / 1e7;
+    location_data->Longitude = rd_i32le(&packet[9]) / 1e7;
+    location_data->AltitudeBaro = rd_u16le(&packet[13]) * 0.5 - 1000; 
+    location_data->AltitudeGeo = rd_u16le(&packet[15]) * 0.5 - 1000; 
+    location_data->Height = rd_u16le(&packet[17]) * 0.5 - 1000; 
     location_data->HorizAccuracy = packet[19] & 0x0F;
     location_data->VertAccuracy = (packet[19] >> 4) & 0x0F;
     location_data->SpeedAccuracy = packet[20] & 0x0F;
     location_data->BaroAccuracy = (packet[20] >> 4) & 0x0F;
-    uint16_t timestamp_raw = 
-        ((uint16_t)packet[22] << 8) |
-         (uint16_t)packet[21];
+    uint16_t timestamp_raw =  rd_u16le(&packet[21]);
     if (timestamp_raw != INV_TIMESTAMP){
         location_data->TimeStamp = timestamp_raw / 10.f;
     } else {

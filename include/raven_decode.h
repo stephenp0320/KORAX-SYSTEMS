@@ -279,6 +279,17 @@ typedef struct {
     uint8_t raw_messages[MAX_PACK_MSG][RID_MSG_SIZE];
 } message_pack_t;
 
+static inline uint16_t rd_u16le(const uint8_t *p){
+    return (uint16_t)(p[0] | (p[1] << 8));
+}
+
+static inline int32_t rd_i32le(const uint8_t *p) {
+    uint32_t v = (uint32_t)p[0]
+               | ((uint32_t)p[1] << 8)
+               | ((uint32_t)p[2] << 16)
+               | ((uint32_t)p[3] << 24);
+    return (int32_t)v;
+}
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID);
 const char *uatype_to_str(DRONE_ID_uatype_t uatype);
 const char *idtype_to_str(DRONE_ID_idtype_t idtype);
