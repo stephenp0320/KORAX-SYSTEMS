@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "capture.h"
 #include <string.h>
 #include "raven_decode.h"
@@ -19,7 +18,7 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
         }
         uint8_t type = ble_frame->adv_data[pos + 1];
         if (type == BLE_AD_TYPE_SERVICE_DATA_16BIT) {
-            int payload_start = pos + 4;
+            int payload_start = pos + 6;
 
             if (payload_start + RID_MSG_SIZE > ble_frame->adv_len) {
                 return BLE_ADV_ERR;
