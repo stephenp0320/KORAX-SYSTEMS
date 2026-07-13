@@ -10,6 +10,23 @@ void track_table_init(track_table_t *table){
 	memset(table, 0, sizeof(track_table_t));
 }
 
+int track_table_expire(track_table_t *table, time_t now, int expiry_seconds){
+	int removed = 0;
+	int i = 0;
+	while (i < table->num_tracks){
+		if (now - table->tracks[i].last_seen > expiry_seconds){
+			for (int j = i; j < table->num_tracks - 1; j++){
+				table->tracks[j] = table->tracks[j + 1];
+			}
+			table->num_tracks--;
+			removed++;
+		} else {
+			i++;
+        	}
+	}
+	return removed;
+}
+
 int find_track(track_table_t *tracks, const char *uas_id){
 	if (!tracks || !uas_id){
 		return TRACK_NOT_FOUND;
