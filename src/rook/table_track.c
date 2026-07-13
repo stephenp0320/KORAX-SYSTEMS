@@ -4,7 +4,7 @@
 #include "capture.h"
 
 void track_table_init(track_table_t *table){
-	if (!table){
+	if (table == NULL){
 		return;
 	}
 	memset(table, 0, sizeof(track_table_t));
@@ -42,7 +42,7 @@ int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
 }
 
 int find_track(track_table_t *tracks, const char *uas_id){
-	if (!tracks || !uas_id){
+	if (tracks == NULL || uas_id == NULL){
 		return TRACK_NOT_FOUND;
 	}
 	int curr_track;
@@ -55,7 +55,7 @@ int find_track(track_table_t *tracks, const char *uas_id){
 }
 
 int track_table_create(track_table_t *table, const char *uas_id){
-	if (!table || !uas_id){
+	if (table == NULL || uas_id == NULL){
 		return TRACK_ERR;
 	}
 	if (table->num_tracks >= MAX_TRACKS){
@@ -72,7 +72,7 @@ int track_table_create(track_table_t *table, const char *uas_id){
 }
 
 int track_table_update(track_t *drone_track, const decoded_message_t *msg){
-	if (!drone_track || !msg){
+	if (drone_track == NULL || msg == NULL){
 		return TRACK_ERR;
 	}
 	switch (msg->type){
@@ -116,7 +116,7 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
 }
 
 int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
-	if (!table || !msg){
+	if (table == NULL || msg == NULL){
 		return TRACK_ERR;
 	}
 	const char *uas_id = NULL;
