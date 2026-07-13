@@ -17,6 +17,7 @@ typedef struct {
     selfID_data self_id;
     authentication_data auth;
     int has_basic_id;
+    uint8_t source_mac[6];
     int has_auth;
     int has_location;
     int has_system;

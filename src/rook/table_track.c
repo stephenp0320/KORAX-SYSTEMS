@@ -27,6 +27,20 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds){
 	return removed;
 }
 
+int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){	
+	int i = 0;
+	int curr_track = 0;
+	while (i < table->num_tracks){
+		if (memcmp(table->tracks[i].source_mac, mac, 6) == 0){
+			curr_track = i;
+			return curr_track;
+		} else {
+			i++;
+		}
+	}
+	return TRACK_NOT_FOUND;
+}
+
 int find_track(track_table_t *tracks, const char *uas_id){
 	if (!tracks || !uas_id){
 		return TRACK_NOT_FOUND;
