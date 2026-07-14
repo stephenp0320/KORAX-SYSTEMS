@@ -319,6 +319,7 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
     return 0;
 }
 
+/*
 int decoder(char *droneID, droneID_basicID_data *basicID){
 	if (droneID == NULL || basicID == NULL){
 		return DECODE_ERR_NULL;
@@ -352,4 +353,5 @@ int decoder(char *droneID, droneID_basicID_data *basicID){
 	printf("SERIAL_NUMBER: %s\n", ch_serial);
 	return 0;
 }
+*/
 
