@@ -457,8 +457,10 @@ By providing a high-performance, standards-compliant software foundation, KORAX 
 
 ---
 
-<div align="center">
+## Project Status
 
-Made with ❤️ in Ireland 🇮🇪
+KORAX is currently in active development.
+
+The project is approaching its first public alpha release and welcomes feedback, issue reports, and contributions from developers interested in Remote ID, aviation software, embedded systems, and C programming.
 
 </div>
