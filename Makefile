@@ -5,6 +5,7 @@ SRC = \
       src/raven/raven_decode.c \
       src/capture/capture_ble.c \
       src/rook/table_track.c \
+      src/pipeline/pipeline.c \
 
 DEMO = examples/demo_decode.c
 TEST = tests/test_decode_full.c
@@ -15,7 +16,7 @@ TEST_APP = test_decode
 
 REPLAY_APP = korax_replay
 
-PHONY: all test replay clean  
+.PHONY: all test replay clean  
 all: $(APP)
 
 $(APP): $(DEMO) $(SRC)

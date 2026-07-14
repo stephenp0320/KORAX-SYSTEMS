@@ -7,6 +7,8 @@
 
 int process_rid_message(const uint8_t *rid_msg, int len, track_table_t *table);
 
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg);
+
 int process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table);
 
 int process_message_pack(const uint8_t *packet, int len, track_table_t *table);
