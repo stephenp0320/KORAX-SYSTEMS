@@ -213,8 +213,76 @@ static void test_message_pack_errors(void)
     ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), &table), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
 }
 
-int main(void)
-{
+static void test_jump_distance(void){
+    track_t track;
+    memset(&track, 0, sizeof(track));
+
+    track.prev_location.Latitude = 51.4778;
+    track.prev_location.Longitude = -0.0014;
+
+    track.location.Latitude = 51.4788;
+    track.location.Longitude = -0.0014;
+
+    double distance_km = jump_detection(&track);
+
+    ASSERT_NEAR(
+        distance_km,
+        0.111,
+        0.005,
+        "jump distance approximately 111 metres"
+    );
+}
+static void test_previous_location_tracking(void){
+    track_t track;
+    memset(&track, 0, sizeof(track));
+
+    decoded_message_t first = {0};
+    first.type = MESSAGETYPE_LOCATION;
+    first.data.location.Latitude = 51.4778;
+    first.data.location.Longitude = -0.0014;
+    first.data.location.TimeStamp = 100.0;
+
+    decoded_message_t second = {0};
+    second.type = MESSAGETYPE_LOCATION;
+    second.data.location.Latitude = 51.4788;
+    second.data.location.Longitude = -0.0014;
+    second.data.location.TimeStamp = 101.0;
+
+    /* Call whatever function updates a track from a decoded message */
+    track_table_update(&track, &first);
+    track_table_update(&track, &second);
+
+    ASSERT_EQ_INT(track.msg_count_location, 2, "two locations counted");
+
+    ASSERT_NEAR(
+        track.prev_location.Latitude,
+        51.4778,
+        1e-6,
+        "previous latitude retained"
+    );
+
+    ASSERT_NEAR(
+        track.location.Latitude,
+        51.4788,
+        1e-6,
+        "current latitude updated"
+    );
+
+    ASSERT_NEAR(
+        track.prev_location_timestamp,
+        100.0,
+        0.001,
+        "previous timestamp retained"
+    );
+
+    ASSERT_NEAR(
+        track.location_timestamp,
+        101.0,
+        0.001,
+        "current timestamp updated"
+    );
+}
+int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
     test_basic_id();
@@ -226,6 +294,8 @@ int main(void)
     test_error_paths();
     test_message_pack_valid();
     test_message_pack_errors();
+    test_jump_distance();
+    test_previous_location_tracking();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }

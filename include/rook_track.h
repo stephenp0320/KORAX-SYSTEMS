@@ -12,6 +12,9 @@ typedef struct {
     char uas_id[21];
     droneID_basicID_data basic_id;
     DRONE_ID_Location_data location;
+    DRONE_ID_Location_data prev_location;
+    time_t prev_location_timestamp;
+    time_t location_timestamp;
     sys_data system;
     OperatorID_data operator_id;
     selfID_data self_id;
@@ -31,7 +34,6 @@ typedef struct {
     int msg_count_self_id;
     time_t first_seen;
     time_t last_seen;
-    int prev_location;
 } track_t;
 
 typedef struct {
@@ -44,4 +46,6 @@ int find_track(track_table_t *table, const char *uas_id);
 int track_table_create(track_table_t *table, const char *uas_id);
 int track_table_update(track_t *track, const decoded_message_t *msg);
 int decode_message_pack(uint8_t *packet, int len, track_table_t *table);
+double to_radians(double degrees);
+double jump_detection(track_t *table);
 #endif
