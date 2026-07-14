@@ -31,6 +31,7 @@ typedef struct {
     int msg_count_self_id;
     time_t first_seen;
     time_t last_seen;
+    int prev_location;
 } track_t;
 
 typedef struct {

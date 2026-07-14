@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]){
-    if (!ble_frame || !rid_msg) {
+    if (ble_frame == NULL || rid_msg == NULL) {
         return BLE_ADV_ERR;
     }
     int pos = 0;
@@ -32,7 +32,7 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
 }
 
 int wifi_rid_extraction(const wifi_frame_t *wifi_frame, uint8_t rid_msg[RID_MSG_SIZE]){
-    if (!wifi_frame || !rid_msg){
+    if (wifi_frame == NULL || rid_msg == NULL){
         return WIFI_ERR;
     }
     int pos = 0;
