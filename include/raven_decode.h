@@ -2,19 +2,13 @@
 #ifndef DECODER_H
 #define DECODER_H
 #define MSG_SUCCESS 0
-#define DRONE_ID_ERR 1
-#define MSG_ERR 1
 #define BLE_LEGACY_ADV_MAX_SIZE   31
 #define RID_MESSAGE_SIZE          25
-#define PACK_UNDERFLOW_ERR 1
 #define AUTH_PACK_SIZE 22
 #define DRONE_ID_PACK_SIZE 22
 #define SELFID_PACK_SIZE 25
 #define SYSMSG_PACK_SIZE 25
 #define OPID_PACK_SIZE 25
-#define DRONE_LOCATION_ERR 1
-#define OPP_ID_ERR 1
-#define AUTH_ERR 1
 #define DJI_MAX_SIZE 20
 #define MIN_DIR         0       // Minimum direction
 #define MAX_DIR         360     // Maximum direction
