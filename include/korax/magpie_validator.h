@@ -12,7 +12,6 @@
 #define KORAX_MAGPIE_VALIDATOR_H
 
 #include "korax/raven_decode.h"
-#include "korax/rook_track.h"
 
 /* Rule severities. A track is compliant when no ERROR-severity flag is set. */
 typedef enum {

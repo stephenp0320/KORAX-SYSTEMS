@@ -47,7 +47,7 @@ int wifi_rid_extraction(const wifi_frame_t *wifi_frame, uint8_t rid_msg[RID_MSG_
                     return WIFI_ERR;
                 }
                 memcpy(rid_msg, &wifi_frame->wifi_packet[payload_start], RID_MSG_SIZE);
-                return 0; 
+                return 0;
             }
             return WIFI_ERR;
         }
