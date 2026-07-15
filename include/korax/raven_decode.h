@@ -26,8 +26,10 @@
 #define MIN_ALT         (-1000) // Minimum altitude
 #define MAX_ALT         31767.5f// Maximum altitude
 #define INV_ALT         MIN_ALT // Invalid altitude
+#define MIN_ALT_BARO    -1000
+#define MAX_ALT_BARO    31767.5
 #define MAX_TIMESTAMP   (60 * 60) // 1 hour in seconds
-#define INV_TIMESTAMP   0xFFFF  
+#define INV_TIMESTAMP   0xFFFF
 #define MAX_AREA_RADIUS 2550
 #define DRONE_ID_SIZE 20
 #define DRONE_ID_STR_SIZE 23
@@ -37,7 +39,7 @@
 
 typedef enum {
     DECODE_OK = 0,
-    DECODE_ERR_NULL, 
+    DECODE_ERR_NULL,
     DECODE_ERR_TOO_SHORT,      // fewer bytes than the message needs
     DECODE_ERR_BAD_TYPE,       // message-type header not recognised
     DECODE_ERR_BAD_VERSION,    // protocol version this build doesn't handle
@@ -56,8 +58,8 @@ typedef enum DRONE_ID_uatype {
     DRONE_ID_UATYPE_KITE = 7,
     DRONE_ID_UATYPE_FREE_BALLOON = 8,
     DRONE_ID_UATYPE_CAPTIVE_BALLOON = 9,
-    DRONE_ID_UATYPE_AIRSHIP = 10, 
-    DRONE_ID_UATYPE_FREE_FALL_PARACHUTE = 11, 
+    DRONE_ID_UATYPE_AIRSHIP = 10,
+    DRONE_ID_UATYPE_FREE_FALL_PARACHUTE = 11,
     DRONE_ID_UATYPE_ROCKET = 12,
     DRONE_ID_UATYPE_TETHERED_POWERED_AIRCRAFT = 13,
     DRONE_ID_UATYPE_GROUND_OBSTACLE = 14,
@@ -194,7 +196,7 @@ typedef struct authentication_data {
     uint8_t last_page_idx;
     uint8_t length;
     uint32_t timestamp;
-    uint8_t AuthData[23+1]; 
+    uint8_t AuthData[23+1];
 } authentication_data;
 
 typedef enum desctype {
@@ -249,7 +251,7 @@ typedef struct sys_data {
     uint16_t AreaRadius;
     float AreaCeiling;
     float AreaFloor;
-    category_EU_t CategoryEU; 
+    category_EU_t CategoryEU;
     class_EU_t ClassEU;
     float OperatorAltitudeGeo;
     uint32_t Timestamp;
@@ -308,7 +310,7 @@ const char *idtype_to_str(DRONE_ID_idtype_t idtype);
 const char *msg_type_to_str(messagetype_t msg_type);
 const char *auth_type_to_str(auth_type_t msg_type);
 const char *status_to_str(DRONE_ID_status_t status_type);
-int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data); 
+int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data);
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data);
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID);
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg);

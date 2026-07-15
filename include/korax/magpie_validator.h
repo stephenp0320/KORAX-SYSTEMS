@@ -23,11 +23,11 @@ typedef enum {
 /* Stable validator rule identifiers (v1 catalogue — see KAN-4). */
 typedef enum {
     KX_RULE_NONE = 0,
-    KX_RULE_MISSING_REQUIRED_MSG,   /* required message type absent          */
-    KX_RULE_NO_LOCATION_IN_GRACE,   /* no Location within the grace window   */
-    KX_RULE_RESERVED_BITS_SET,      /* reserved fields set                   */
-    KX_RULE_FIELD_OUT_OF_RANGE,     /* value outside its spec-defined range  */
-    KX_RULE_IMPLAUSIBLE_JUMP,       /* position/speed jump (uses prev fix)   */
+    KX_RULE_MISSING_REQUIRED_MSG = 1u << 0,   /* required message type absent          */
+    KX_RULE_NO_LOCATION_IN_GRACE = 1u << 1,/* no Location within the grace window   */
+    KX_RULE_RESERVED_BITS_SET = 1u << 2,      /* reserved fields set                   */
+    KX_RULE_FIELD_OUT_OF_RANGE = 1u << 3,     /* value outside its spec-defined range  */
+    KX_RULE_IMPLAUSIBLE_JUMP = 1u << 4,       /* position/speed jump (uses prev fix)   */
 } kx_rule_t;
 
 /*
