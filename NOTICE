@@ -1,0 +1,9 @@
+Korax
+Copyright 2026 Stephen Power
+
+This product includes software developed by the Korax project.
+
+The Open Drone ID wire format decoded by this software is defined by
+ASTM F3411 and ASD-STAN prEN 4709-002. This project is an independent
+implementation and is not affiliated with or endorsed by ASTM, ASD-STAN,
+or the opendroneid project.

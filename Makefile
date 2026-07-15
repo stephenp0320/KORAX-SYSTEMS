@@ -1,38 +1,40 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude
+# Convenience Makefile. For packaging/installation use CMake (see README).
+CC      ?= cc
+CFLAGS  ?= -Wall -Wextra -std=c11
+CFLAGS  += -Iinclude
+LDLIBS  += -lm
 
-SRC = \
-      src/raven/raven_decode.c \
-      src/capture/capture_ble.c \
-      src/rook/table_track.c \
-      src/pipeline/pipeline.c \
+LIB_SRC := \
+    src/raven/raven_decode.c \
+    src/rook/table_track.c \
+    src/capture/capture_ble.c \
+    src/pipeline/pipeline.c
 
-DEMO = examples/demo_decode.c
-TEST = tests/test_decode_full.c
-REPLAY = examples/korax_replay.c
+BUILD   := build
 
-APP = korax_demo
-TEST_APP = test_decode
+.PHONY: all test replay demo clean
+all: test replay demo
 
-REPLAY_APP = korax_replay
+$(BUILD):
+	@mkdir -p $(BUILD)
 
-.PHONY: all test replay clean  
-all: $(APP)
+$(BUILD)/test_decode: tests/unit/test_decode_full.c $(LIB_SRC) | $(BUILD)
+	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
-$(APP): $(DEMO) $(SRC)
-	$(CC) $(CFLAGS) $^ -o $@
+$(BUILD)/korax_replay: tools/replay/korax_replay.c $(LIB_SRC) | $(BUILD)
+	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
-$(TEST_APP): $(TEST) $(SRC)
-	$(CC) $(CFLAGS) $^ -o $@
+$(BUILD)/korax_demo: examples/demo_decode.c $(LIB_SRC) | $(BUILD)
+	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
-$(REPLAY_APP): $(REPLAY) $(SRC)
-	$(CC) $(CFLAGS) $^ -o $@
+test: $(BUILD)/test_decode
+	./$(BUILD)/test_decode
 
-test: $(TEST_APP)
-	./$(TEST_APP)
+replay: $(BUILD)/korax_replay
+	./$(BUILD)/korax_replay tools/replay/frames.txt
 
-replay: $(REPLAY_APP)
-	./$(REPLAY_APP) frames.txt
+demo: $(BUILD)/korax_demo
+	./$(BUILD)/korax_demo
 
 clean:
-	rm -f $(APP) $(TEST_APP) $(REPLAY_APP)
+	rm -rf $(BUILD)

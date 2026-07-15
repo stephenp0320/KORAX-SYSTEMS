@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "rook_track.h"
+#include "korax/rook_track.h"
 #include <string.h>
-#include "capture.h"
+#include "korax/capture.h"
 
 int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
 	if (table == NULL || msg == NULL){

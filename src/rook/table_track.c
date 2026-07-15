@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "rook_track.h"
+#include "korax/rook_track.h"
 #include <string.h>
-#include "capture.h"
+#include "korax/capture.h"
 #include <math.h>
 #define PI 3.14159265358979323846
 #define EARTH_RADIUS_KM 6371.0

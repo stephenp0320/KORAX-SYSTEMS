@@ -1,0 +1,25 @@
+# Build output
+/build/
+/build-*/
+*.o
+*.a
+*.so
+*.dylib
+
+# Local binaries (built from examples/tools/tests)
+/korax_demo
+/korax_replay
+/test_decode
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+
+# Editor / OS
+.DS_Store
+*.swp
+.vscode/
+.idea/
+compile_commands.json
