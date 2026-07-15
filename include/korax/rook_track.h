@@ -46,6 +46,8 @@ int find_track(track_table_t *table, const char *uas_id);
 int track_table_create(track_table_t *table, const char *uas_id);
 int track_table_update(track_t *track, const decoded_message_t *msg);
 int decode_message_pack(uint8_t *packet, int len, track_table_t *table);
+int track_table_expire(track_table_t *table, time_t now, int expiry_seconds);
+int find_track_by_mac(track_table_t *table, const uint8_t mac[6]);
 double to_radians(double degrees);
 double jump_detection(track_t *table);
 #endif
