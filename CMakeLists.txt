@@ -16,7 +16,8 @@ add_library(korax STATIC
     src/raven/raven_decode.c
     src/rook/table_track.c
     src/capture/capture_ble.c
-    src/pipeline/pipeline.c)
+    src/pipeline/pipeline.c
+    src/capture/capture_file.c)
 add_library(korax::korax ALIAS korax)
 
 target_include_directories(korax

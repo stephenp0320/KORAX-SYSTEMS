@@ -8,6 +8,7 @@ LIB_SRC := \
     src/raven/raven_decode.c \
     src/rook/table_track.c \
     src/capture/capture_ble.c \
+    src/capture/capture_file.c \
     src/pipeline/pipeline.c
 
 BUILD   := build

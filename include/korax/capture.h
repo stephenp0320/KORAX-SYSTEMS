@@ -32,11 +32,14 @@ typedef struct wp_frame_t {
 	size_t payload_len;
 	uint8_t source_mac[6];
 	wp_medium_t medium;
-	int8_t rssi; 
+	int8_t rssi;
 	uint64_t timestamp;
 } wp_frame_t;
 
-typedef void (*wp_frame_cb_t)(const wp_frame_t *frame, void *user_data);
+typedef void (*wp_frame_cb_t)(
+    const wp_frame_t *frame,
+    void *user_data
+);
 
 typedef struct wifi_frame_t {
 	uint8_t wifi_packet[WIFI_MAX_PACKET_SIZE];
@@ -48,4 +51,6 @@ typedef struct wifi_frame_t {
 
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]);
 int wp_replay_run(const char *path, wp_frame_cb_t cb, void *user_data);
+FILE *read_file(const char *filename);
+int get_file_line(FILE *fp, wp_frame_cb_t cb, void *user_data);
 #endif
