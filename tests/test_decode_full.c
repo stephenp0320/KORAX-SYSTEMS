@@ -282,6 +282,47 @@ static void test_previous_location_tracking(void){
         "current timestamp updated"
     );
 }
+
+static void test_first_location_has_no_previous(void){
+    track_t track;
+    memset(&track, 0, sizeof(track));
+
+    decoded_message_t first = {0};
+    first.type = MESSAGETYPE_LOCATION;
+    first.data.location.Latitude = 51.4778;
+    first.data.location.Longitude = -0.0014;
+    first.data.location.TimeStamp = 100.0;
+
+    track_table_update(&track, &first);
+
+    ASSERT_EQ_INT(track.msg_count_location, 1, "one location counted");
+    ASSERT_NEAR(track.location.Latitude, 51.4778, 1e-6, "current latitude set");
+    ASSERT_NEAR(track.prev_location.Latitude, 0.0, 1e-9, "no previous latitude yet");
+    ASSERT_NEAR(track.prev_location.Longitude, 0.0, 1e-9, "no previous longitude yet");
+    ASSERT_NEAR(track.prev_location_timestamp, 0.0, 1e-9, "no previous timestamp yet");
+}
+
+static void test_previous_location_rolls_forward(void){
+    track_t track;
+    memset(&track, 0, sizeof(track));
+
+    decoded_message_t m1 = {0}, m2 = {0}, m3 = {0};
+    m1.type = m2.type = m3.type = MESSAGETYPE_LOCATION;
+    m1.data.location.Latitude = 51.0; m1.data.location.TimeStamp = 100.0;
+    m2.data.location.Latitude = 52.0; m2.data.location.TimeStamp = 101.0;
+    m3.data.location.Latitude = 53.0; m3.data.location.TimeStamp = 102.0;
+
+    track_table_update(&track, &m1);
+    track_table_update(&track, &m2);
+    track_table_update(&track, &m3);
+
+    ASSERT_EQ_INT(track.msg_count_location, 3, "three locations counted");
+    ASSERT_NEAR(track.prev_location.Latitude, 52.0, 1e-6, "prev is the 2nd fix");
+    ASSERT_NEAR(track.location.Latitude, 53.0, 1e-6, "current is the 3rd fix");
+    ASSERT_NEAR(track.prev_location_timestamp, 101.0, 0.001, "prev ts is the 2nd");
+    ASSERT_NEAR(track.location_timestamp, 102.0, 0.001, "current ts is the 3rd");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -296,6 +337,8 @@ int main(void){
     test_message_pack_errors();
     test_jump_distance();
     test_previous_location_tracking();
+    test_first_location_has_no_previous();
+    test_previous_location_rolls_forward();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }
