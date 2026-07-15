@@ -1,4 +1,12 @@
+<div align="center">
+
+<img src="https://github.com/user-attachments/assets/cea40012-4af1-401f-9653-ee0a2e78612a"
+     alt="KORAX Systems Logo"
+     width="180"/>
+
 # Korax
+
+</div>
 
 **Remote ID decode, track and validation engine.**
 
