@@ -113,8 +113,41 @@ result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
     return result;
 }
 
-uint32_t magpie_validate_track(const track_t *track, time_t now){
-    return 0;
+result_t magpie_validate_track(const track_t *track, time_t now){
+    result_t result = {
+        .rule = KX_RULE_NONE,
+        .severity = KX_SEVERITY_INFO,
+    };
+    if (track == NULL){
+        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+        return result;
+    }
+    if (!track->has_basic_id){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if (!track->has_location){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if (!track->has_operator_id){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if (!track->has_self_id){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if (!track->has_system){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if (!track->has_auth){
+        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    return result;
 }
 
 uint32_t magpie_validate_jump(const track_t *track){
