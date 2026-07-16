@@ -2,11 +2,11 @@
 #include "korax/rook_track.h"
 #include <string.h>
 #include "korax/capture.h"
+#include "korax/magpie_validator.h"
 #include <math.h>
 #define PI 3.14159265358979323846
 #define EARTH_RADIUS_KM 6371.0
 #define MAX_DIST_KM   0.10
-#define MAX_SPEED_KMH 150.0
 #define MIN_LOCATION_MESSAGES_FOR_JUMP_CHECK 2
 
 void track_table_init(track_table_t *table){

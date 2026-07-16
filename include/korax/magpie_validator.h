@@ -10,7 +10,7 @@
  */
 #ifndef KORAX_MAGPIE_VALIDATOR_H
 #define KORAX_MAGPIE_VALIDATOR_H
-
+#define MAX_SPEED_KMH 150.0
 #include "korax/raven_decode.h"
 
 /* Rule severities. A track is compliant when no ERROR-severity flag is set. */

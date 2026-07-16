@@ -116,8 +116,8 @@ result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
 
 result_t magpie_validate_track(const track_t *track, time_t now){
     result_t result = {
-        result.rule = KX_RULE_NONE,
-        result.severity = KX_SEVERITY_INFO };
+        .rule = KX_RULE_NONE,
+        .severity = KX_SEVERITY_INFO };
 
     if (track == NULL){
         result.rule = KX_RULE_MISSING_REQUIRED_MSG;
@@ -147,16 +147,13 @@ result_t magpie_validate_jump(const track_t *track){
         result.severity = KX_SEVERITY_INFO
     };
     if (track == NULL || track->msg_count_location < 2){
-        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
         return result;
     }
-    if (jump_detection(track)){
-        result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if ((track->last_location_seen - track->prev_location_seen) > MAX_TIMESTAMP){
-        result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
+    double distance_km  = jump_detection(track);
+    double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
+    double speed_kmh = distance_km * 3600.0 / elapsed_secs;
+    if (speed_kmh > MAX_SPEED_KMH){
+        result.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
         result.severity = KX_SEVERITY_ERROR;
     }
     return result;
