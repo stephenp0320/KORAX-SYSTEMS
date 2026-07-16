@@ -13,8 +13,8 @@ typedef struct {
     droneID_basicID_data basic_id;
     DRONE_ID_Location_data location;
     DRONE_ID_Location_data prev_location;
-    time_t prev_location_timestamp;
-    time_t location_timestamp;
+    time_t prev_location_seen;
+    time_t last_location_seen;
     sys_data system;
     OperatorID_data operator_id;
     selfID_data self_id;
@@ -49,5 +49,5 @@ int decode_message_pack(uint8_t *packet, int len, track_table_t *table);
 int track_table_expire(track_table_t *table, time_t now, int expiry_seconds);
 int find_track_by_mac(track_table_t *table, const uint8_t mac[6]);
 double to_radians(double degrees);
-double jump_detection(track_t *table);
+double jump_detection(const track_t *table);
 #endif

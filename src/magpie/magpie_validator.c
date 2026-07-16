@@ -5,6 +5,7 @@
 #include "korax/raven_decode.h"
 #include "korax/rook_track.h"
 #include "korax/magpie_validator.h"
+#define KX_LOCATION_GRACE_SECONDS 5
 
 typedef struct {
     kx_rule_t rule;
@@ -115,9 +116,9 @@ result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
 
 result_t magpie_validate_track(const track_t *track, time_t now){
     result_t result = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO,
-    };
+        result.rule = KX_RULE_NONE,
+        result.severity = KX_SEVERITY_INFO };
+
     if (track == NULL){
         result.rule = KX_RULE_MISSING_REQUIRED_MSG;
         result.severity = KX_SEVERITY_ERROR;
@@ -125,31 +126,38 @@ result_t magpie_validate_track(const track_t *track, time_t now){
     }
     if (!track->has_basic_id){
         result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
+        result.severity  = KX_SEVERITY_ERROR;
     }
     if (!track->has_location){
         result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
+        result.severity  = KX_SEVERITY_ERROR;
     }
-    if (!track->has_operator_id){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (!track->has_self_id){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (!track->has_system){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (!track->has_auth){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
+    if (track->has_location &&
+        now - track->last_location_seen > KX_LOCATION_GRACE_SECONDS){
+        result.rule |= KX_RULE_NO_LOCATION_IN_GRACE;
+        if (KX_SEVERITY_ERROR > result.severity)
+            result.severity = KX_SEVERITY_ERROR;
     }
     return result;
 }
 
-uint32_t magpie_validate_jump(const track_t *track){
-    return 0;
+result_t magpie_validate_jump(const track_t *track){
+    result_t result = {
+        result.rule = KX_RULE_NONE,
+        result.severity = KX_SEVERITY_INFO
+    };
+    if (track == NULL || track->msg_count_location < 2){
+        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
+        result.severity = KX_SEVERITY_ERROR;
+        return result;
+    }
+    if (jump_detection(track)){
+        result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    if ((track->last_location_seen - track->prev_location_seen) > MAX_TIMESTAMP){
+        result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
+        result.severity = KX_SEVERITY_ERROR;
+    }
+    return result;
 }

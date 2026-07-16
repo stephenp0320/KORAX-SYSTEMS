@@ -232,55 +232,28 @@ static void test_jump_distance(void){
         "jump distance approximately 111 metres"
     );
 }
+
 static void test_previous_location_tracking(void){
     track_t track;
     memset(&track, 0, sizeof(track));
 
     decoded_message_t first = {0};
     first.type = MESSAGETYPE_LOCATION;
-    first.data.location.Latitude = 51.4778;
-    first.data.location.Longitude = -0.0014;
+    first.data.location.Latitude  = 51.4778;
     first.data.location.TimeStamp = 100.0;
-
     decoded_message_t second = {0};
     second.type = MESSAGETYPE_LOCATION;
-    second.data.location.Latitude = 51.4788;
-    second.data.location.Longitude = -0.0014;
+    second.data.location.Latitude  = 51.4788;
     second.data.location.TimeStamp = 101.0;
 
-    /* Call whatever function updates a track from a decoded message */
     track_table_update(&track, &first);
     track_table_update(&track, &second);
 
     ASSERT_EQ_INT(track.msg_count_location, 2, "two locations counted");
-
-    ASSERT_NEAR(
-        track.prev_location.Latitude,
-        51.4778,
-        1e-6,
-        "previous latitude retained"
-    );
-
-    ASSERT_NEAR(
-        track.location.Latitude,
-        51.4788,
-        1e-6,
-        "current latitude updated"
-    );
-
-    ASSERT_NEAR(
-        track.prev_location_timestamp,
-        100.0,
-        0.001,
-        "previous timestamp retained"
-    );
-
-    ASSERT_NEAR(
-        track.location_timestamp,
-        101.0,
-        0.001,
-        "current timestamp updated"
-    );
+    ASSERT_NEAR(track.prev_location.Latitude,  51.4778, 1e-6, "previous latitude retained");
+    ASSERT_NEAR(track.location.Latitude,       51.4788, 1e-6, "current latitude updated");
+    ASSERT_NEAR(track.prev_location.TimeStamp, 100.0, 0.001, "previous ODID timestamp retained");
+    ASSERT_NEAR(track.location.TimeStamp,      101.0, 0.001, "current ODID timestamp updated");
 }
 
 static void test_first_location_has_no_previous(void){
@@ -289,38 +262,34 @@ static void test_first_location_has_no_previous(void){
 
     decoded_message_t first = {0};
     first.type = MESSAGETYPE_LOCATION;
-    first.data.location.Latitude = 51.4778;
-    first.data.location.Longitude = -0.0014;
+    first.data.location.Latitude  = 51.4778;
     first.data.location.TimeStamp = 100.0;
-
     track_table_update(&track, &first);
 
     ASSERT_EQ_INT(track.msg_count_location, 1, "one location counted");
-    ASSERT_NEAR(track.location.Latitude, 51.4778, 1e-6, "current latitude set");
-    ASSERT_NEAR(track.prev_location.Latitude, 0.0, 1e-9, "no previous latitude yet");
-    ASSERT_NEAR(track.prev_location.Longitude, 0.0, 1e-9, "no previous longitude yet");
-    ASSERT_NEAR(track.prev_location_timestamp, 0.0, 1e-9, "no previous timestamp yet");
+    ASSERT_NEAR(track.location.Latitude,       51.4778, 1e-6, "current latitude set");
+    ASSERT_NEAR(track.prev_location.Latitude,  0.0, 1e-9, "no previous latitude yet");
+    ASSERT_NEAR(track.prev_location.TimeStamp, 0.0, 1e-9, "no previous ODID timestamp yet");
+    ASSERT_EQ_INT(track.prev_location_seen,    0,        "no previous receive time yet");
 }
 
 static void test_previous_location_rolls_forward(void){
     track_t track;
     memset(&track, 0, sizeof(track));
-
     decoded_message_t m1 = {0}, m2 = {0}, m3 = {0};
     m1.type = m2.type = m3.type = MESSAGETYPE_LOCATION;
     m1.data.location.Latitude = 51.0; m1.data.location.TimeStamp = 100.0;
     m2.data.location.Latitude = 52.0; m2.data.location.TimeStamp = 101.0;
     m3.data.location.Latitude = 53.0; m3.data.location.TimeStamp = 102.0;
-
     track_table_update(&track, &m1);
     track_table_update(&track, &m2);
     track_table_update(&track, &m3);
 
     ASSERT_EQ_INT(track.msg_count_location, 3, "three locations counted");
-    ASSERT_NEAR(track.prev_location.Latitude, 52.0, 1e-6, "prev is the 2nd fix");
-    ASSERT_NEAR(track.location.Latitude, 53.0, 1e-6, "current is the 3rd fix");
-    ASSERT_NEAR(track.prev_location_timestamp, 101.0, 0.001, "prev ts is the 2nd");
-    ASSERT_NEAR(track.location_timestamp, 102.0, 0.001, "current ts is the 3rd");
+    ASSERT_NEAR(track.prev_location.Latitude,  52.0, 1e-6, "prev is the 2nd fix");
+    ASSERT_NEAR(track.location.Latitude,       53.0, 1e-6, "current is the 3rd fix");
+    ASSERT_NEAR(track.prev_location.TimeStamp, 101.0, 0.001, "prev ODID ts is the 2nd");
+    ASSERT_NEAR(track.location.TimeStamp,      102.0, 0.001, "current ODID ts is the 3rd");
 }
 
 int main(void){
