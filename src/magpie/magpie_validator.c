@@ -143,8 +143,8 @@ result_t magpie_validate_track(const track_t *track, time_t now){
 
 result_t magpie_validate_jump(const track_t *track){
     result_t result = {
-        result.rule = KX_RULE_NONE,
-        result.severity = KX_SEVERITY_INFO
+        .rule = KX_RULE_NONE,
+        .severity = KX_SEVERITY_INFO
     };
     if (track == NULL || track->msg_count_location < 2){
         return result;
@@ -157,4 +157,22 @@ result_t magpie_validate_jump(const track_t *track){
         result.severity = KX_SEVERITY_ERROR;
     }
     return result;
+}
+
+uint32_t magpie_validator(const track_t *track, const decoded_message_t *msg, time_t now){
+    uint32_t flags = KX_RULE_NONE;
+    flags |= magpie_validate_track(track, now).rule;
+    flags |= magpie_validate_jump(track).rule;
+    if (msg != NULL) {
+        switch (msg->type) {
+            case MESSAGETYPE_BASIC_ID:
+                flags |= magpie_validate_basic_id(&msg->data.basic_id).rule;
+                break;
+            case MESSAGETYPE_LOCATION:
+                flags |= magpie_validate_location(&msg->data.location).rule;
+                break;
+            default: break;
+        }
+    }
+    return flags;
 }
