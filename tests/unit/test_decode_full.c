@@ -3,6 +3,7 @@
 #include <string.h>
 #include "korax/raven_decode.h"
 #include "korax/rook_track.h"
+#include "korax/magpie_validator.h"
 
 static int tests_run = 0;
 static int tests_failed = 0;
@@ -292,6 +293,106 @@ static void test_previous_location_rolls_forward(void){
     ASSERT_NEAR(track.location.TimeStamp,      102.0, 0.001, "current ODID ts is the 3rd");
 }
 
+
+
+static void test_magpie_required_missing(void){
+    /* positive: a track missing Location is flagged */
+    track_t t; memset(&t, 0, sizeof t);
+    t.has_basic_id = 1; t.has_system = 1; t.has_operator_id = 1;   /* no location */
+    kx_result_t r = magpie_validate_track(&t, 1000);
+    ASSERT_TRUE(r.rule & KX_RULE_MISSING_REQUIRED_MSG, "missing Location -> flagged");
+    ASSERT_EQ_INT(r.severity, KX_SEVERITY_ERROR, "missing required -> ERROR severity");
+
+    /* negative: a complete, fresh track is not flagged */
+    track_t ok; memset(&ok, 0, sizeof ok);
+    ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
+    ok.last_location_seen = 1000;
+    kx_result_t r2 = magpie_validate_track(&ok, 1000);
+    ASSERT_EQ_INT(r2.rule, KX_RULE_NONE, "complete fresh track -> compliant");
+}
+
+static void test_magpie_grace_window(void){
+    track_t t; memset(&t, 0, sizeof t);
+    t.has_basic_id = 1; t.has_location = 1; t.has_system = 1; t.has_operator_id = 1;
+    t.last_location_seen = 1000;
+
+    kx_result_t stale = magpie_validate_track(&t, 1000 + 10);  /* 10s > 5s grace */
+    ASSERT_TRUE(stale.rule & KX_RULE_NO_LOCATION_IN_GRACE, "stale location -> flagged");
+
+    kx_result_t fresh = magpie_validate_track(&t, 1000 + 2);   /* within grace */
+    ASSERT_TRUE((fresh.rule & KX_RULE_NO_LOCATION_IN_GRACE) == 0, "fresh location -> not flagged");
+}
+
+static void test_magpie_location_range(void){
+    DRONE_ID_Location_data good; memset(&good, 0, sizeof good);
+    good.Latitude = 51.0; good.Longitude = 0.0;
+    good.AltitudeGeo = 100.0; good.AltitudeBaro = 100.0;
+    good.TimeStamp = 10.0; good.Status = DRONE_ID_STATUS_AIRBORNE;
+    ASSERT_EQ_INT(magpie_validate_location(&good).rule, KX_RULE_NONE, "valid location -> compliant");
+
+    DRONE_ID_Location_data bad = good; bad.Latitude = 200.0;   /* out of range */
+    ASSERT_TRUE(magpie_validate_location(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "bad latitude -> flagged");
+
+    DRONE_ID_Location_data unknown = good; unknown.TimeStamp = -1.0f;  /* legal sentinel */
+    ASSERT_TRUE((magpie_validate_location(&unknown).rule & KX_RULE_FIELD_OUT_OF_RANGE) == 0,
+                "unknown timestamp (-1) -> not flagged");
+}
+
+static void test_magpie_basic_id(void){
+    droneID_basicID_data good; memset(&good, 0, sizeof good);
+    good.IDType = DRONE_ID_IDTYPE_SERIAL_NUMBER;
+    good.UAType = DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR;
+    strcpy(good.UASID, "1581F5BJD248Q00A8XVX");
+    ASSERT_EQ_INT(magpie_validate_basic_id(&good).rule, KX_RULE_NONE, "valid basic id -> compliant");
+
+    droneID_basicID_data empty = good; empty.UASID[0] = '\0';
+    ASSERT_TRUE(magpie_validate_basic_id(&empty).rule & KX_RULE_MISSING_REQUIRED_MSG, "empty UAS ID -> flagged");
+
+    droneID_basicID_data bad = good; bad.IDType = (DRONE_ID_idtype_t)9;  /* reserved */
+    ASSERT_TRUE(magpie_validate_basic_id(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "reserved IDType -> flagged");
+}
+
+static void test_magpie_jump(void){
+    /* positive: ~111 km in 1 s is impossible */
+    track_t fast; memset(&fast, 0, sizeof fast);
+    fast.msg_count_location = 2;
+    fast.prev_location.Latitude = 51.0; fast.prev_location.Longitude = 0.0;
+    fast.location.Latitude      = 52.0; fast.location.Longitude      = 0.0;
+    fast.prev_location_seen = 1000; fast.last_location_seen = 1001;
+    ASSERT_TRUE(magpie_validate_jump(&fast).rule & KX_RULE_IMPLAUSIBLE_JUMP, "impossible speed -> flagged");
+
+    /* negative: a small move over 10 s is fine */
+    track_t slow; memset(&slow, 0, sizeof slow);
+    slow.msg_count_location = 2;
+    slow.prev_location.Latitude = 51.0000; slow.location.Latitude = 51.0001;
+    slow.prev_location_seen = 1000; slow.last_location_seen = 1010;
+    ASSERT_TRUE((magpie_validate_jump(&slow).rule & KX_RULE_IMPLAUSIBLE_JUMP) == 0, "normal move -> not flagged");
+
+    /* only one fix: nothing to compare, not a violation */
+    track_t single; memset(&single, 0, sizeof single);
+    single.msg_count_location = 1;
+    ASSERT_EQ_INT(magpie_validate_jump(&single).rule, KX_RULE_NONE, "single fix -> no jump check");
+}
+
+static void test_magpie_validate_composed(void){
+    /* fully compliant track + valid location message -> 0 */
+    track_t t; memset(&t, 0, sizeof t);
+    t.has_basic_id = 1; t.has_location = 1; t.has_system = 1; t.has_operator_id = 1;
+    t.last_location_seen = 5000; t.msg_count_location = 1;   /* <2 -> jump skipped */
+    decoded_message_t msg; memset(&msg, 0, sizeof msg);
+    msg.type = MESSAGETYPE_LOCATION;
+    msg.data.location.Latitude = 51.0; msg.data.location.AltitudeGeo = 100.0;
+    msg.data.location.AltitudeBaro = 100.0; msg.data.location.TimeStamp = 10.0;
+    msg.data.location.Status = DRONE_ID_STATUS_AIRBORNE;
+    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000), 0, "compliant track+msg -> 0 (compliant)");
+
+    /* incomplete track -> at least the missing-required bit set */
+    track_t bad; memset(&bad, 0, sizeof bad);
+    bad.has_basic_id = 1;   /* missing location/system/operator */
+    uint32_t flags = magpie_validate(&bad, NULL, 9999);
+    ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -308,6 +409,12 @@ int main(void){
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
+    test_magpie_required_missing();
+    test_magpie_grace_window();
+    test_magpie_location_range();
+    test_magpie_basic_id();
+    test_magpie_jump();
+    test_magpie_validate_composed();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }

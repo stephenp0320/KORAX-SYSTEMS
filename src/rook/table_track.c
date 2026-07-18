@@ -114,16 +114,6 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
 			drone_track->last_location_seen = time(NULL);
 			drone_track->has_location = 1;
 			drone_track->msg_count_location++;
-			if (drone_track->msg_count_location >= MIN_LOCATION_MESSAGES_FOR_JUMP_CHECK) {
-                double distance_km = jump_detection(drone_track);
-                double elapsed_seconds = (double)(drone_track->last_location_seen - drone_track->prev_location_seen);
-                if (elapsed_seconds > 0.0) {
-                    double speed_kmh = distance_km * 3600.0 / elapsed_seconds;
-                    if (speed_kmh > MAX_SPEED_KMH) {
-                        printf("Possible location jump detected: %.2f km/h\n", speed_kmh);
-                    }
-                }
-            }
             break;
 		case MESSAGETYPE_SYSTEM:
 			drone_track->system = msg->data.system;

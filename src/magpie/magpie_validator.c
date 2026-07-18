@@ -1,164 +1,95 @@
-#define _POSIX_C_SOURCE 200809L
-#include <stdio.h>
-#include "korax/rook_track.h"
-#include <string.h>
-#include <stdlib.h>
-#include "korax/raven_decode.h"
-#include "korax/rook_track.h"
+#include <stddef.h>
 #include "korax/magpie_validator.h"
-#define KX_LOCATION_GRACE_SECONDS 5
 
-typedef struct {
-    kx_rule_t rule;
-    kx_severity_t severity;
-} result_t;
-
-result_t magpie_validate_location(const DRONE_ID_Location_data *location){
-    result_t result = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO
-    };
+kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
     if (location == NULL) {
-        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-        return result;
+        r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
+        r.severity = KX_SEVERITY_ERROR;
+        return r;
     }
-    if (location->Latitude < MIN_LAT || location->Latitude > MAX_LAT) {
-        result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
+
+    int out_of_range = 0;
+    if (location->Latitude     < MIN_LAT      || location->Latitude     > MAX_LAT)      out_of_range = 1;
+    if (location->Longitude    < MIN_LON      || location->Longitude    > MAX_LON)      out_of_range = 1;
+    if (location->AltitudeGeo  < MIN_ALT      || location->AltitudeGeo  > MAX_ALT)      out_of_range = 1;
+    if (location->AltitudeBaro < MIN_ALT_BARO || location->AltitudeBaro > MAX_ALT_BARO) out_of_range = 1;
+    if (location->TimeStamp != -1.0f &&
+        (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP))            out_of_range = 1;
+    if (location->Status > DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE)                    out_of_range = 1;
+
+    if (out_of_range) {
+        r.rule    |= KX_RULE_FIELD_OUT_OF_RANGE;
+        r.severity = KX_SEVERITY_ERROR;
     }
-    if (location->Longitude < MIN_LON || location->Longitude > MAX_LON) {
-        result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (location->AltitudeGeo < MIN_ALT || location->AltitudeGeo > MAX_ALT) {
-        result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (location->AltitudeBaro < MIN_ALT_BARO || location->AltitudeBaro > MAX_ALT_BARO) {
-        result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (location->TimeStamp != -1.0f && (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP)) {
-        result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    switch (location->Status) {
-        case DRONE_ID_STATUS_UNDECLARED:
-        case DRONE_ID_STATUS_GROUND:
-        case DRONE_ID_STATUS_AIRBORNE:
-        case DRONE_ID_STATUS_EMERGENCY:
-        case DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE:
-            break;
-        default:
-            result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
-            result.severity = KX_SEVERITY_ERROR;
-            break;
-    }
-    return result;
+    return r;
 }
 
-result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
-    result_t result = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO,
-    };
-    if (basic_id == NULL){
-        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-        return result;
+kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
+
+    if (basic_id == NULL) {
+        r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
+        r.severity = KX_SEVERITY_ERROR;
+        return r;
     }
-    switch (basic_id->IDType){
-        case DRONE_ID_IDTYPE_NONE:
-        case DRONE_ID_IDTYPE_SERIAL_NUMBER:
-        case DRONE_ID_IDTYPE_CAA_REGISTRATION_ID:
-        case DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID:
-        case DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID:
-            break;
-        default:
-            result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
-            result.severity = KX_SEVERITY_ERROR;
-            break;
+
+    if (basic_id->IDType > DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID) {
+        r.rule    |= KX_RULE_FIELD_OUT_OF_RANGE;
+        r.severity = KX_SEVERITY_ERROR;
     }
-    switch (basic_id->UAType){
-        case DRONE_ID_UATYPE_NONE:
-        case DRONE_ID_UATYPE_AEROPLANE:
-        case DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR:
-        case DRONE_ID_UATYPE_GYROPLANE:
-        case DRONE_ID_UATYPE_HYBRID_LIFT:
-        case DRONE_ID_UATYPE_ORNITHOPTER:
-        case DRONE_ID_UATYPE_GLIDER:
-        case DRONE_ID_UATYPE_KITE:
-        case DRONE_ID_UATYPE_FREE_BALLOON:
-        case DRONE_ID_UATYPE_CAPTIVE_BALLOON:
-        case DRONE_ID_UATYPE_AIRSHIP:
-        case DRONE_ID_UATYPE_FREE_FALL_PARACHUTE:
-        case DRONE_ID_UATYPE_ROCKET:
-        case DRONE_ID_UATYPE_TETHERED_POWERED_AIRCRAFT:
-        case DRONE_ID_UATYPE_GROUND_OBSTACLE:
-        case DRONE_ID_UATYPE_OTHER:
-            break;
-        default:
-            result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
-            result.severity = KX_SEVERITY_ERROR;
-            break;
+
+    size_t len = 0;
+    while (len < DRONE_ID_SIZE && basic_id->UASID[len] != '\0')
+        len++;
+    if (len == 0) {
+        r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
+        r.severity = KX_SEVERITY_ERROR;
     }
-    size_t uas_id_len = strnlen(basic_id->UASID, DRONE_ID_SIZE + 1);
-    if (uas_id_len == 0){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    if (uas_id_len > DRONE_ID_SIZE){
-        result.rule |= KX_RULE_FIELD_OUT_OF_RANGE;
-        result.severity = KX_SEVERITY_ERROR;
-    }
-    return result;
+    return r;
 }
 
-result_t magpie_validate_track(const track_t *track, time_t now){
-    result_t result = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO };
+kx_result_t magpie_validate_track(const track_t *track, time_t now){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
 
-    if (track == NULL){
-        result.rule = KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity = KX_SEVERITY_ERROR;
-        return result;
+    if (track == NULL) {
+        r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
+        r.severity = KX_SEVERITY_ERROR;
+        return r;
     }
-    if (!track->has_basic_id){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity  = KX_SEVERITY_ERROR;
+
+    if (!track->has_basic_id || !track->has_location ||
+        !track->has_system   || !track->has_operator_id) {
+        r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
+        r.severity = KX_SEVERITY_ERROR;
     }
-    if (!track->has_location){
-        result.rule |= KX_RULE_MISSING_REQUIRED_MSG;
-        result.severity  = KX_SEVERITY_ERROR;
-    }
+
     if (track->has_location &&
-        now - track->last_location_seen > KX_LOCATION_GRACE_SECONDS){
-        result.rule |= KX_RULE_NO_LOCATION_IN_GRACE;
-        if (KX_SEVERITY_ERROR > result.severity)
-            result.severity = KX_SEVERITY_ERROR;
+        now - track->last_location_seen > KX_LOCATION_GRACE_SECONDS) {
+        r.rule |= KX_RULE_NO_LOCATION_IN_GRACE;
+        if (KX_SEVERITY_ERROR > r.severity)
+            r.severity = KX_SEVERITY_ERROR;
     }
-    return result;
+    return r;
 }
 
-result_t magpie_validate_jump(const track_t *track){
-    result_t result = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO
-    };
-    if (track == NULL || track->msg_count_location < 2){
-        return result;
-    }
+kx_result_t magpie_validate_jump(const track_t *track){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
+
+    if (track == NULL || track->msg_count_location < 2)
+        return r;
+
     double distance_km  = jump_detection(track);
     double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
-    if (elapsed_secs <= 0.0) return result;
+    if (elapsed_secs <= 0.0)
+        return r;
+
     double speed_kmh = distance_km * 3600.0 / elapsed_secs;
-    if (speed_kmh > MAX_SPEED_KMH){
-        result.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
-        result.severity = KX_SEVERITY_ERROR;
+    if (speed_kmh > MAX_SPEED_KMH) {
+        r.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
+        r.severity = KX_SEVERITY_ERROR;
     }
-    return result;
+    return r;
 }
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now){
@@ -173,7 +104,8 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
             case MESSAGETYPE_LOCATION:
                 flags |= magpie_validate_location(&msg->data.location).rule;
                 break;
-            default: break;
+            default:
+                break;
         }
     }
     return flags;

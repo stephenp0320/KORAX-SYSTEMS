@@ -9,7 +9,8 @@ LIB_SRC := \
     src/rook/table_track.c \
     src/capture/capture_ble.c \
     src/capture/capture_file.c \
-    src/pipeline/pipeline.c
+    src/pipeline/pipeline.c \
+    src/magpie/magpie_validator.c
 
 BUILD   := build
 
