@@ -17,7 +17,9 @@ add_library(korax STATIC
     src/rook/table_track.c
     src/capture/capture_ble.c
     src/pipeline/pipeline.c
-    src/capture/capture_file.c)
+    src/capture/capture_file.c
+    src/magpie/magpie_validator.c)
+
 add_library(korax::korax ALIAS korax)
 
 target_include_directories(korax

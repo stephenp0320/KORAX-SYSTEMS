@@ -12,6 +12,7 @@
 #define KORAX_MAGPIE_VALIDATOR_H
 #define MAX_SPEED_KMH 150.0
 #include "korax/raven_decode.h"
+#include "korax/rook_track.h"
 
 /* Rule severities. A track is compliant when no ERROR-severity flag is set. */
 typedef enum {
@@ -36,6 +37,7 @@ typedef enum {
  *
  * TODO: implement (KAN-4). Declared here so the public API is stable.
  */
-/* uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now); */
+
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now);
 
 #endif /* KORAX_MAGPIE_VALIDATOR_H */

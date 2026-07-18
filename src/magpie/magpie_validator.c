@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include "korax/rook_track.h"
 #include <string.h>
@@ -38,7 +39,7 @@ result_t magpie_validate_location(const DRONE_ID_Location_data *location){
         result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
         result.severity = KX_SEVERITY_ERROR;
     }
-    if (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP) {
+    if (location->TimeStamp != -1.0f && (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP)) {
         result.rule = KX_RULE_FIELD_OUT_OF_RANGE;
         result.severity = KX_SEVERITY_ERROR;
     }
@@ -151,6 +152,7 @@ result_t magpie_validate_jump(const track_t *track){
     }
     double distance_km  = jump_detection(track);
     double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
+    if (elapsed_secs <= 0.0) return result;
     double speed_kmh = distance_km * 3600.0 / elapsed_secs;
     if (speed_kmh > MAX_SPEED_KMH){
         result.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
@@ -159,7 +161,7 @@ result_t magpie_validate_jump(const track_t *track){
     return result;
 }
 
-uint32_t magpie_validator(const track_t *track, const decoded_message_t *msg, time_t now){
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now){
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now).rule;
     flags |= magpie_validate_jump(track).rule;
