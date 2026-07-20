@@ -10,6 +10,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "korax/output_json.h"
+#define NO_PENDING_CONNECTION -1
 
 int set_socket_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
@@ -22,6 +24,21 @@ int set_socket_nonblocking(int fd) {
     if (fcntl(fd, F_SETFL, flags) == -1) {
         perror("fcntl F_SETFL failed");
         return -1;
+    }
+    return 0;
+}
+
+static int send_line(int fd, const char *buf, size_t len){
+    size_t sent = 0;
+    while (sent < len){
+        ssize_t n = write(fd, buf + sent, len - sent);
+        if (n > 0){
+            sent += (size_t)n;
+        } else if (n == -1 && errno == EINTR){
+            continue;
+        } else {
+            return -1;
+        }
     }
     return 0;
 }
@@ -74,51 +91,49 @@ int server_init(server_t *server, const char *socket_path){
     return 0;
 }
 
+int server_accept(server_t *server, const track_table_t *track){
+    if (server == NULL || track == NULL){
+        return SOCKET_ERR;
+    }
 
+    if (accept(server->listen_fd, NULL, NULL) == -1){
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
+        return NO_PENDING_CONNECTION;
+    }
 
-int socket_setup(char *buffer){
-    int sfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sfd == -1){
-        fprintf(stderr, "Failed to create socket, err=%d\n", errno);
-        exit(4);
+    if (server->client_count >= KX_MAX_CLIENTS){
+        fprintf(stderr, "max client count err=%d\n", errno);
+        close(server->listen_fd);
+        return SOCKET_ERR;
     }
-    struct sockaddr_un addr;
-    if (strlen(SOCKET_FILE) > sizeof(addr.sun_path) - 1){
-        fprintf(stderr, "Socket name too long, socket sun path is size %zu\n", sizeof(addr.sun_path) - 1);
-        exit(1);
-    }
-    memset(&addr, 0, sizeof(struct sockaddr_un));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_FILE, sizeof(addr.sun_path) - 1);
+    int non_blocking = set_socket_nonblocking(server->listen_fd);
 
-    if (bind(sfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) == -1) {
-        fprintf(stderr, "Failed to bind, err=%d\n", errno);
-        exit(3);
+    if (non_blocking == -1){
+        fprintf(stderr, "set_socket_nonblocking err=%d\n", errno);
+        close(server->listen_fd);
+        return SOCKET_ERR;
     }
-    if (listen(sfd, 5) == -1){
-        fprintf(stderr, "Failed to listen err=%d\n", errno);
-        exit(2);
+    char line[256];
+    server->client_fds[server->client_count++] = server->listen_fd;
+    int len = snprintf(line, sizeof line, "{\"event\":\"hello\",\"schema_version\":%d}\n", KX_JSON_SCHEMA_VERSION);
+
+    if (send_line(server->listen_fd, line, (size_t)len) == -1){
+        close(server->listen_fd);
+        server->client_count--;
+        return 0;
     }
-    while (1) {
-        int cfd = accept(sfd, NULL, NULL);
-        if (cfd == -1) {
-            fprintf(stderr, "Cannot accept, err=%d\n", errno);
-            exit(5);
+
+    for (int i = 0; i < track->num_tracks; i++){
+        char buffer[512];
+        if (track_to_json(&track->tracks[i], buffer, sizeof(buffer)) < 0){
+            continue;
         }
-        int numRead;
-        while ((numRead = read(cfd, buffer, BUFFER_SPACE)) > 0) {
-            if (write(STDOUT_FILENO, buffer, numRead) != numRead) {
-                fprintf(stderr, "Cannot write to stdout, err=%d\n", errno);
-                exit(6);
-            }
-        }
-        if (numRead == -1) {
-            fprintf(stderr, "Error while reading, err=%d\n", errno);
-            exit(8);
-        }
-        if (close(cfd) == -1) {
-            fprintf(stderr, "Cannot close connected fd, err=%d\n", errno);
-            exit(9);
+        len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", buffer);
+
+        if (send_line(server->listen_fd, line, (size_t)len) == -1){
+            close(server->listen_fd);
+            server->client_count--;
+            return 0;
         }
     }
     return 0;
