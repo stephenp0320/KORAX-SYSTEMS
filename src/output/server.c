@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "korax/output_json.h"
+#include <signal.h>
 #define NO_PENDING_CONNECTION -1
 
 int set_socket_nonblocking(int fd) {
@@ -96,7 +97,8 @@ int server_accept(server_t *server, const track_table_t *track){
         return SOCKET_ERR;
     }
 
-    if (accept(server->listen_fd, NULL, NULL) == -1){
+    int clientfd = accept(server->listen_fd, NULL, NULL);
+     if (clientfd == -1){
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
         return NO_PENDING_CONNECTION;
     }
@@ -106,19 +108,19 @@ int server_accept(server_t *server, const track_table_t *track){
         close(server->listen_fd);
         return SOCKET_ERR;
     }
-    int non_blocking = set_socket_nonblocking(server->listen_fd);
+    int non_blocking = set_socket_nonblocking(clientfd);
 
     if (non_blocking == -1){
         fprintf(stderr, "set_socket_nonblocking err=%d\n", errno);
-        close(server->listen_fd);
+        close(clientfd);
         return SOCKET_ERR;
     }
     char line[256];
-    server->client_fds[server->client_count++] = server->listen_fd;
+    server->client_fds[server->client_count++] = clientfd;
     int len = snprintf(line, sizeof line, "{\"event\":\"hello\",\"schema_version\":%d}\n", KX_JSON_SCHEMA_VERSION);
 
-    if (send_line(server->listen_fd, line, (size_t)len) == -1){
-        close(server->listen_fd);
+    if (send_line(clientfd, line, (size_t)len) == -1){
+        close(clientfd);
         server->client_count--;
         return 0;
     }
@@ -130,8 +132,8 @@ int server_accept(server_t *server, const track_table_t *track){
         }
         len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", buffer);
 
-        if (send_line(server->listen_fd, line, (size_t)len) == -1){
-            close(server->listen_fd);
+        if (send_line(clientfd, line, (size_t)len) == -1){
+            close(clientfd);
             server->client_count--;
             return 0;
         }
