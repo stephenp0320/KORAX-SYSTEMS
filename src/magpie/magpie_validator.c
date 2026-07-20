@@ -87,7 +87,7 @@ kx_result_t magpie_validate_jump(const track_t *track){
     double speed_kmh = distance_km * 3600.0 / elapsed_secs;
     if (speed_kmh > MAX_SPEED_KMH) {
         r.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
-        r.severity = KX_SEVERITY_ERROR;
+        r.severity = KX_SEVERITY_WARN;
     }
     return r;
 }
