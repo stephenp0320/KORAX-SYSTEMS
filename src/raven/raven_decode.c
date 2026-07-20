@@ -59,33 +59,44 @@ int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *dec
     if (packet_len < RID_MESSAGE_SIZE){
         return DECODE_ERR_TOO_SHORT;
     }
+    decoded_output->reserved_bits = 0;
     uint8_t msg_type = (packet[0] >> 4) & 0x0F;
+    int res;
     switch (msg_type){
         case MESSAGETYPE_BASIC_ID:
             decoded_output->type = MESSAGETYPE_BASIC_ID;
-            return decode_basic_id(packet, packet_len, &decoded_output->data.basic_id);
+            res = decode_basic_id(packet, packet_len, &decoded_output->data.basic_id);
+            break;
         case MESSAGETYPE_LOCATION:
             decoded_output->type = MESSAGETYPE_LOCATION;
-            return decode_location_vector(packet, packet_len, &decoded_output->data.location);
+            res = decode_location_vector(packet, packet_len, &decoded_output->data.location);
+            break;
         case MESSAGETYPE_AUTH:
             decoded_output->type = MESSAGETYPE_AUTH;
-            return decode_auth(packet, packet_len, &decoded_output->data.auth);
+            res = decode_auth(packet, packet_len, &decoded_output->data.auth);
+            break;
         case MESSAGETYPE_SELF_ID:
             decoded_output->type = MESSAGETYPE_SELF_ID;
-            return decode_selfID(packet, packet_len, &decoded_output->data.self_id);
+            res = decode_selfID(packet, packet_len, &decoded_output->data.self_id);
+            break;
         case MESSAGETYPE_SYSTEM:
             decoded_output->type = MESSAGETYPE_SYSTEM;
-            return decode_system_msg(packet, packet_len, &decoded_output->data.system);
+            res = decode_system_msg(packet, packet_len, &decoded_output->data.system);
+            break;
         case MESSAGETYPE_OPERATOR_ID:
             decoded_output->type = MESSAGETYPE_OPERATOR_ID;
-            return decode_operator_id(packet, packet_len, &decoded_output->data.operator_id);
+            res = decode_operator_id(packet, packet_len, &decoded_output->data.operator_id);
+            break;
         case MESSAGETYPE_PACKED:
-            decoded_output->type = MESSAGETYPE_INVALID;
-            return DECODE_ERR_BAD_TYPE;
         default:
             decoded_output->type = MESSAGETYPE_INVALID;
             return DECODE_ERR_BAD_TYPE;
     }
+    if (res == DECODE_ERR_RESERVED_BITS){
+        decoded_output->reserved_bits = 1;
+        return DECODE_OK;
+    }
+    return res;
 }
 
 int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data *basicID){
@@ -326,3 +337,4 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
     op_id->OperatorId[20] = '\0';
     return 0;
 }
+

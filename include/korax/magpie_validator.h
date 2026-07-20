@@ -56,6 +56,6 @@ kx_result_t magpie_validate_jump(const track_t *track);
  * Pure: no allocation, no I/O.
  */
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now);
-
+kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
 #endif /* KORAX_MAGPIE_VALIDATOR_H */
 

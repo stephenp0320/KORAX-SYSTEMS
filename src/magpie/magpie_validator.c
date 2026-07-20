@@ -92,8 +92,19 @@ kx_result_t magpie_validate_jump(const track_t *track){
     return r;
 }
 
-kx_result_t magpie_validate_reserved_bitsets(const track_t *track, const decoded_message_t *msg){
-    if (msg->type == )
+kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
+    kx_result_t r = {
+        .rule = KX_RULE_NONE,
+        .severity = KX_SEVERITY_INFO
+    };
+    if (track == NULL){
+        return r;
+    }
+    if (track->reserved_bits_seen){
+        r.rule    |= KX_RULE_RESERVED_BITS_SET;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
 }
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now){

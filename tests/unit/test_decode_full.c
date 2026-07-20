@@ -374,6 +374,33 @@ static void test_magpie_jump(void){
     ASSERT_EQ_INT(magpie_validate_jump(&single).rule, KX_RULE_NONE, "single fix -> no jump check");
 }
 
+static void test_magpie_reserved_bits(void){
+    /* Decode side: a clean location has no reserved bits. */
+    decoded_message_t clean; memset(&clean, 0, sizeof clean);
+    ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, &clean), DECODE_OK, "clean location decodes OK");
+    ASSERT_EQ_INT(clean.reserved_bits, 0, "clean location -> reserved_bits 0");
+
+    /* Set the Location flag-byte reserved bit (byte 1, bit 3) and re-decode.
+     * The message must still decode OK (not dropped) but be marked. */
+    uint8_t dirty[25]; memcpy(dirty, PKT_LOCATION, 25);
+    dirty[1] |= 0x08;
+    decoded_message_t marked; memset(&marked, 0, sizeof marked);
+    ASSERT_EQ_INT(decode_message(dirty, 25, &marked), DECODE_OK, "reserved bit -> still decodes OK");
+    ASSERT_EQ_INT(marked.reserved_bits, 1, "reserved bit -> reserved_bits 1");
+
+    /* Rule side: a track that saw reserved bits is flagged WARN, not disqualified. */
+    track_t t; memset(&t, 0, sizeof t);
+    t.reserved_bits_seen = 1;
+    kx_result_t r = magpie_validate_reserved_bitsets(&t);
+    ASSERT_TRUE(r.rule & KX_RULE_RESERVED_BITS_SET, "reserved bits seen -> flagged");
+    ASSERT_EQ_INT(r.severity, KX_SEVERITY_WARN, "reserved bits -> WARN severity");
+    ASSERT_TRUE((r.rule & KX_RULE_ERROR_MASK) == 0, "reserved bits -> still compliant (not an ERROR)");
+
+    /* Negative: no reserved bits seen -> not flagged. */
+    track_t clean_t; memset(&clean_t, 0, sizeof clean_t);
+    ASSERT_EQ_INT(magpie_validate_reserved_bitsets(&clean_t).rule, KX_RULE_NONE, "no reserved bits -> not flagged");
+}
+
 static void test_magpie_validate_composed(void){
     /* fully compliant track + valid location message -> 0 */
     track_t t; memset(&t, 0, sizeof t);
@@ -406,6 +433,7 @@ int main(void){
     test_message_pack_valid();
     test_message_pack_errors();
     test_jump_distance();
+    test_magpie_reserved_bits();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
@@ -421,3 +449,4 @@ int main(void){
     printf("\nSOME TESTS FAILED\n");
     return 1;
 }
+

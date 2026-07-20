@@ -269,6 +269,7 @@ typedef struct OperatorID_data {
 
 typedef struct decoded_message {
     messagetype_t type;
+    int reserved_bits;
     union {
         droneID_basicID_data basic_id;
         DRONE_ID_Location_data location;
