@@ -18,7 +18,8 @@ add_library(korax STATIC
     src/capture/capture_ble.c
     src/pipeline/pipeline.c
     src/capture/capture_file.c
-    src/magpie/magpie_validator.c)
+    src/magpie/magpie_validator.c
+    src/output/output_json.c)
 
 add_library(korax::korax ALIAS korax)
 
@@ -40,6 +41,32 @@ if(HAVE_LIBM)
     target_link_libraries(korax PUBLIC m)
 endif()
 
+# ---- Tools ---------------------------------------------------------------
+if(KORAX_BUILD_TOOLS)
+    add_executable(korax_replay tools/replay/korax_replay.c)
+    target_link_libraries(korax_replay PRIVATE korax)
+endif()
+
+# ---- Examples ------------------------------------------------------------
+if(KORAX_BUILD_EXAMPLES)
+    add_executable(korax_demo examples/demo_decode.c)
+    target_link_libraries(korax_demo PRIVATE korax)
+endif()
+
+# ---- Tests ---------------------------------------------------------------
+if(KORAX_BUILD_TESTS)
+    enable_testing()
+    add_executable(test_decode tests/unit/test_decode_full.c)
+    target_link_libraries(test_decode PRIVATE korax)
+    add_test(NAME decode_suite COMMAND test_decode)
+endif()
+
+# ---- Install -------------------------------------------------------------
+include(GNUInstallDirs)
+install(TARGETS korax
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/korax
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 # ---- Tools ---------------------------------------------------------------
 if(KORAX_BUILD_TOOLS)
     add_executable(korax_replay tools/replay/korax_replay.c)

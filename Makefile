@@ -10,7 +10,8 @@ LIB_SRC := \
     src/capture/capture_ble.c \
     src/capture/capture_file.c \
     src/pipeline/pipeline.c \
-    src/magpie/magpie_validator.c
+    src/magpie/magpie_validator.c \
+    src/output/output_json.c
 
 BUILD   := build
 
@@ -40,3 +41,4 @@ demo: $(BUILD)/korax_demo
 
 clean:
 	rm -rf $(BUILD)
+

@@ -4,6 +4,7 @@
 #include "korax/raven_decode.h"
 #include "korax/rook_track.h"
 #include "korax/magpie_validator.h"
+#include "korax/output_json.h"
 
 static int tests_run = 0;
 static int tests_failed = 0;
@@ -420,6 +421,42 @@ static void test_magpie_validate_composed(void){
     ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
 }
 
+static void test_output_json(void){
+    track_t t; memset(&t, 0, sizeof t);
+    strcpy(t.uas_id, "1581F5BJD248Q00A8XVX");
+    t.has_operator_id = 1;
+    strcpy(t.operator_id.OperatorId, "GBR-OP-12345678ABCDE");
+    t.location.Latitude = 52.6738; t.location.Longitude = -8.626;
+    t.location.AltitudeGeo = 40.5; t.location.AltitudeBaro = 40.5;
+    t.location.SpeedHorizontal = 10.0; t.location.Direction = 74.0;
+    t.location.TimeStamp = 12.3;
+    t.is_compliant = true; t.flags = 0;
+
+    char buf[512];
+    int n = track_to_json(&t, buf, sizeof buf);
+    ASSERT_TRUE(n > 0, "serialise returns bytes written");
+    ASSERT_TRUE(strstr(buf, "\"uas_id\":\"1581F5BJD248Q00A8XVX\"") != NULL, "uas_id present");
+    ASSERT_TRUE(strstr(buf, "\"compliant\":true") != NULL, "compliant true present");
+    ASSERT_TRUE(strstr(buf, "\"schema_version\":1") != NULL, "schema version present");
+
+    /* Timestamp -1 sentinel -> JSON null, not -1.0 */
+    t.location.TimeStamp = -1.0f;
+    track_to_json(&t, buf, sizeof buf);
+    ASSERT_TRUE(strstr(buf, "\"timestamp_s\":null") != NULL, "unknown timestamp -> null");
+
+    /* Untrusted string with a quote must be escaped, not break the JSON */
+    strcpy(t.uas_id, "bad\"id");
+    track_to_json(&t, buf, sizeof buf);
+    ASSERT_TRUE(strstr(buf, "bad\\\"id") != NULL, "embedded quote escaped");
+
+    /* Buffer too small -> truncation reported as -2 */
+    char tiny[16];
+    ASSERT_EQ_INT(track_to_json(&t, tiny, sizeof tiny), -2, "small buffer -> -2 (truncated)");
+
+    /* NULL args -> -1 */
+    ASSERT_EQ_INT(track_to_json(NULL, buf, sizeof buf), -1, "null track -> -1");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -434,6 +471,7 @@ int main(void){
     test_message_pack_errors();
     test_jump_distance();
     test_magpie_reserved_bits();
+    test_output_json();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
