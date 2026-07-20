@@ -2,30 +2,35 @@
 #include "korax/rook_track.h"
 #include <string.h>
 #include "korax/capture.h"
-
+#include "korax/magpie_validator.h"
+#include <stdbool.h>
 int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
 	if (table == NULL || msg == NULL){
 		return TRACK_ERR;
 	}
-	const char *uas_id = NULL;
+    int idx;
 	if (msg->type == MESSAGETYPE_BASIC_ID){
-		uas_id = msg->data.basic_id.UASID;
-	}
-
-	if (!uas_id){
+        const char *uas_id = msg->data.basic_id.UASID;
+        idx = find_track(table, uas_id);
+		if (idx == TRACK_NOT_FOUND) {
+            idx = track_table_create(table, uas_id);
+            if (idx < 0)
+                return idx;
+        }
+    } else {
 		if (table->num_tracks == 0){
 			return TRACK_NOT_FOUND;
 		}
-		return track_table_update(&table->tracks[0], msg);
+        idx = 0;
 	}
-	int search = find_track(table, uas_id);
-	if (search == TRACK_NOT_FOUND){
-		search = track_table_create(table, uas_id);
-		if (search < 0){
-			return search;
-		}
-	}
-	return track_table_update(&table->tracks[search], msg);
+    track_t *track = &table->tracks[idx];
+    int rc = track_table_update(track, msg);
+    if (rc != TRACK_OK){
+        return rc;
+    }
+    track->flags = magpie_validate(track, msg, time(NULL));
+    track->is_compliant = (track->flags & KX_RULE_ERROR_MASK) == 0;
+    return TRACK_OK;
 }
 
 void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){

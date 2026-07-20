@@ -2,6 +2,7 @@
 #define TRACK_TABLE_H
 #include <time.h>
 #include "korax/raven_decode.h"
+#include <stdbool.h>
 #define MAX_TRACKS 100
 #define TRACK_OK 0
 #define TRACK_ERR -1
@@ -34,6 +35,9 @@ typedef struct {
     int msg_count_self_id;
     time_t first_seen;
     time_t last_seen;
+    uint32_t flags;
+    bool is_compliant;
+
 } track_t;
 
 typedef struct {

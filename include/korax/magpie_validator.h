@@ -19,6 +19,7 @@
 /* Tunables (make configurable later — KAN-47). */
 #define KX_LOCATION_GRACE_SECONDS 5
 #define MAX_SPEED_KMH             150.0
+#define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 typedef enum {
@@ -54,8 +55,7 @@ kx_result_t magpie_validate_jump(const track_t *track);
  * arriving message and returns a bitmask of tripped rules (0 == compliant).
  * Pure: no allocation, no I/O.
  */
-uint32_t magpie_validate(const track_t *track,
-                         const decoded_message_t *msg, time_t now);
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now);
 
 #endif /* KORAX_MAGPIE_VALIDATOR_H */
 
