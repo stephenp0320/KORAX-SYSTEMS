@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include "korax/output_json.h"
 #include <signal.h>
-#define NO_PENDING_CONNECTION -1
 
 int set_socket_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
@@ -100,7 +99,7 @@ int server_accept(server_t *server, const track_table_t *track){
     int clientfd = accept(server->listen_fd, NULL, NULL);
      if (clientfd == -1){
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0;
-        return NO_PENDING_CONNECTION;
+        return SOCKET_ERR;
     }
 
     if (server->client_count >= KX_MAX_CLIENTS){
