@@ -104,7 +104,7 @@ int server_accept(server_t *server, const track_table_t *track){
 
     if (server->client_count >= KX_MAX_CLIENTS){
         fprintf(stderr, "max client count err=%d\n", errno);
-        close(server->listen_fd);
+        close(clientfd);
         return SOCKET_ERR;
     }
     int non_blocking = set_socket_nonblocking(clientfd);
