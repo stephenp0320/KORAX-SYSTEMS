@@ -37,6 +37,7 @@ typedef struct {
     time_t last_seen;
     uint32_t flags;
     bool is_compliant;
+    int reserved_bits_seen;
 
 } track_t;
 

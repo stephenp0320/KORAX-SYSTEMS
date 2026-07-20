@@ -13,7 +13,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
     if (packet == NULL || track_table == NULL){
         return DECODE_ERR_NULL;
     }
-    
+
     if (packet_len < 3){
         return DECODE_ERR_TOO_SHORT;
     }
@@ -22,7 +22,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
         return DECODE_ERR_BAD_TYPE;
     }
     uint8_t single_msg_size =packet[1];
-    uint8_t msg_count = packet[2]; 
+    uint8_t msg_count = packet[2];
     if (single_msg_size != RID_MSG_SIZE){
         return DECODE_ERR_RANGE;
     }
@@ -34,7 +34,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
     if (packet_len < expected_len){
         return DECODE_ERR_TOO_SHORT;
     }
-   
+
     for (int i = 0; i < msg_count; i++){
         const uint8_t *msg_start = packet + 3 + (i * RID_MESSAGE_SIZE);
         decoded_message_t msg;
@@ -121,9 +121,9 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     location_data->SpeedVertical = speed_vertical_raw * 0.5;
     location_data->Latitude = rd_i32le(&packet[5]) / 1e7;
     location_data->Longitude = rd_i32le(&packet[9]) / 1e7;
-    location_data->AltitudeBaro = rd_u16le(&packet[13]) * 0.5 - 1000; 
-    location_data->AltitudeGeo = rd_u16le(&packet[15]) * 0.5 - 1000; 
-    location_data->Height = rd_u16le(&packet[17]) * 0.5 - 1000; 
+    location_data->AltitudeBaro = rd_u16le(&packet[13]) * 0.5 - 1000;
+    location_data->AltitudeGeo = rd_u16le(&packet[15]) * 0.5 - 1000;
+    location_data->Height = rd_u16le(&packet[17]) * 0.5 - 1000;
     location_data->HorizAccuracy = packet[19] & 0x0F;
     location_data->VertAccuracy = (packet[19] >> 4) & 0x0F;
     location_data->SpeedAccuracy = packet[20] & 0x0F;
@@ -135,7 +135,14 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
         location_data->TimeStamp = -1.0f;
     }
     location_data->TSAccuracy = packet[23] & 0x0F;
-    return 0;
+    int reserved_set = 0;
+    reserved_set |= (packet[1]  & 0x08);
+    reserved_set |= (packet[23] & 0xF0);
+    reserved_set |= (packet[24]);
+    if (reserved_set){
+        return DECODE_ERR_RESERVED_BITS;
+    }
+    return DECODE_OK;
 }
 
 const char *idtype_to_str(DRONE_ID_idtype_t type){
@@ -272,7 +279,7 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
     if (packet == NULL || selfID == NULL){
         return DECODE_ERR_NULL;
-    } 
+    }
     if (packet_len < SELFID_PACK_SIZE){
         return DECODE_ERR_TOO_SHORT;
     }
