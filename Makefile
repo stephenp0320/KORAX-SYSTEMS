@@ -13,7 +13,6 @@ LIB_SRC := \
     src/magpie/magpie_validator.c \
     src/output/output_json.c \
     src/output/server.c
-
 BUILD   := build
 
 .PHONY: all test replay demo daemon clean

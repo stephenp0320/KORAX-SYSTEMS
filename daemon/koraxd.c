@@ -12,8 +12,8 @@
 #include "korax/pipeline.h"
 #include "korax/server.h"
 #include "korax/output_json.h"
-
-#define EXPIRY_SECONDS 10          /* RID broadcasts ~1 Hz; 10s tolerates loss */
+#include "daemon/config.h"
+#include
 
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
@@ -150,9 +150,9 @@ static void run_event_loop(koraxd_t *daemon){
     }
 }
 
-int main(int argc, char **argv){
-    const char *source_path = (argc > 1) ? argv[1] : "frames.txt";
-    const char *socket_path = (argc > 2) ? argv[2] : KX_DEFAULT_SOCKET;
+int main(){
+    korax_config_t cfg;
+    config_defaults(&cfg);
 
     koraxd_t daemon;
     memset(&daemon, 0, sizeof daemon);
@@ -161,12 +161,12 @@ int main(int argc, char **argv){
 
     track_table_init(&daemon.table);
 
-    if (server_init(&daemon.server, socket_path) != 0){
-        fprintf(stderr, "koraxd: server_init failed on %s\n", socket_path);
+    if (server_init(&daemon.server, cfg.socket_path) != 0){
+        fprintf(stderr, "koraxd: server_init failed on %s\n", cfg.socket_path);
         return 1;
     }
 
-    daemon.source = fopen(source_path, "r");
+    daemon.source = fopen(cfg.source_path, "r");
     if (daemon.source == NULL){
         perror("koraxd: fopen source");
         server_close(&daemon.server);
@@ -176,7 +176,7 @@ int main(int argc, char **argv){
 
     setup_signal_handling(&daemon);
 
-    fprintf(stderr, "koraxd: feed on %s, replaying %s\n", socket_path, source_path);
+    fprintf(stderr, "koraxd: feed on %s, replaying %s\n", cfg.socket_path, cfg.source_path);
     run_event_loop(&daemon);
 
     fclose(daemon.source);
