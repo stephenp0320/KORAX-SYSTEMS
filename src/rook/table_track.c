@@ -2,7 +2,6 @@
 #include "korax/rook_track.h"
 #include <string.h>
 #include "korax/capture.h"
-#include "korax/magpie_validator.h"
 #include <math.h>
 #define PI 3.14159265358979323846
 #define EARTH_RADIUS_KM 6371.0
@@ -16,12 +15,15 @@ void track_table_init(track_table_t *table){
 	memset(table, 0, sizeof(track_table_t));
 }
 
-int track_table_expire(track_table_t *table, time_t now, int expiry_seconds){
+int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, track_expired_cb on_expired, void *user_data){
 	int removed = 0;
 	int i = 0;
 	while (i < table->num_tracks){
 		if (now - table->tracks[i].last_seen > expiry_seconds){
-			for (int j = i; j < table->num_tracks - 1; j++){
+			if (on_expired){
+                on_expired(&table->tracks[i], user_data);
+            }
+            for (int j = i; j < table->num_tracks - 1; j++){
 				table->tracks[j] = table->tracks[j + 1];
 			}
 			table->num_tracks--;
