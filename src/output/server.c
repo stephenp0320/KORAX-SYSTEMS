@@ -149,6 +149,13 @@ static void remove_client(server_t *server, size_t i){
     server->client_count--;
 }
 
+void server_drop_client(server_t *server, size_t index){
+    if (server == NULL || index >= server->client_count)
+        return;
+    close(server->client_fds[index]);
+    remove_client(server, index);
+}
+
 int server_broadcast(server_t *server, const char *line, size_t len){
     if (server == NULL || line == NULL){
         return -1;

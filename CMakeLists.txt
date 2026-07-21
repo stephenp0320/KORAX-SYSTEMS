@@ -44,6 +44,12 @@ if(KORAX_BUILD_EXAMPLES)
     add_executable(korax_demo examples/demo_decode.c)
     target_link_libraries(korax_demo PRIVATE korax)
 endif()
+# ---- Daemon --------------------------------------------------------------
+option(KORAX_BUILD_DAEMON "Build the koraxd daemon" ON)
+if(KORAX_BUILD_DAEMON)
+    add_executable(koraxd daemon/koraxd.c)
+    target_link_libraries(koraxd PRIVATE korax)
+endif()
 # ---- Tests ---------------------------------------------------------------
 if(KORAX_BUILD_TESTS)
     enable_testing()
@@ -57,4 +63,5 @@ install(TARGETS korax
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/korax
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 

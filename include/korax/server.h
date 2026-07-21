@@ -18,6 +18,7 @@ typedef struct {
 int server_init(server_t *server, const char *socket_path);
 int server_accept(server_t *server, const track_table_t *tracks);
 int server_broadcast(server_t *server, const char *line, size_t len);
+void server_drop_client(server_t *server, size_t index);
 void server_close(server_t *server);
 
 #endif

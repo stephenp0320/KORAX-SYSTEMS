@@ -16,8 +16,8 @@ LIB_SRC := \
 
 BUILD   := build
 
-.PHONY: all test replay demo clean
-all: test replay demo
+.PHONY: all test replay demo daemon clean
+all: test replay demo daemon
 
 $(BUILD):
 	@mkdir -p $(BUILD)
@@ -31,6 +31,9 @@ $(BUILD)/korax_replay: tools/replay/korax_replay.c $(LIB_SRC) | $(BUILD)
 $(BUILD)/korax_demo: examples/demo_decode.c $(LIB_SRC) | $(BUILD)
 	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
+$(BUILD)/koraxd: daemon/koraxd.c $(LIB_SRC) | $(BUILD)
+	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
+
 test: $(BUILD)/test_decode
 	./$(BUILD)/test_decode
 
@@ -40,6 +43,9 @@ replay: $(BUILD)/korax_replay
 demo: $(BUILD)/korax_demo
 	./$(BUILD)/korax_demo
 
+daemon: $(BUILD)/koraxd
+
 clean:
 	rm -rf $(BUILD)
+
 

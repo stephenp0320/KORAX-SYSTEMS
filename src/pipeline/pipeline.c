@@ -31,7 +31,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
     track->reserved_bits_seen |= msg->reserved_bits;
     track->flags = magpie_validate(track, msg, time(NULL));
     track->is_compliant = (track->flags & KX_RULE_ERROR_MASK) == 0;
-    return TRACK_OK;
+    return idx;
 }
 
 void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
@@ -45,3 +45,4 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	}
 	process_decoded_message(table, &msg);
 }
+
