@@ -114,11 +114,11 @@ int server_accept(server_t *server, const track_table_t *track){
         close(clientfd);
         return SOCKET_ERR;
     }
-    char line[256];
+    char line[640];
     server->client_fds[server->client_count++] = clientfd;
     int len = snprintf(line, sizeof line, "{\"event\":\"hello\",\"schema_version\":%d}\n", KX_JSON_SCHEMA_VERSION);
 
-    if (send_line(clientfd, line, (size_t)len) == -1){
+    if (len < 0 || (size_t)len >= sizeof(line) || send_line(clientfd, line, (size_t)len) == -1){
         close(clientfd);
         server->client_count--;
         return 0;
@@ -130,6 +130,10 @@ int server_accept(server_t *server, const track_table_t *track){
             continue;
         }
         len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", buffer);
+
+        if (len < 0 || (size_t)len >= sizeof(line)){
+            continue;
+        }
 
         if (send_line(clientfd, line, (size_t)len) == -1){
             close(clientfd);
