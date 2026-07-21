@@ -161,3 +161,23 @@ int server_broadcast(server_t *server, const char *line, size_t len){
     }
     return delivered;
 }
+
+
+void server_close(server_t *server){
+    if (server == NULL) return;
+
+    if (server->listen_fd >= 0){
+        close(server->listen_fd);
+        server->listen_fd = -1;
+    }
+    for (int i = (int)server->client_count - 1; i>=0; i--){
+        if (server->client_fds[i] >= 0){
+            close(server->client_fds[i]);
+            remove_client(server, i);
+        }
+    }
+    unlink(server->socket_path);
+    if (server->client_count > 0){
+        fprintf(stderr, "active sockets remain: %zu\n", server->client_count);
+    }
+}

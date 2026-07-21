@@ -12,6 +12,7 @@ typedef struct {
     int    listen_fd;                 /* listening socket, -1 if not open   */
     int    client_fds[KX_MAX_CLIENTS];/* connected subscribers              */
     size_t client_count;
+    char   socket_path[108];
 } server_t;
 
 int server_init(server_t *server, const char *socket_path);
