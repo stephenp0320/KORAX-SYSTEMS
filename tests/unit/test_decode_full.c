@@ -5,6 +5,10 @@
 #include "korax/rook_track.h"
 #include "korax/magpie_validator.h"
 #include "korax/output_json.h"
+#include "korax/server.h"
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 static int tests_run = 0;
 static int tests_failed = 0;
@@ -457,6 +461,70 @@ static void test_output_json(void){
     ASSERT_EQ_INT(track_to_json(NULL, buf, sizeof buf), -1, "null track -> -1");
 }
 
+/* Connect a blocking client socket to the server's Unix socket path. */
+static int connect_client(const char *path){
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) return -1;
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof addr);
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    if (connect(fd, (struct sockaddr *)&addr, sizeof addr) == -1){
+        close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+static void test_server_feed(void){
+    const char *path = "/tmp/korax_test.sock";
+    server_t server;
+    ASSERT_EQ_INT(server_init(&server, path), 0, "server_init succeeds");
+
+    /* one live track, so the snapshot on connect has content */
+    track_table_t table; memset(&table, 0, sizeof table);
+    table.num_tracks = 1;
+    strcpy(table.tracks[0].uas_id, "TESTDRONE123");
+    table.tracks[0].is_compliant = true;
+
+    char buf[1024];
+    ssize_t n;
+
+    /* client 1 connects; server accepts -> hello + snapshot */
+    int c1 = connect_client(path);
+    ASSERT_TRUE(c1 >= 0, "client 1 connects");
+    ASSERT_EQ_INT(server_accept(&server, &table), 0, "accept client 1");
+    n = read(c1, buf, sizeof buf - 1);
+    ASSERT_TRUE(n > 0, "client 1 receives data");
+    buf[(n > 0) ? (size_t)n : 0] = '\0';
+    ASSERT_TRUE(strstr(buf, "\"event\":\"hello\"") != NULL, "client 1 gets hello");
+    ASSERT_TRUE(strstr(buf, "\"event\":\"track_update\"") != NULL, "client 1 gets snapshot");
+    ASSERT_TRUE(strstr(buf, "TESTDRONE123") != NULL, "snapshot carries the track");
+
+    /* client 2 connects; server accepts -> its own hello + snapshot */
+    int c2 = connect_client(path);
+    ASSERT_TRUE(c2 >= 0, "client 2 connects");
+    ASSERT_EQ_INT(server_accept(&server, &table), 0, "accept client 2");
+    n = read(c2, buf, sizeof buf - 1);
+    ASSERT_TRUE(n > 0, "client 2 receives data");
+    buf[(n > 0) ? (size_t)n : 0] = '\0';
+    ASSERT_TRUE(strstr(buf, "\"event\":\"hello\"") != NULL, "client 2 gets hello");
+
+    /* broadcast reaches BOTH clients */
+    const char *line = "{\"event\":\"track_expired\",\"uas_id\":\"TESTDRONE123\"}\n";
+    ASSERT_EQ_INT(server_broadcast(&server, line, strlen(line)), 2, "broadcast delivered to 2 clients");
+    n = read(c1, buf, sizeof buf - 1);
+    buf[(n > 0) ? (size_t)n : 0] = '\0';
+    ASSERT_TRUE(strstr(buf, "track_expired") != NULL, "client 1 receives broadcast");
+    n = read(c2, buf, sizeof buf - 1);
+    buf[(n > 0) ? (size_t)n : 0] = '\0';
+    ASSERT_TRUE(strstr(buf, "track_expired") != NULL, "client 2 receives broadcast");
+
+    close(c1);
+    close(c2);
+    server_close(&server);
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -472,6 +540,7 @@ int main(void){
     test_jump_distance();
     test_magpie_reserved_bits();
     test_output_json();
+    test_server_feed();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
