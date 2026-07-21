@@ -48,7 +48,7 @@ endif()
 # ---- Daemon --------------------------------------------------------------
 option(KORAX_BUILD_DAEMON "Build the koraxd daemon" ON)
 if(KORAX_BUILD_DAEMON)
-    add_executable(koraxd daemon/koraxd.c)
+    add_executable(koraxd daemon/koraxd.c daemon/config.c)
     target_link_libraries(koraxd PRIVATE korax)
 endif()
 # ---- Tests ---------------------------------------------------------------

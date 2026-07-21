@@ -13,7 +13,6 @@
 #include "korax/server.h"
 #include "korax/output_json.h"
 #include "daemon/config.h"
-#include
 
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
