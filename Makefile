@@ -11,7 +11,8 @@ LIB_SRC := \
     src/capture/capture_file.c \
     src/pipeline/pipeline.c \
     src/magpie/magpie_validator.c \
-    src/output/output_json.c
+    src/output/output_json.c \
+    src/output/server.c
 
 BUILD   := build
 
