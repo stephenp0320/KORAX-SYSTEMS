@@ -139,3 +139,25 @@ int server_accept(server_t *server, const track_table_t *track){
     }
     return 0;
 }
+
+static void remove_client(server_t *server, size_t i){
+    server->client_fds[i] = server->client_fds[server->client_count - 1];
+    server->client_count--;
+}
+
+int server_broadcast(server_t *server, const char *line, size_t len){
+    if (server == NULL || line == NULL){
+        return -1;
+    }
+    int delivered = 0;
+    for (size_t i = 0; i < server->client_count; ){
+        if (send_line(server->client_fds[i], line, len) == 0){
+            delivered++;
+            i++;
+        } else {
+            close(server->client_fds[i]);
+            remove_client(server, i);
+        }
+    }
+    return delivered;
+}
