@@ -14,3 +14,4 @@ typedef struct {
 } korax_config_t;
 
 int config_defaults(korax_config_t *cfg);
+int config_load_file(korax_config_t *cfg, const char *path);

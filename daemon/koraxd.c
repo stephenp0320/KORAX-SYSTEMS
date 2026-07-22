@@ -152,6 +152,8 @@ static void run_event_loop(koraxd_t *daemon){
 int main(){
     korax_config_t cfg;
     config_defaults(&cfg);
+    const char *config_path = "/etc/korax/korax.conf";
+    config_load_file(&cfg, config_path);
 
     koraxd_t daemon;
     memset(&daemon, 0, sizeof daemon);

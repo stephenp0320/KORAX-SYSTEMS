@@ -4,6 +4,7 @@
 #include "korax/server.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <getopt.h>
 #define CONFIG_ERR -1
 #define CONFIG_OK 0
 
@@ -114,4 +115,47 @@ int config_load_file(korax_config_t *cfg, const char *path) {
     }
     fclose(fp);
     return CONFIG_OK;
+}
+
+int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
+    static struct option opts[] = {
+        {"socket",    required_argument, 0, 's'},
+        {"source",    required_argument, 0, 'f'},
+        {"expiry",    required_argument, 0, 'e'},
+        {"grace",     required_argument, 0, 'g'},
+        {"max-speed", required_argument, 0, 'm'},
+        {"log-level", required_argument, 0, 'l'},
+        {"config",    required_argument, 0, 'c'},
+        {0, 0, 0, 0}
+    };
+    int c;
+    while ((c = getopt_long(argc, argv, "s:f:e:g:m:l:c:", opts, NULL)) != -1){
+        switch (c){
+            case 's':
+                strncpy(cfg->socket_path, optarg, sizeof cfg->socket_path - 1);
+                cfg->socket_path[sizeof cfg->socket_path - 1] = '\0';
+                break;
+            case 'f':
+                strncpy(cfg->source_path, optarg, sizeof cfg->source_path - 1);
+                cfg->source_path[sizeof cfg->source_path - 1] = '\0';
+                break;
+            case 'e':
+                cfg->expiry_seconds = (int)strtol(optarg, NULL, 10);
+                break;
+            case 'g':
+                cfg->grace_seconds = (int)strtol(optarg, NULL, 10);
+                break;
+            case 'm':
+                cfg->max_speed_kmh = strtod(optarg, NULL);
+                break;
+            case 'l':
+                cfg->log_level = (int)strtol(optarg, NULL, 10);
+                break;
+            case 'c':
+                break;
+            default:
+                return -1;
+        }
+    }
+    return 0;
 }
