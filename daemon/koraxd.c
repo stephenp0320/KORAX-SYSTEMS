@@ -21,6 +21,7 @@ typedef struct {
     track_table_t         table;       /* live tracks                         */
     time_t                last_sweep;  /* when expiry last ran                */
     volatile sig_atomic_t running;     /* cleared by SIGINT/SIGTERM           */
+    int expiry_seconds;
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -129,8 +130,8 @@ static void run_event_loop(koraxd_t *daemon){
         }
 
         time_t now = time(NULL);
-        if (now - daemon->last_sweep >= EXPIRY_SECONDS){
-            track_table_expire(&daemon->table, now, EXPIRY_SECONDS, on_track_expired, daemon);
+        if (now - daemon->last_sweep >= daemon->expiry_seconds){
+            track_table_expire(&daemon->table, now, daemon->expiry_seconds, on_track_expired, daemon);
             daemon->last_sweep = now;
         }
         if (ready == 0)
@@ -149,19 +150,34 @@ static void run_event_loop(koraxd_t *daemon){
     }
 }
 
-int main(){
+int main(int argc, char **argv){
     korax_config_t cfg;
     config_defaults(&cfg);
+
     const char *config_path = "/etc/korax/korax.conf";
-    config_load_file(&cfg, config_path);
+    for (int i = 1; i < argc - 1; i++){
+        if (strcmp(argv[i], "--config") == 0){
+            config_path = argv[i + 1];
+            break;
+        }
+    }
+
+    if (config_load_file(&cfg, config_path) != 0){  /* 2. file overrides defaults */
+        fprintf(stderr, "koraxd: failed to load config %s\n", config_path);
+        return 1;
+    }
+
+    if (config_apply_cli(&cfg, argc, argv) != 0){   /* 3. CLI overrides file */
+        fprintf(stderr, "koraxd: invalid command-line arguments\n");
+        return 1;
+    }
 
     koraxd_t daemon;
     memset(&daemon, 0, sizeof daemon);
-    daemon.running    = 1;
-    daemon.last_sweep = time(NULL);
-
+    daemon.running        = 1;
+    daemon.last_sweep     = time(NULL);
+    daemon.expiry_seconds = cfg.expiry_seconds;
     track_table_init(&daemon.table);
-
     if (server_init(&daemon.server, cfg.socket_path) != 0){
         fprintf(stderr, "koraxd: server_init failed on %s\n", cfg.socket_path);
         return 1;
@@ -176,7 +192,6 @@ int main(){
     daemon.source_fd = fileno(daemon.source);
 
     setup_signal_handling(&daemon);
-
     fprintf(stderr, "koraxd: feed on %s, replaying %s\n", cfg.socket_path, cfg.source_path);
     run_event_loop(&daemon);
 
