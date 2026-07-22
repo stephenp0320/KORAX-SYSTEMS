@@ -6,9 +6,11 @@
 #include "korax/magpie_validator.h"
 #include "korax/output_json.h"
 #include "korax/server.h"
+#include "daemon/config.h"
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <getopt.h>
 
 static int tests_run = 0;
 static int tests_failed = 0;
@@ -525,6 +527,44 @@ static void test_server_feed(void){
     server_close(&server);
 }
 
+static void test_config(void){
+    korax_config_t cfg;
+
+    /* 1. defaults produce the expected baseline */
+    ASSERT_EQ_INT(config_defaults(&cfg), 0, "config_defaults succeeds");
+    ASSERT_EQ_INT(cfg.expiry_seconds, 10, "default expiry_seconds is 10");
+    ASSERT_EQ_INT(cfg.grace_seconds, 5, "default grace_seconds is 5");
+    ASSERT_TRUE(cfg.max_speed_kmh == 150.0, "default max_speed_kmh is 150");
+    ASSERT_EQ_INT(cfg.log_level, 2, "default log_level is 2");
+    ASSERT_TRUE(strcmp(cfg.socket_path, KX_DEFAULT_SOCKET) == 0, "default socket path");
+
+    /* 2. precedence: file overrides default, then CLI overrides file */
+    const char *path = "/tmp/korax_test.conf";
+    FILE *f = fopen(path, "w");
+    ASSERT_TRUE(f != NULL, "temp config opens for write");
+    fputs("[tracks]\nexpiry_seconds = 20\n", f);
+    fclose(f);
+    ASSERT_EQ_INT(config_load_file(&cfg, path), 0, "config_load_file succeeds");
+    ASSERT_EQ_INT(cfg.expiry_seconds, 20, "file overrides default (20)");
+
+    char *argv[] = { "koraxd", "--expiry", "30", NULL };
+    optind = 1;                                  /* reset getopt scan state */
+    ASSERT_EQ_INT(config_apply_cli(&cfg, 3, argv), 0, "config_apply_cli succeeds");
+    ASSERT_EQ_INT(cfg.expiry_seconds, 30, "CLI overrides file (30)");
+
+    /* 3. missing file keeps current values (not an error) */
+    ASSERT_EQ_INT(config_load_file(&cfg, "/tmp/korax_does_not_exist.conf"), 0,
+                  "missing config file -> ok, defaults kept");
+
+    /* 4. bad input: an unknown key is reported as an error, not ignored */
+    f = fopen(path, "w");
+    fputs("[tracks]\nnonsense_key = 5\n", f);
+    fclose(f);
+    ASSERT_TRUE(config_load_file(&cfg, path) != 0, "unknown key -> error");
+
+    remove(path);
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -541,6 +581,7 @@ int main(void){
     test_magpie_reserved_bits();
     test_output_json();
     test_server_feed();
+    test_config();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
@@ -556,4 +597,5 @@ int main(void){
     printf("\nSOME TESTS FAILED\n");
     return 1;
 }
+
 

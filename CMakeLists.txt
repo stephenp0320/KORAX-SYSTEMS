@@ -54,7 +54,7 @@ endif()
 # ---- Tests ---------------------------------------------------------------
 if(KORAX_BUILD_TESTS)
     enable_testing()
-    add_executable(test_decode tests/unit/test_decode_full.c)
+    add_executable(test_decode tests/unit/test_decode_full.c daemon/config.c)
     target_link_libraries(test_decode PRIVATE korax)
     add_test(NAME decode_suite COMMAND test_decode)
 endif()
