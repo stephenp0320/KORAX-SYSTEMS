@@ -29,7 +29,7 @@ $(BUILD)/korax_replay: tools/replay/korax_replay.c $(LIB_SRC) | $(BUILD)
 $(BUILD)/korax_demo: examples/demo_decode.c $(LIB_SRC) | $(BUILD)
 	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
-$(BUILD)/koraxd: daemon/koraxd.c $(LIB_SRC) | $(BUILD)
+$(BUILD)/koraxd: daemon/koraxd.c daemon/config.c daemon/log.c $(LIB_SRC) | $(BUILD)
 	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
 test: $(BUILD)/test_decode

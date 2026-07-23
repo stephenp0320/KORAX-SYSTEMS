@@ -13,6 +13,7 @@
 #include "korax/server.h"
 #include "korax/output_json.h"
 #include "daemon/config.h"
+#include "daemon/log.h"
 
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
@@ -153,8 +154,10 @@ static void run_event_loop(koraxd_t *daemon){
 int main(int argc, char **argv){
     korax_config_t cfg;
     config_defaults(&cfg);
+    log_set_level(cfg.log_level);
 
     const char *config_path = "/etc/korax/korax.conf";
+
     for (int i = 1; i < argc - 1; i++){
         if (strcmp(argv[i], "--config") == 0){
             config_path = argv[i + 1];
@@ -162,41 +165,41 @@ int main(int argc, char **argv){
         }
     }
 
-    if (config_load_file(&cfg, config_path) != 0){  /* 2. file overrides defaults */
-        fprintf(stderr, "koraxd: failed to load config %s\n", config_path);
+    if (config_load_file(&cfg, config_path) != 0){
+        log_msg(LOG_ERROR, "failed to load config %s", config_path);
         return 1;
     }
 
-    if (config_apply_cli(&cfg, argc, argv) != 0){   /* 3. CLI overrides file */
-        fprintf(stderr, "koraxd: invalid command-line arguments\n");
+    if (config_apply_cli(&cfg, argc, argv) != 0){
+        log_msg(LOG_ERROR, "invalid command-line arguments");
         return 1;
     }
 
     koraxd_t daemon;
     memset(&daemon, 0, sizeof daemon);
-    daemon.running        = 1;
-    daemon.last_sweep     = time(NULL);
+    daemon.running = 1;
+    daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
     track_table_init(&daemon.table);
     if (server_init(&daemon.server, cfg.socket_path) != 0){
-        fprintf(stderr, "koraxd: server_init failed on %s\n", cfg.socket_path);
+        log_msg(LOG_ERROR, "server_init failed on %s", cfg.socket_path);
         return 1;
     }
 
     daemon.source = fopen(cfg.source_path, "r");
     if (daemon.source == NULL){
-        perror("koraxd: fopen source");
+        log_msg(LOG_ERROR, "cannot open source %s: %s", cfg.source_path, strerror(errno));
         server_close(&daemon.server);
         return 1;
     }
     daemon.source_fd = fileno(daemon.source);
 
     setup_signal_handling(&daemon);
-    fprintf(stderr, "koraxd: feed on %s, replaying %s\n", cfg.socket_path, cfg.source_path);
+    log_msg(LOG_INFO, "feed on %s, replaying %s", cfg.socket_path, cfg.source_path);
     run_event_loop(&daemon);
 
     fclose(daemon.source);
     server_close(&daemon.server);
-    fprintf(stderr, "koraxd: stopped\n");
+    log_msg(LOG_INFO, "stopped");
     return 0;
 }
