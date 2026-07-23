@@ -24,7 +24,6 @@ FILE *read_file(const char *filename){
     FILE *fp;
     fp = fopen(filename, "r");
     if (fp == NULL){
-        fprintf(stderr, "korax_replay: cannot open '%s'\n", filename);
 	    return NULL;
     }
     return fp;
