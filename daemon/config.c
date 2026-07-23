@@ -88,21 +88,35 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             while (vend >= value && (*vend == ' ' || *vend == '\t' || *vend == '\n' || *vend == '\r')) {
                 *vend-- = '\0';
             }
-
+            char *endptr;
             if (strcmp(section, "output") == 0 && strcmp(key, "socket_path") == 0) {
                 strncpy(cfg->socket_path, value, sizeof(cfg->socket_path) - 1);
                 cfg->socket_path[sizeof(cfg->socket_path) - 1] = '\0';
+
             } else if (strcmp(section, "capture") == 0 && strcmp(key, "source") == 0) {
                 strncpy(cfg->source_path, value, sizeof(cfg->source_path) - 1);
                 cfg->source_path[sizeof(cfg->source_path) - 1] = '\0';
+
             } else if (strcmp(section, "tracks") == 0 && strcmp(key, "expiry_seconds") == 0) {
-                cfg->expiry_seconds = atoi(value);
+                long res = strtol(value, &endptr , 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->expiry_seconds = (int)res;
+
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "grace_seconds") == 0) {
-                cfg->grace_seconds = atoi(value);
+                long res = strtol(value, &endptr, 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->grace_seconds = (int)res;
+
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
-                cfg->max_speed_kmh = atof(value);
+                long res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->max_speed_kmh = (int)res;
+
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
-                cfg->log_level = atoi(value);
+                long res = strtol(value, &endptr, 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->log_level = (int)res;
+
             } else {
                 log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);
                 fclose(fp);
