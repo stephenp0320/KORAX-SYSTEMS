@@ -9,7 +9,7 @@
 #define WP_ID_MAX_LEN 20
 #define ODID_PACK_MAX_MESSAGES 9
 
-int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table){
+int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table, const magpie_thresholds_t *th){
     if (packet == NULL || track_table == NULL){
         return DECODE_ERR_NULL;
     }
@@ -44,7 +44,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
             return decode_msg_result;
         }
 
-        int processed_decoded_msg = process_decoded_message(track_table, &msg);
+        int processed_decoded_msg = process_decoded_message(track_table, &msg, th);
         if (processed_decoded_msg < 0) {
             return processed_decoded_msg;
         }

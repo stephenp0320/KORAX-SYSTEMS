@@ -185,7 +185,7 @@ static void test_message_pack_valid(void)
     track_table_t table;
     track_table_init(&table);
 
-    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), &table), DECODE_OK, "pack decodes");
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_OK, "pack decodes");
     ASSERT_EQ_INT(table.num_tracks, 1, "pack -> one track");
     ASSERT_EQ_INT(table.tracks[0].has_basic_id, 1, "pack track has basic id");
     ASSERT_EQ_INT(table.tracks[0].has_location, 1, "pack track has location");
@@ -200,26 +200,26 @@ static void test_message_pack_errors(void)
 
     uint8_t zero_count[3] = { 0xF2, 0x19, 0x00 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), &table), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
 
     uint8_t big_count[3] = { 0xF2, 0x19, 0xFF };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), &table), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
 
     uint8_t bad_size[3] = { 0xF2, 0x18, 0x03 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), &table), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
 
     uint8_t truncated[10] = { 0xF2, 0x19, 0x02, 0x02, 0x12, 0x31 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), &table), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
 
     uint8_t tiny[2] = { 0xF2, 0x19 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), &table), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
 
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), &table), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
 }
 
 static void test_jump_distance(void){
@@ -307,7 +307,7 @@ static void test_magpie_required_missing(void){
     /* positive: a track missing Location is flagged */
     track_t t; memset(&t, 0, sizeof t);
     t.has_basic_id = 1; t.has_system = 1; t.has_operator_id = 1;   /* no location */
-    kx_result_t r = magpie_validate_track(&t, 1000);
+    kx_result_t r = magpie_validate_track(&t, 1000, &MAGPIE_DEFAULT_THRESHOLDS);
     ASSERT_TRUE(r.rule & KX_RULE_MISSING_REQUIRED_MSG, "missing Location -> flagged");
     ASSERT_EQ_INT(r.severity, KX_SEVERITY_ERROR, "missing required -> ERROR severity");
 
@@ -315,7 +315,7 @@ static void test_magpie_required_missing(void){
     track_t ok; memset(&ok, 0, sizeof ok);
     ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
     ok.last_location_seen = 1000;
-    kx_result_t r2 = magpie_validate_track(&ok, 1000);
+    kx_result_t r2 = magpie_validate_track(&ok, 1000, &MAGPIE_DEFAULT_THRESHOLDS);
     ASSERT_EQ_INT(r2.rule, KX_RULE_NONE, "complete fresh track -> compliant");
 }
 
@@ -324,10 +324,10 @@ static void test_magpie_grace_window(void){
     t.has_basic_id = 1; t.has_location = 1; t.has_system = 1; t.has_operator_id = 1;
     t.last_location_seen = 1000;
 
-    kx_result_t stale = magpie_validate_track(&t, 1000 + 10);  /* 10s > 5s grace */
+    kx_result_t stale = magpie_validate_track(&t, 1000 + 10, &MAGPIE_DEFAULT_THRESHOLDS);  /* 10s > 5s grace */
     ASSERT_TRUE(stale.rule & KX_RULE_NO_LOCATION_IN_GRACE, "stale location -> flagged");
 
-    kx_result_t fresh = magpie_validate_track(&t, 1000 + 2);   /* within grace */
+    kx_result_t fresh = magpie_validate_track(&t, 1000 + 2, &MAGPIE_DEFAULT_THRESHOLDS);   /* within grace */
     ASSERT_TRUE((fresh.rule & KX_RULE_NO_LOCATION_IN_GRACE) == 0, "fresh location -> not flagged");
 }
 
@@ -367,19 +367,19 @@ static void test_magpie_jump(void){
     fast.prev_location.Latitude = 51.0; fast.prev_location.Longitude = 0.0;
     fast.location.Latitude      = 52.0; fast.location.Longitude      = 0.0;
     fast.prev_location_seen = 1000; fast.last_location_seen = 1001;
-    ASSERT_TRUE(magpie_validate_jump(&fast).rule & KX_RULE_IMPLAUSIBLE_JUMP, "impossible speed -> flagged");
+    ASSERT_TRUE(magpie_validate_jump(&fast, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP, "impossible speed -> flagged");
 
     /* negative: a small move over 10 s is fine */
     track_t slow; memset(&slow, 0, sizeof slow);
     slow.msg_count_location = 2;
     slow.prev_location.Latitude = 51.0000; slow.location.Latitude = 51.0001;
     slow.prev_location_seen = 1000; slow.last_location_seen = 1010;
-    ASSERT_TRUE((magpie_validate_jump(&slow).rule & KX_RULE_IMPLAUSIBLE_JUMP) == 0, "normal move -> not flagged");
+    ASSERT_TRUE((magpie_validate_jump(&slow, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP) == 0, "normal move -> not flagged");
 
     /* only one fix: nothing to compare, not a violation */
     track_t single; memset(&single, 0, sizeof single);
     single.msg_count_location = 1;
-    ASSERT_EQ_INT(magpie_validate_jump(&single).rule, KX_RULE_NONE, "single fix -> no jump check");
+    ASSERT_EQ_INT(magpie_validate_jump(&single, &MAGPIE_DEFAULT_THRESHOLDS).rule, KX_RULE_NONE, "single fix -> no jump check");
 }
 
 static void test_magpie_reserved_bits(void){
@@ -419,12 +419,12 @@ static void test_magpie_validate_composed(void){
     msg.data.location.Latitude = 51.0; msg.data.location.AltitudeGeo = 100.0;
     msg.data.location.AltitudeBaro = 100.0; msg.data.location.TimeStamp = 10.0;
     msg.data.location.Status = DRONE_ID_STATUS_AIRBORNE;
-    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000), 0, "compliant track+msg -> 0 (compliant)");
+    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS), 0, "compliant track+msg -> 0 (compliant)");
 
     /* incomplete track -> at least the missing-required bit set */
     track_t bad; memset(&bad, 0, sizeof bad);
     bad.has_basic_id = 1;   /* missing location/system/operator */
-    uint32_t flags = magpie_validate(&bad, NULL, 9999);
+    uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS);
     ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
 }
 
@@ -617,10 +617,25 @@ static void test_pack_multi_drone(void){
     track_table_t table;
     track_table_init(&table);
 
-    ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, &table), 0, "multi-drone pack decodes");
+    ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, &table, &MAGPIE_DEFAULT_THRESHOLDS), 0, "multi-drone pack decodes");
     ASSERT_EQ_INT(table.num_tracks, 2, "both sub-messages land -> 2 tracks (2nd not dropped)");
     ASSERT_TRUE(find_track(&table, "AAAAAAAAAAAAAAAAAAAA") >= 0, "drone A tracked");
     ASSERT_TRUE(find_track(&table, "BBBBBBBBBBBBBBBBBBBB") >= 0, "drone B tracked");
+}
+
+static void test_magpie_config_thresholds(void){
+    track_t t; memset(&t, 0, sizeof t);
+    t.msg_count_location = 2;
+    t.prev_location.Latitude = 51.0000; t.location.Latitude = 51.0005;  /* ~55 m */
+    t.prev_location_seen = 1000; t.last_location_seen = 1010;           /* over 10 s */
+
+    magpie_thresholds_t loose  = { 5, 150.0 };   /* 150 km/h cap */
+    magpie_thresholds_t strict = { 5, 5.0 };     /* 5 km/h cap   */
+
+    ASSERT_TRUE((magpie_validate_jump(&t, &loose).rule  & KX_RULE_IMPLAUSIBLE_JUMP) == 0,
+                "20 km/h move OK under 150 km/h cap");
+    ASSERT_TRUE(magpie_validate_jump(&t, &strict).rule & KX_RULE_IMPLAUSIBLE_JUMP,
+                "same move flagged under 5 km/h cap (config changes verdict)");
 }
 
 int main(void){
@@ -651,6 +666,7 @@ int main(void){
     test_magpie_basic_id();
     test_magpie_jump();
     test_magpie_validate_composed();
+    test_magpie_config_thresholds();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }

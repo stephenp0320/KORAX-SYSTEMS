@@ -5,7 +5,7 @@
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
 
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg,  magpie_thresholds_t *th){
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg,  const magpie_thresholds_t *th){
 	if (table == NULL || msg == NULL){
 		return TRACK_ERR;
 	}
@@ -44,6 +44,6 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0){
 		return;
 	}
-	process_decoded_message(table, &msg);
+	process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
 }
 

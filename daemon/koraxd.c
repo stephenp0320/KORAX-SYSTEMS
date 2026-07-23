@@ -23,6 +23,7 @@ typedef struct {
     time_t                last_sweep;  /* when expiry last ran                */
     volatile sig_atomic_t running;     /* cleared by SIGINT/SIGTERM           */
     int expiry_seconds;
+    magpie_thresholds_t thresholds;
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -101,13 +102,13 @@ static void handle_source_frame(koraxd_t *daemon){
 
     uint8_t type = (buf[0] >> 4) & 0x0F;
     if (type == MESSAGETYPE_PACKED){
-        decode_message_pack(buf, count, &daemon->table);
+        decode_message_pack(buf, count, &daemon->table, &daemon->thresholds);
         for (int i = 0; i < daemon->table.num_tracks; i++)
             broadcast_track_update(daemon, i);
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
-            int idx = process_decoded_message(&daemon->table, &msg);
+            int idx = process_decoded_message(&daemon->table, &msg, &daemon->thresholds);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
             }
@@ -179,6 +180,8 @@ int main(int argc, char **argv){
     }
 
     koraxd_t daemon;
+    daemon.thresholds.grace_seconds = cfg.grace_seconds;
+    daemon.thresholds.max_speed_kmh = cfg.max_speed_kmh;
     memset(&daemon, 0, sizeof daemon);
     daemon.running = 1;
     daemon.last_sweep = time(NULL);

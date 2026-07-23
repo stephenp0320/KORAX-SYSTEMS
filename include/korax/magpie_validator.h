@@ -28,7 +28,7 @@ typedef enum {
     KX_SEVERITY_ERROR,
 } kx_severity_t;
 
-typedef struct {
+typedef struct magpie_thresholds {
     int    grace_seconds;
     double max_speed_kmh;
 } magpie_thresholds_t;
@@ -62,7 +62,8 @@ kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t
  * arriving message and returns a bitmask of tripped rules (0 == compliant).
  * Pure: no allocation, no I/O.
  */
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, magpie_thresholds_t *th);
+
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time_t now, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
-#endif /* KORAX_MAGPIE_VALIDATOR_H */
+#endif
 
