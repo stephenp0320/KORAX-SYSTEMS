@@ -36,8 +36,9 @@ int get_file_line(FILE *fp, wp_frame_cb_t cb, void *user_data){
     char line[1024];
     int frames = 0;
     while (fgets(line, sizeof(line), fp)) {
-        if (line[0] == '#' || line[0] == '\n' || line[0] == '\r')
+        if (line[0] == '#' || line[0] == '\n' || line[0] == '\r'){
             continue;
+        }
         uint8_t buf[256];
         int len = hexline_to_bytes(line, buf, sizeof(buf));
         if (len <= 0){

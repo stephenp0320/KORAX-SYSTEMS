@@ -58,17 +58,16 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie
         return r;
     }
 
-    if (!track->has_basic_id || !track->has_location ||
-        !track->has_system   || !track->has_operator_id) {
+    if (!track->has_basic_id || !track->has_location || !track->has_system   || !track->has_operator_id) {
         r.rule    |= KX_RULE_MISSING_REQUIRED_MSG;
         r.severity = KX_SEVERITY_ERROR;
     }
 
-    if (track->has_location &&
-        now - track->last_location_seen > th->grace_seconds) {
+    if (track->has_location && now - track->last_location_seen > th->grace_seconds) {
         r.rule |= KX_RULE_NO_LOCATION_IN_GRACE;
-        if (KX_SEVERITY_ERROR > r.severity)
+        if (KX_SEVERITY_ERROR > r.severity){
             r.severity = KX_SEVERITY_ERROR;
+        }
     }
     return r;
 }
@@ -76,14 +75,15 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie
 kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_t *th){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
 
-    if (track == NULL || track->msg_count_location < 2)
+    if (track == NULL || track->msg_count_location < 2){
         return r;
+    }
 
     double distance_km  = jump_detection(track);
     double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
-    if (elapsed_secs <= 0.0)
+    if (elapsed_secs <= 0.0){
         return r;
-
+    }
     double speed_kmh = distance_km * 3600.0 / elapsed_secs;
     if (speed_kmh > th->max_speed_kmh) {
         r.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
@@ -93,10 +93,7 @@ kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_
 }
 
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
-    kx_result_t r = {
-        .rule = KX_RULE_NONE,
-        .severity = KX_SEVERITY_INFO
-    };
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
     if (track == NULL){
         return r;
     }
@@ -111,6 +108,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
     flags |= magpie_validate_jump(track, th).rule;
+
     if (msg != NULL) {
         switch (msg->type) {
             case MESSAGETYPE_BASIC_ID:
