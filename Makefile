@@ -20,7 +20,7 @@ all: test replay demo daemon
 $(BUILD):
 	@mkdir -p $(BUILD)
 
-$(BUILD)/test_decode: tests/unit/test_decode_full.c daemon/config.c $(LIB_SRC) | $(BUILD)
+$(BUILD)/test_decode: tests/unit/test_decode_full.c daemon/config.c daemon/log.c $(LIB_SRC) | $(BUILD)
 	$(CC) $(CFLAGS) $^ $(LDLIBS) -o $@
 
 $(BUILD)/korax_replay: tools/replay/korax_replay.c $(LIB_SRC) | $(BUILD)

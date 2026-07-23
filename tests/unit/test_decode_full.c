@@ -7,6 +7,7 @@
 #include "korax/output_json.h"
 #include "korax/server.h"
 #include "daemon/config.h"
+#include "daemon/log.h"
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -565,6 +566,34 @@ static void test_config(void){
     remove(path);
 }
 
+static void test_logging(void){
+    /* Level filtering: at threshold INFO, ERROR/WARN/INFO show, DEBUG is dropped. */
+    log_set_level(LOG_INFO);
+    ASSERT_TRUE(log_enabled(LOG_ERROR),  "ERROR enabled at INFO threshold");
+    ASSERT_TRUE(log_enabled(LOG_WARN),   "WARN enabled at INFO threshold");
+    ASSERT_TRUE(log_enabled(LOG_INFO),   "INFO enabled at INFO threshold");
+    ASSERT_TRUE(!log_enabled(LOG_DEBUG), "DEBUG suppressed at INFO threshold");
+
+    /* Lower the threshold to ERROR: only ERROR shows. */
+    log_set_level(LOG_ERROR);
+    ASSERT_TRUE(log_enabled(LOG_ERROR),  "ERROR enabled at ERROR threshold");
+    ASSERT_TRUE(!log_enabled(LOG_WARN),  "WARN suppressed at ERROR threshold");
+    ASSERT_TRUE(!log_enabled(LOG_DEBUG), "DEBUG suppressed at ERROR threshold");
+
+    /* Bounded flood: many failures in one window produce at most one summary. */
+    time_t t0 = 100000;
+    int emitted = 0;
+    for (int i = 0; i < 500; i++)
+        emitted += log_decode_failure(t0);      /* all in the same instant */
+    ASSERT_EQ_INT(emitted, 0, "flood within one window -> no output");
+
+    /* Once the report interval has elapsed, exactly one summary is emitted. */
+    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 1, "after interval -> one summary line");
+
+    /* Counter reset: the next failure starts a fresh window (no immediate flush). */
+    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 0, "post-flush -> counting again, no output");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -582,6 +611,7 @@ int main(void){
     test_output_json();
     test_server_feed();
     test_config();
+    test_logging();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();

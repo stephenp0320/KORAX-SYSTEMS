@@ -14,6 +14,6 @@ void log_set_level(log_level_t level);
 void log_msg(log_level_t level, const char *fmt, ...)
     __attribute__((format(printf, 2, 3)));
 
-void log_decode_failure(time_t now);
-
+int log_decode_failure(time_t now);
+int log_enabled(log_level_t level);
 #endif

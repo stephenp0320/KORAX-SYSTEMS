@@ -37,9 +37,7 @@ void log_msg(log_level_t level, const char *format, ...){
     va_end(args);
 }
 
-void log_decode_failure(time_t now){
-    if (!now) return;
-
+int log_decode_failure(time_t now){
     if (g_decode_fail_count == 0){
         g_decode_fail_since = now;
     }
@@ -49,8 +47,9 @@ void log_decode_failure(time_t now){
         log_msg(LOG_WARN, "%u decode failures in the last %lds",
                 g_decode_fail_count, (long)(now - g_decode_fail_since));
         g_decode_fail_count = 0;
+        return 1;
     }
+    return 0;
 }
 
-
-
+int log_enabled(log_level_t level){ return level <= g_log_level; }
