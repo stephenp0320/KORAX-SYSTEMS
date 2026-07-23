@@ -15,8 +15,9 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
         idx = find_track(table, uas_id);
 		if (idx == TRACK_NOT_FOUND) {
             idx = track_table_create(table, uas_id);
-            if (idx < 0)
+            if (idx < 0){
                 return idx;
+            }
         }
     } else {
 		if (table->num_tracks == 0){
