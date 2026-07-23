@@ -142,8 +142,9 @@ static void remove_client(server_t *server, size_t i){
 }
 
 void server_drop_client(server_t *server, size_t index){
-    if (server == NULL || index >= server->client_count)
+    if (server == NULL || index >= server->client_count){
         return;
+    }
     close(server->client_fds[index]);
     remove_client(server, index);
 }
