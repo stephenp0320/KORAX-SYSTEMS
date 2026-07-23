@@ -638,6 +638,60 @@ static void test_magpie_config_thresholds(void){
                 "same move flagged under 5 km/h cap (config changes verdict)");
 }
 
+static void count_expired_cb(const track_t *track, void *user_data){
+    (void)track;
+    (*(int *)user_data)++;
+}
+
+static void test_expiry(void){
+    track_table_t table;
+    track_table_init(&table);
+
+    int a = track_table_create(&table, "EXPIREDRONE0");
+    int b = track_table_create(&table, "EXPIREDRONE1");
+    int c = track_table_create(&table, "FRESHDRONE2");
+    ASSERT_TRUE(a >= 0 && b >= 0 && c >= 0, "three tracks created");
+
+    table.tracks[a].last_seen = 1000;   /* stale */
+    table.tracks[b].last_seen = 1000;   /* stale */
+    table.tracks[c].last_seen = 1030;   /* fresh (within 60s of now) */
+
+    int expired = 0;
+    int removed = track_table_expire(&table, 1061, 60, count_expired_cb, &expired);
+
+    ASSERT_EQ_INT(removed, 2, "two stale tracks removed");
+    ASSERT_EQ_INT(expired, 2, "expiry callback fired once per removed track");
+    ASSERT_EQ_INT(table.num_tracks, 1, "one fresh track remains");
+    ASSERT_TRUE(find_track(&table, "FRESHDRONE2") >= 0, "fresh track survived");
+    ASSERT_EQ_INT(find_track(&table, "EXPIREDRONE0"), TRACK_NOT_FOUND, "stale track gone");
+
+    /* boundary: exactly at the timeout is NOT removed (now - last_seen == expiry) */
+    track_table_init(&table);
+    int d = track_table_create(&table, "BOUNDARY");
+    table.tracks[d].last_seen = 1000;
+    ASSERT_EQ_INT(track_table_expire(&table, 1060, 60, NULL, NULL), 0, "exactly at timeout -> not removed");
+}
+
+static void test_find_by_mac(void){
+    track_table_t table;
+    track_table_init(&table);
+
+    uint8_t mac_a[6]    = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    uint8_t mac_b[6]    = {0x11, 0x22, 0x33, 0x44, 0x55, 0x67};  /* differs only in last byte */
+    uint8_t mac_none[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), TRACK_NOT_FOUND, "empty table -> NOT_FOUND");
+
+    int a = track_table_create(&table, "MACDRONE_A");
+    int b = track_table_create(&table, "MACDRONE_B");
+    memcpy(table.tracks[a].source_mac, mac_a, 6);
+    memcpy(table.tracks[b].source_mac, mac_b, 6);
+
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), a, "mac_a -> track a");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_b), b, "mac_b (last byte differs) -> track b");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_none), TRACK_NOT_FOUND, "unknown mac -> NOT_FOUND");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -657,6 +711,8 @@ int main(void){
     test_config();
     test_logging();
     test_pack_multi_drone();
+    test_expiry();
+    test_find_by_mac();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
