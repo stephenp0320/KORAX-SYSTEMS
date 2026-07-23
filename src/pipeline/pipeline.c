@@ -4,7 +4,8 @@
 #include "korax/capture.h"
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
+
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg,  magpie_thresholds_t *th){
 	if (table == NULL || msg == NULL){
 		return TRACK_ERR;
 	}
@@ -29,7 +30,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg){
         return rc;
     }
     track->reserved_bits_seen |= msg->reserved_bits;
-    track->flags = magpie_validate(track, msg, time(NULL));
+    track->flags = magpie_validate(track, msg, time(NULL), th);
     track->is_compliant = (track->flags & KX_RULE_ERROR_MASK) == 0;
     return idx;
 }

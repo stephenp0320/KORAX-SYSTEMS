@@ -49,7 +49,7 @@ kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
     return r;
 }
 
-kx_result_t magpie_validate_track(const track_t *track, time_t now){
+kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie_thresholds_t *th){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
 
     if (track == NULL) {
@@ -65,7 +65,7 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now){
     }
 
     if (track->has_location &&
-        now - track->last_location_seen > KX_LOCATION_GRACE_SECONDS) {
+        now - track->last_location_seen > th->grace_seconds) {
         r.rule |= KX_RULE_NO_LOCATION_IN_GRACE;
         if (KX_SEVERITY_ERROR > r.severity)
             r.severity = KX_SEVERITY_ERROR;
@@ -73,7 +73,7 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now){
     return r;
 }
 
-kx_result_t magpie_validate_jump(const track_t *track){
+kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_t *th){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
 
     if (track == NULL || track->msg_count_location < 2)
@@ -85,7 +85,7 @@ kx_result_t magpie_validate_jump(const track_t *track){
         return r;
 
     double speed_kmh = distance_km * 3600.0 / elapsed_secs;
-    if (speed_kmh > MAX_SPEED_KMH) {
+    if (speed_kmh > th->max_speed_kmh) {
         r.rule    |= KX_RULE_IMPLAUSIBLE_JUMP;
         r.severity = KX_SEVERITY_WARN;
     }
@@ -107,10 +107,10 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     return r;
 }
 
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now){
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, magpie_thresholds_t *th){
     uint32_t flags = KX_RULE_NONE;
-    flags |= magpie_validate_track(track, now).rule;
-    flags |= magpie_validate_jump(track).rule;
+    flags |= magpie_validate_track(track, now, th).rule;
+    flags |= magpie_validate_jump(track, th).rule;
     if (msg != NULL) {
         switch (msg->type) {
             case MESSAGETYPE_BASIC_ID:

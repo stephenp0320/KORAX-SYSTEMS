@@ -28,6 +28,11 @@ typedef enum {
     KX_SEVERITY_ERROR,
 } kx_severity_t;
 
+typedef struct {
+    int    grace_seconds;
+    double max_speed_kmh;
+} magpie_thresholds_t;
+
 /* Stable validator rule identifiers, as bit flags so they OR into a mask. */
 typedef enum {
     KX_RULE_NONE                 = 0,
@@ -38,6 +43,8 @@ typedef enum {
     KX_RULE_IMPLAUSIBLE_JUMP     = 1u << 4, /* position/speed jump (uses previous fix) */
 } kx_rule_t;
 
+#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH })
+
 /* A single check's outcome: which rules tripped (bitmask) + the worst severity. */
 typedef struct {
     uint32_t      rule;
@@ -47,15 +54,15 @@ typedef struct {
 /* Per-aspect checks (pure). */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);
 kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id);
-kx_result_t magpie_validate_track(const track_t *track, time_t now);
-kx_result_t magpie_validate_jump(const track_t *track);
+kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie_thresholds_t *th);
+kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t *th);
 
 /*
  * Composed entry point. Runs every applicable check against the track and the
  * arriving message and returns a bitmask of tripped rules (0 == compliant).
  * Pure: no allocation, no I/O.
  */
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now);
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, magpie_thresholds_t *th);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
 #endif /* KORAX_MAGPIE_VALIDATOR_H */
 
