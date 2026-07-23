@@ -45,7 +45,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
         }
 
         int processed_decoded_msg = process_decoded_message(track_table, &msg);
-        if (processed_decoded_msg != 0) {
+        if (processed_decoded_msg < 0) {
             return processed_decoded_msg;
         }
     }

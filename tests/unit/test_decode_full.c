@@ -594,6 +594,35 @@ static void test_logging(void){
     ASSERT_EQ_INT(log_decode_failure(t0 + 10), 0, "post-flush -> counting again, no output");
 }
 
+static void test_pack_multi_drone(void){
+    /* A Message Pack carrying two Basic ID sub-messages for two different
+     * drones. The second drone lands on track index 1, which the old
+     * `!= 0` check mistook for an error and truncated the pack (KAN-73). */
+    uint8_t pack[3 + 2 * RID_MSG_SIZE];
+    memset(pack, 0, sizeof pack);
+    pack[0] = (uint8_t)((MESSAGETYPE_PACKED << 4) | 0x02);  /* pack, version 2   */
+    pack[1] = RID_MSG_SIZE;                                 /* single msg size 25 */
+    pack[2] = 2;                                            /* two sub-messages   */
+
+    uint8_t *a = pack + 3;                                  /* drone A basic id   */
+    a[0] = (uint8_t)((MESSAGETYPE_BASIC_ID << 4) | 0x02);
+    a[1] = 0x12;                                            /* IDType=1, UAType=2 */
+    memset(&a[2], 'A', 20);
+
+    uint8_t *b = pack + 3 + RID_MSG_SIZE;                   /* drone B basic id   */
+    b[0] = (uint8_t)((MESSAGETYPE_BASIC_ID << 4) | 0x02);
+    b[1] = 0x12;
+    memset(&b[2], 'B', 20);
+
+    track_table_t table;
+    track_table_init(&table);
+
+    ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, &table), 0, "multi-drone pack decodes");
+    ASSERT_EQ_INT(table.num_tracks, 2, "both sub-messages land -> 2 tracks (2nd not dropped)");
+    ASSERT_TRUE(find_track(&table, "AAAAAAAAAAAAAAAAAAAA") >= 0, "drone A tracked");
+    ASSERT_TRUE(find_track(&table, "BBBBBBBBBBBBBBBBBBBB") >= 0, "drone B tracked");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -612,6 +641,7 @@ int main(void){
     test_server_feed();
     test_config();
     test_logging();
+    test_pack_multi_drone();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
@@ -627,5 +657,6 @@ int main(void){
     printf("\nSOME TESTS FAILED\n");
     return 1;
 }
+
 
 
