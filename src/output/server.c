@@ -13,16 +13,14 @@
 #include "korax/output_json.h"
 #include <signal.h>
 
-int set_socket_nonblocking(int fd) {
+int set_socket_nonblocking(int fd){
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
-        perror("fcntl F_GETFL failed");
         return -1;
     }
     flags |= O_NONBLOCK;
 
-    if (fcntl(fd, F_SETFL, flags) == -1) {
-        perror("fcntl F_SETFL failed");
+    if (fcntl(fd, F_SETFL, flags) == -1){
         return -1;
     }
     return 0;
@@ -57,7 +55,6 @@ int server_init(server_t *server, const char *socket_path){
     struct sockaddr_un addr;
 
     if (strlen(socket_path) > sizeof(addr.sun_path) - 1){
-        fprintf(stderr, "Failed to create socket, err=%d\n", errno);
         close(server->listen_fd);
         return SOCKET_ERR;
     }
@@ -68,13 +65,11 @@ int server_init(server_t *server, const char *socket_path){
     unlink(socket_path);
 
     if (bind(server->listen_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) == -1){
-        fprintf(stderr, "Failed to bind, err=%d\n", errno);
         close(server->listen_fd);
         return SOCKET_ERR;
     }
 
     if (listen(server->listen_fd, KX_LISTEN_BACKLOG) == -1){
-        fprintf(stderr, "Failed to listen err=%d\n", errno);
         close(server->listen_fd);
         return SOCKET_ERR;
     }
@@ -82,7 +77,6 @@ int server_init(server_t *server, const char *socket_path){
     int non_blocking = set_socket_nonblocking(server->listen_fd);
 
     if (non_blocking == -1){
-        fprintf(stderr, "set_socket_nonblocking err=%d\n", errno);
         close(server->listen_fd);
         return SOCKET_ERR;
     }
@@ -103,14 +97,12 @@ int server_accept(server_t *server, const track_table_t *track){
     }
 
     if (server->client_count >= KX_MAX_CLIENTS){
-        fprintf(stderr, "max client count err=%d\n", errno);
         close(clientfd);
         return 0;
     }
     int non_blocking = set_socket_nonblocking(clientfd);
 
     if (non_blocking == -1){
-        fprintf(stderr, "max clients reached, dropping connection\n");
         close(clientfd);
         return SOCKET_ERR;
     }
@@ -173,22 +165,16 @@ int server_broadcast(server_t *server, const char *line, size_t len){
     return delivered;
 }
 
-
 void server_close(server_t *server){
     if (server == NULL) return;
-
     if (server->listen_fd >= 0){
         close(server->listen_fd);
         server->listen_fd = -1;
     }
-    for (int i = (int)server->client_count - 1; i>=0; i--){
-        if (server->client_fds[i] >= 0){
-            close(server->client_fds[i]);
-            remove_client(server, i);
-        }
+
+    for (size_t i = 0; i < server->client_count; i++){
+        close(server->client_fds[i]);
     }
+    server->client_count = 0;
     unlink(server->socket_path);
-    if (server->client_count > 0){
-        fprintf(stderr, "active sockets remain: %zu\n", server->client_count);
-    }
 }

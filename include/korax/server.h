@@ -8,6 +8,7 @@
 #define BUFFER_SPACE 100
 #define SOCKET_ERR -1
 #define KX_DEFAULT_SOURCE_PATH "frames.txt"
+#define ACTIVE_SOCKETS_REMAIN -1
 
 typedef struct {
     int    listen_fd;                 /* listening socket, -1 if not open   */
