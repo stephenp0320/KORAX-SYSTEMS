@@ -108,14 +108,14 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 cfg->grace_seconds = (int)res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
-                long res = strtod(value, &endptr);
+                double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 cfg->max_speed_kmh = (int)res;
 
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
-                cfg->log_level = (int)res;
+                cfg->log_level = res;
 
             } else {
                 log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);
