@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include "daemon/log.h"
 #define CONFIG_ERR -1
 #define CONFIG_OK 0
 
@@ -36,7 +37,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
         if (errno == ENOENT) {
             return CONFIG_OK;
         }
-        fprintf(stderr, "Failed to open config file '%s': %s\n", path, strerror(errno));
+        log_msg(LOG_ERROR, "failed to open config file '%s': %s", path, strerror(errno));
         return CONFIG_ERR;
     }
 
@@ -63,7 +64,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             section[current_size] = '\0';
 
             if (*p != ']') {
-                fprintf(stderr, "Syntax error line %d: Malformed section header\n", line_counter);
+                log_msg(LOG_ERROR, "syntax error line %d: Malformed section header", line_counter);
                 fclose(fp);
                 return CONFIG_ERR;
             }
@@ -103,12 +104,12 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
                 cfg->log_level = atoi(value);
             } else {
-                fprintf(stderr, "Error line %d: Unknown key '%s' in section '[%s]'\n", line_counter, key, section);
+                log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);
                 fclose(fp);
                 return CONFIG_ERR;
             }
         } else {
-            fprintf(stderr, "Syntax error line %d: Invalid line format\n", line_counter);
+            log_msg(LOG_ERROR, "Syntax error line %d: Invalid line format", line_counter);
             fclose(fp);
             return CONFIG_ERR;
         }
