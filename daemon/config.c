@@ -10,9 +10,7 @@
 #define CONFIG_OK 0
 
 int config_defaults(korax_config_t *cfg) {
-    if (cfg == NULL) {
-        return CONFIG_ERR;
-    }
+    if (cfg == NULL) return CONFIG_ERR;
 
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
@@ -21,23 +19,17 @@ int config_defaults(korax_config_t *cfg) {
     cfg->max_speed_kmh = KX_DEFAULT_MAX_SPEED;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
 
-    if (cfg->expiry_seconds <= 0) {
-        return CONFIG_ERR;
-    }
+    if (cfg->expiry_seconds <= 0) return CONFIG_ERR;
     return CONFIG_OK;
 }
 
 int config_load_file(korax_config_t *cfg, const char *path) {
-    if (cfg == NULL || path == NULL) {
-        return CONFIG_ERR;
-    }
+    if (cfg == NULL || path == NULL) return CONFIG_ERR;
 
     FILE *fp = fopen(path, "r");
     if (fp == NULL) {
-        if (errno == ENOENT) {
-            return CONFIG_OK;
-        }
-        log_msg(LOG_ERROR, "failed to open config file '%s': %s", path, strerror(errno));
+        if (errno == ENOENT) return CONFIG_OK;
+        log_msg(LOG_ERROR, "Failed to open the configuration file '%s': %s", path, strerror(errno));
         return CONFIG_ERR;
     }
 
@@ -47,7 +39,6 @@ int config_load_file(korax_config_t *cfg, const char *path) {
 
     while (fgets(line, sizeof(line), fp) != NULL) {
         line_counter++;
-
         char *p = line;
         while (*p == ' ' || *p == '\t') p++;
 
@@ -64,7 +55,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             section[current_size] = '\0';
 
             if (*p != ']') {
-                log_msg(LOG_ERROR, "syntax error line %d: Malformed section header", line_counter);
+                log_msg(LOG_ERROR, "syntax error on line %d: Malformed section header", line_counter);
                 fclose(fp);
                 return CONFIG_ERR;
             }

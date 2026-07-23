@@ -44,12 +44,13 @@ int log_decode_failure(time_t now){
      g_decode_fail_count++;
 
     if (now - g_decode_fail_since >= DECODE_REPORT_INTERVAL){
-        log_msg(LOG_WARN, "%u decode failures in the last %lds",
-                g_decode_fail_count, (long)(now - g_decode_fail_since));
+        log_msg(LOG_WARN, "%u decode failures in the last %lds", g_decode_fail_count, (long)(now - g_decode_fail_since));
         g_decode_fail_count = 0;
         return 1;
     }
     return 0;
 }
 
-int log_enabled(log_level_t level){ return level <= g_log_level; }
+int log_enabled(log_level_t level){
+    return level <= g_log_level;
+}

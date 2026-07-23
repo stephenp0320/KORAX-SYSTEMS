@@ -59,52 +59,46 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
 }
 
 static void on_track_expired(const track_t *track, void *user_data){
-    if (track == NULL || user_data == NULL)
-        return;
+    if (track == NULL || user_data == NULL) return;
     koraxd_t *daemon = (koraxd_t *)user_data;
     char line[640];
-    int len = snprintf(line, sizeof line,
-                       "{\"event\":\"track_expired\",\"uas_id\":\"%s\"}\n",
-                       track->uas_id);
-    if (len < 0 || (size_t)len >= sizeof line)
-        return;
+    int len = snprintf(line, sizeof line, "{\"event\":\"track_expired\",\"uas_id\":\"%s\"}\n", track->uas_id);
+    if (len < 0 || (size_t)len >= sizeof line) return;
     server_broadcast(&daemon->server, line, (size_t)len);
 }
 
 /* Serialise one track and broadcast it as a track_update. */
 static void broadcast_track_update(koraxd_t *daemon, int idx){
-    if (idx < 0 || idx >= daemon->table.num_tracks)
-        return;
+    if (idx < 0 || idx >= daemon->table.num_tracks) return;
     char jbuf[512], line[640];
-    if (track_to_json(&daemon->table.tracks[idx], jbuf, sizeof jbuf) < 0)
-        return;
-    int len = snprintf(line, sizeof line,
-                       "{\"event\":\"track_update\",\"track\":%s}\n", jbuf);
-    if (len > 0 && (size_t)len < sizeof line)
+    if (track_to_json(&daemon->table.tracks[idx], jbuf, sizeof jbuf) < 0) return;
+    int len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", jbuf);
+    if (len > 0 && (size_t)len < sizeof line){
         server_broadcast(&daemon->server, line, (size_t)len);
+    }
 }
 
 static void handle_source_frame(koraxd_t *daemon){
     char linebuf[512];
     if (fgets(linebuf, sizeof linebuf, daemon->source) == NULL){
-        rewind(daemon->source);          /* EOF: loop the file for a continuous demo feed */
+        rewind(daemon->source);
         return;
     }
     char *p = linebuf;
     while (*p == ' ' || *p == '\t') p++;
-    if (*p == '#' || *p == '\n' || *p == '\r' || *p == '\0')
-        return;                          /* comment / blank */
-
+    if (*p == '#' || *p == '\n' || *p == '\r' || *p == '\0'){
+        return;
+    }
     uint8_t buf[256];
     int count = hexline_to_bytes(p, buf, sizeof buf);
-    if (count <= 0)
-        return;
+    if (count <= 0) return;
 
     uint8_t type = (buf[0] >> 4) & 0x0F;
     if (type == MESSAGETYPE_PACKED){
         decode_message_pack(buf, count, &daemon->table, &daemon->thresholds);
-        for (int i = 0; i < daemon->table.num_tracks; i++)
+        for (int i = 0; i < daemon->table.num_tracks; i++){
             broadcast_track_update(daemon, i);
+        }
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
@@ -139,18 +133,19 @@ static void run_event_loop(koraxd_t *daemon){
             track_table_expire(&daemon->table, now, daemon->expiry_seconds, on_track_expired, daemon);
             daemon->last_sweep = now;
         }
-        if (ready == 0)
-            continue;
+        if (ready == 0) continue;
 
-        if (fds[0].revents & POLLIN)
+        if (fds[0].revents & POLLIN){
             server_accept(&daemon->server, &daemon->table);
-
-        if (fds[1].revents & POLLIN)
+        }
+        if (fds[1].revents & POLLIN){
             handle_source_frame(daemon);
+        }
 
         for (int i = n - 1; i >= 2; i--){
-            if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL))
+            if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL)){
                 server_drop_client(&daemon->server, (size_t)(i - 2));
+            }
         }
     }
 }
@@ -182,11 +177,15 @@ int main(int argc, char **argv){
     koraxd_t daemon;
     daemon.thresholds.grace_seconds = cfg.grace_seconds;
     daemon.thresholds.max_speed_kmh = cfg.max_speed_kmh;
+
     memset(&daemon, 0, sizeof daemon);
+
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
+
     track_table_init(&daemon.table);
+
     if (server_init(&daemon.server, cfg.socket_path) != 0){
         log_msg(LOG_ERROR, "server_init failed on %s", cfg.socket_path);
         return 1;
