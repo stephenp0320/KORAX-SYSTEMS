@@ -101,7 +101,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
-                cfg->max_speed_kmh = (int)res;
+                cfg->max_speed_kmh = res;
 
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
                 long res = strtol(value, &endptr, 10);
