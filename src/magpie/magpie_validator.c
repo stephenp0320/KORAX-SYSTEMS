@@ -1,6 +1,50 @@
 #include <stddef.h>
 #include "korax/magpie_validator.h"
 
+static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
+    switch (rule){
+        case KX_RULE_MISSING_REQUIRED_MSG:
+            *sev=KX_SEVERITY_ERROR; *field="track";
+            *reg="EU 2019/945";
+            *detail="a required message type is missing";
+            break;
+        case KX_RULE_NO_LOCATION_IN_GRACE:
+            *sev=KX_SEVERITY_ERROR; *field="location";
+            *reg="EN 4709-002 DRI";
+            *detail="no location update within the grace window";
+            break;
+        case KX_RULE_FIELD_OUT_OF_RANGE:
+            *sev=KX_SEVERITY_ERROR; *field="location";
+            *reg="ASTM F3411";
+            *detail="a field value is outside its spec range";
+            break;
+        case KX_RULE_RESERVED_BITS_SET:
+            *sev=KX_SEVERITY_WARN;  *field="reserved";
+            *reg="ASTM F3411";
+            *detail="reserved bits observed set";
+            break;
+        case KX_RULE_IMPLAUSIBLE_JUMP:
+            *sev=KX_SEVERITY_WARN;  *field="location";
+            *reg="plausibility";
+            *detail="position jump exceeds max speed";
+            break;
+        default:
+            *sev=KX_SEVERITY_INFO;
+            *field="";
+            *reg="";
+            *detail="";
+            break;
+    }
+}
+
+static const kx_rule_t all[] = {
+        KX_RULE_MISSING_REQUIRED_MSG,
+        KX_RULE_NO_LOCATION_IN_GRACE,
+        KX_RULE_RESERVED_BITS_SET,
+        KX_RULE_FIELD_OUT_OF_RANGE,
+        KX_RULE_IMPLAUSIBLE_JUMP,
+};
+
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
     if (location == NULL) {
@@ -124,4 +168,29 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
         }
     }
     return flags;
+}
+
+kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, kx_rule_t rule){
+    kx_verdict_t verdict = {
+        .flags = KX_RULE_NONE,
+        .compliant = true,
+        .ruleset_version = KX_RULESET_VERSION,
+        .finding_count = 0
+    };
+    if (track == NULL) return verdict;
+
+    verdict.flags = magpie_validate(track, msg, now, th);
+    verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
+
+    size_t i;
+    for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
+        // bitwise check using &
+        if (verdict.flags & all[i]){
+            kx_finding_t f = verdict.findings[verdict.finding_count++];
+            f.rule = rule;
+            rule_meta(rule, &f.severity, &f.field, &f.reg_ref, &f.detail);
+        }
+    }
+    verdict.compliant = (verdict.flags & KX_RULE_ERROR_MASK) == 0;
+    return verdict;
 }

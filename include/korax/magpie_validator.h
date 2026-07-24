@@ -21,7 +21,8 @@
 #define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH })
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 #define MAX_DETAILS 256
-#define KX_MAX_FINDINGS 256
+#define KX_MAX_FINDINGS 8
+#define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW 16
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
@@ -57,7 +58,7 @@ typedef struct {
     kx_severity_t severity;
     const char *field;
     const char *reg_ref;
-    char details[MAX_DETAILS];
+    const char *detail;
 } kx_finding_t;
 
 typedef struct {
