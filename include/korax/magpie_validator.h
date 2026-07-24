@@ -19,9 +19,12 @@
 /* Tunables (make configurable later — KAN-47). */
 #define KX_LOCATION_GRACE_SECONDS 5
 #define MAX_SPEED_KMH             150.0
+#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH })
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
-
+#define MAX_DETAILS 256
+#define KX_MAX_FINDINGS 256
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
+
 typedef enum {
     KX_SEVERITY_INFO = 0,
     KX_SEVERITY_WARN,
@@ -43,13 +46,27 @@ typedef enum {
     KX_RULE_IMPLAUSIBLE_JUMP     = 1u << 4, /* position/speed jump (uses previous fix) */
 } kx_rule_t;
 
-#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH })
-
 /* A single check's outcome: which rules tripped (bitmask) + the worst severity. */
 typedef struct {
     uint32_t      rule;
     kx_severity_t severity;
 } kx_result_t;
+
+typedef struct {
+    kx_rule_t rule;
+    kx_severity_t severity;
+    const char *field;
+    const char *reg_ref;
+    char details[MAX_DETAILS];
+} kx_finding_t;
+
+typedef struct {
+    uint32_t flags;
+    bool compliant;
+    uint16_t ruleset_version;
+    u_int8_t finding_count;
+    kx_finding_t findings[KX_MAX_FINDINGS];
+} kx_verdict_t;
 
 /* Per-aspect checks (pure). */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);
@@ -65,5 +82,8 @@ kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time_t now, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
+
+//TODO
+//kx_verdict_t magpie_evaluate(const track_t *t, magpie_ctx_t *ctx, time_t now, const magpie_profile_t *profile)
 #endif
 

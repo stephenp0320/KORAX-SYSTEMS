@@ -104,6 +104,7 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     return r;
 }
 
+// return type of uint32_t is limiting, adding verification structs instead
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
