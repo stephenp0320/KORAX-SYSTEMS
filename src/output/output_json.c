@@ -74,7 +74,7 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     if (write_json < 0){
         return -1;
     }
-    if (write_json > (int)len){
+    if (write_json >= (int)len){
         return -2;
     }
     return write_json;
