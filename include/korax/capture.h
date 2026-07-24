@@ -10,6 +10,8 @@
 #define BLE_AD_TYPE_SERVICE_DATA_16BIT 0x16
 #define WIFI_MAX_PACKET_SIZE 2048
 #define WIFI_ERR 1
+#define ODID_SERVICE_UUID 0xFFFA
+#define ODID_APP_CODE 0x0D
 
 typedef struct ble_adv_frame_t {
 	uint8_t adv_data[BLE_ADV_MAX_SIZE];

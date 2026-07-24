@@ -23,6 +23,14 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
             if (payload_start + RID_MSG_SIZE > ble_frame->adv_len) {
                 return BLE_ADV_ERR;
             }
+
+            uint16_t uuid = ble_frame->adv_data[pos + 2] | (ble_frame->adv_data[pos + 3] << 8);
+            uint8_t app_code = ble_frame->adv_data[pos + 4];
+            if (uuid != ODID_SERVICE_UUID || app_code != ODID_APP_CODE) {
+                pos += len + 1;
+                continue;
+            }
+
             memcpy(rid_msg, &ble_frame->adv_data[payload_start], RID_MSG_SIZE);
             return 0;
         }
