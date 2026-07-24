@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include "korax/magpie_validator.h"
+#include "korax/output_json.h"
 
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
     switch (rule){
@@ -192,5 +193,8 @@ kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_
         }
     }
     verdict.compliant = (verdict.flags & KX_RULE_ERROR_MASK) == 0;
+    char buffer[KX_MAX_FINDINGS + 1];
+    verdict_to_json(&verdict, buffer, sizeof(buffer));
     return verdict;
 }
+

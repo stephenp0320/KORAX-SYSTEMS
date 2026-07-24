@@ -4,6 +4,7 @@
 #include "korax/raven_decode.h"
 #include "korax/rook_track.h"
 #include "korax/output_json.h"
+#include "korax/magpie_validator.h"
 
 static void json_escape(const char *src, char *dst, size_t dstlen){
     size_t j = 0;
@@ -77,5 +78,28 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     if (write_json >= (int)len){
         return -2;
     }
+    return write_json;
+}
+
+int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
+    if (verdict == NULL || buffer == NULL || len == 0) return -1;
+
+    int write_json = snprintf(buffer, len,
+          "{"
+              "\"validation\":{"
+                  "\"compliant\":%s,"
+                  "\"ruleset_version\":%u,"
+                  "\"flags\":%u,"
+                  "\"findings\":%s"
+              "}"
+          "}",
+        verdict->compliant ? "true" : "false",
+        (unsigned)verdict->ruleset_version,
+        (unsigned)verdict->flags, buffer);
+
+    if (write_json < 0) return -1;
+
+    if (write_json >= (int)len) return -2;
+
     return write_json;
 }
