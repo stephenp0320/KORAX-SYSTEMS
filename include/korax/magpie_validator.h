@@ -10,7 +10,6 @@
  */
 #ifndef KORAX_MAGPIE_VALIDATOR_H
 #define KORAX_MAGPIE_VALIDATOR_H
-
 #include <stdint.h>
 #include <time.h>
 #include "korax/raven_decode.h"
@@ -23,6 +22,7 @@
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 #define MAX_DETAILS 256
 #define KX_MAX_FINDINGS 256
+#define KX_RATE_WINDOW 16
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
 typedef enum {
@@ -67,6 +67,14 @@ typedef struct {
     u_int8_t finding_count;
     kx_finding_t findings[KX_MAX_FINDINGS];
 } kx_verdict_t;
+
+typedef struct {
+    uint64_t arrival_ms[KX_RATE_WINDOW];
+    uint8_t head;
+    uint8_t last_msg_counter;
+    bool have_counter;
+    int8_t last_rssi_dbm;
+} magpie_track_state_t;
 
 /* Per-aspect checks (pure). */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);

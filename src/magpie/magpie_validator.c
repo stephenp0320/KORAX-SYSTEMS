@@ -109,6 +109,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
     flags |= magpie_validate_jump(track, th).rule;
+    flags |= magpie_validate_reserved_bitsets(track).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
