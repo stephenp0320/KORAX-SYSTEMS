@@ -175,11 +175,9 @@ int main(int argc, char **argv){
     }
 
     koraxd_t daemon;
+    memset(&daemon, 0, sizeof daemon);
     daemon.thresholds.grace_seconds = cfg.grace_seconds;
     daemon.thresholds.max_speed_kmh = cfg.max_speed_kmh;
-
-    memset(&daemon, 0, sizeof daemon);
-
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
