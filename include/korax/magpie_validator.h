@@ -65,7 +65,7 @@ typedef struct {
     uint32_t flags;
     bool compliant;
     uint16_t ruleset_version;
-    u_int8_t finding_count;
+    uint8_t finding_count;
     kx_finding_t findings[KX_MAX_FINDINGS];
 } kx_verdict_t;
 

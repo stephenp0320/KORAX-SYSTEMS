@@ -186,9 +186,9 @@ kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
         // bitwise check using &
         if (verdict.flags & all[i]){
-            kx_finding_t f = verdict.findings[verdict.finding_count++];
-            f.rule = rule;
-            rule_meta(rule, &f.severity, &f.field, &f.reg_ref, &f.detail);
+            kx_finding_t *f = &verdict.findings[verdict.finding_count++];
+            f->rule = all[i];
+            rule_meta(rule, &f->severity, &f->field, &f->reg_ref, &f->detail);
         }
     }
     verdict.compliant = (verdict.flags & KX_RULE_ERROR_MASK) == 0;
