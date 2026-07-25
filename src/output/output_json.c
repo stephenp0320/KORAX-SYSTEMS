@@ -83,7 +83,7 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
 
 int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
-    char temp[KX_MAX_FINDINGS];
+    char temp[MAX_DETAILS];
 
     int write_json = snprintf(temp, sizeof(temp),
           "{"
