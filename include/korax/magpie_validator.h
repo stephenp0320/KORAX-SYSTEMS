@@ -54,7 +54,7 @@ kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time_t now, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
-kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_t now, const magpie_thresholds_t *th);
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th);
 //TODO
 //kx_verdict_t magpie_evaluate(const track_t *t, magpie_ctx_t *ctx, time_t now, const magpie_profile_t *profile)
 #endif

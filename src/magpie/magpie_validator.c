@@ -171,7 +171,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     return flags;
 }
 
-kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
