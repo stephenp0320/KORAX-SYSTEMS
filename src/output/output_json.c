@@ -85,11 +85,11 @@ static const char *rule_name(kx_rule_t r){
     switch(r){
         case KX_RULE_MISSING_REQUIRED_MSG:
             return "missing_required_msg";
-        case KX_RULE_NO_LOCATION_IN_GRACE;
+        case KX_RULE_NO_LOCATION_IN_GRACE:
             return "no_location_in_grace";
         case KX_RULE_RESERVED_BITS_SET:
             return "reserved_bits_set";
-        case KX_RULE_FIELD_OUT_OF_RANGE;
+        case KX_RULE_FIELD_OUT_OF_RANGE:
             return "field_out_of_range";
         case KX_RULE_IMPLAUSIBLE_JUMP:
             return "implausible_jump";
