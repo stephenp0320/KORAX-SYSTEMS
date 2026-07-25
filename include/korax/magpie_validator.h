@@ -14,6 +14,7 @@
 #include <time.h>
 #include "korax/raven_decode.h"
 #include "korax/rook_track.h"
+#include "korax/magpie_types.h"
 
 /* Tunables (make configurable later — KAN-47). */
 #define KX_LOCATION_GRACE_SECONDS 5
@@ -26,48 +27,10 @@
 #define KX_RATE_WINDOW 16
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
-typedef enum {
-    KX_SEVERITY_INFO = 0,
-    KX_SEVERITY_WARN,
-    KX_SEVERITY_ERROR,
-} kx_severity_t;
-
 typedef struct magpie_thresholds {
     int    grace_seconds;
     double max_speed_kmh;
 } magpie_thresholds_t;
-
-/* Stable validator rule identifiers, as bit flags so they OR into a mask. */
-typedef enum {
-    KX_RULE_NONE                 = 0,
-    KX_RULE_MISSING_REQUIRED_MSG = 1u << 0, /* a required message type is absent      */
-    KX_RULE_NO_LOCATION_IN_GRACE = 1u << 1, /* no Location within the grace window     */
-    KX_RULE_RESERVED_BITS_SET    = 1u << 2, /* reserved fields set                     */
-    KX_RULE_FIELD_OUT_OF_RANGE   = 1u << 3, /* value outside its spec-defined range    */
-    KX_RULE_IMPLAUSIBLE_JUMP     = 1u << 4, /* position/speed jump (uses previous fix) */
-} kx_rule_t;
-
-/* A single check's outcome: which rules tripped (bitmask) + the worst severity. */
-typedef struct {
-    uint32_t      rule;
-    kx_severity_t severity;
-} kx_result_t;
-
-typedef struct {
-    kx_rule_t rule;
-    kx_severity_t severity;
-    const char *field;
-    const char *reg_ref;
-    const char *detail;
-} kx_finding_t;
-
-typedef struct {
-    uint32_t flags;
-    bool compliant;
-    uint16_t ruleset_version;
-    uint8_t finding_count;
-    kx_finding_t findings[KX_MAX_FINDINGS];
-} kx_verdict_t;
 
 typedef struct {
     uint64_t arrival_ms[KX_RATE_WINDOW];

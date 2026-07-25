@@ -3,11 +3,13 @@
 #include <time.h>
 #include "korax/raven_decode.h"
 #include <stdbool.h>
+#include "korax/magpie_types.h"
 #define MAX_TRACKS 100
 #define TRACK_OK 0
 #define TRACK_ERR -1
 #define TRACK_NOT_FOUND -2
 #define TRACK_TABLE_FULL -3
+
 struct magpie_thresholds;
 typedef struct {
     char uas_id[21];
@@ -38,7 +40,8 @@ typedef struct {
     uint32_t flags;
     bool is_compliant;
     int reserved_bits_seen;
-
+    uint8_t finding_count;
+    kx_finding_t findings[KX_MAX_FINDINGS];
 } track_t;
 
 typedef struct {
