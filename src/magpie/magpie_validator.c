@@ -171,7 +171,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     return flags;
 }
 
-kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, kx_rule_t rule){
+kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
@@ -189,12 +189,10 @@ kx_verdict_t magpie_evaluate(const track_t *track, decoded_message_t *msg, time_
         if (verdict.flags & all[i]){
             kx_finding_t *f = &verdict.findings[verdict.finding_count++];
             f->rule = all[i];
-            rule_meta(rule, &f->severity, &f->field, &f->reg_ref, &f->detail);
+            rule_meta(all[i], &f->severity, &f->field, &f->reg_ref, &f->detail);
         }
     }
     verdict.compliant = (verdict.flags & KX_RULE_ERROR_MASK) == 0;
-    char buffer[KX_MAX_FINDINGS + 1];
-    verdict_to_json(&verdict, buffer, sizeof(buffer));
     return verdict;
 }
 

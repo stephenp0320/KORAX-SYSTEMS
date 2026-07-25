@@ -81,9 +81,63 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     return write_json;
 }
 
+static const char *rule_name(kx_rule_t r){
+    switch(r){
+        case KX_RULE_MISSING_REQUIRED_MSG:
+            return "missing_required_msg";
+        case KX_RULE_NO_LOCATION_IN_GRACE;
+            return "no_location_in_grace";
+        case KX_RULE_RESERVED_BITS_SET:
+            return "reserved_bits_set";
+        case KX_RULE_FIELD_OUT_OF_RANGE;
+            return "field_out_of_range";
+        case KX_RULE_IMPLAUSIBLE_JUMP:
+            return "implausible_jump";
+        default:
+            return "unknown";
+    }
+}
+
+static const char *sev_name(kx_severity_t s){
+    switch(s){
+        case KX_SEVERITY_ERROR:
+            return "error";
+        case KX_SEVERITY_WARN:
+            return "warn";
+        default:
+            return "info";
+    }
+}
+
+static int findings_to_json(const kx_verdict_t *v, char *buf, size_t len){
+    int n = snprintf(buf, len, "[");
+    if (n < 0 || (size_t)n >= len) return -1;
+
+    for (uint8_t i = 0; i < v->finding_count; i++){
+        const kx_finding_t *f = &v->findings[i];
+
+        int m = snprintf(buf+n, len-n,
+            "%s{\"rule\":\"%s\",\"severity\":\"%s\",\"field\":\"%s\",\"reg\":\"%s\",\"detail\":\"%s\"}",
+            i?",":"",
+            rule_name(f->rule),
+            sev_name(f->severity),
+            f->field,
+            f->reg_ref,
+            f->detail);
+
+        if (m < 0 || (size_t)(n+m) >= len) return -1;
+        n += m;
+    }
+    int m = snprintf(buf+n, len-n, "]");
+    if (m < 0 || (size_t)(n+m) >= len) return -1;
+    return n+m;
+}
+
 int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
     char temp[MAX_DETAILS];
+    char fbuf[512];
+    if (findings_to_json(verdict, fbuf, sizeof fbuf) < 0) return -1;
 
     int write_json = snprintf(temp, sizeof(temp),
           "{"
@@ -96,7 +150,7 @@ int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
           "}",
         verdict->compliant ? "true" : "false",
         (unsigned)verdict->ruleset_version,
-        (unsigned)verdict->flags, buffer);
+        (unsigned)verdict->flags, fbuf);
 
     if (write_json < 0 || (size_t)write_json >= sizeof(temp)) return -1;
     if ((size_t)write_json >= len) return -2;
