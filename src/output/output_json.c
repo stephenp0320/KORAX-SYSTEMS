@@ -135,7 +135,7 @@ static int findings_to_json(const kx_verdict_t *v, char *buf, size_t len){
 
 int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
-    char temp[MAX_DETAILS];
+    char temp[KX_MAX_DETAILS];
     char fbuf[512];
     if (findings_to_json(verdict, fbuf, sizeof fbuf) < 0) return -1;
 

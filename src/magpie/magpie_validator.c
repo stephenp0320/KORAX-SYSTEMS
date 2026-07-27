@@ -1,32 +1,31 @@
 #include <stddef.h>
 #include "korax/magpie_validator.h"
-#include "korax/output_json.h"
 
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
     switch (rule){
         case KX_RULE_MISSING_REQUIRED_MSG:
-            *sev=KX_SEVERITY_ERROR; *field="track";
-            *reg="EU 2019/945";
+            *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_TRACK;
+            *reg=KX_REG_EU_945;
             *detail="a required message type is missing";
             break;
         case KX_RULE_NO_LOCATION_IN_GRACE:
-            *sev=KX_SEVERITY_ERROR; *field="location";
-            *reg="EN 4709-002 DRI";
+            *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_LOCATION;
+            *reg=KX_REG_EN_4709;
             *detail="no location update within the grace window";
             break;
         case KX_RULE_FIELD_OUT_OF_RANGE:
-            *sev=KX_SEVERITY_ERROR; *field="location";
-            *reg="ASTM F3411";
+            *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_LOCATION;
+            *reg=KX_REG_F3411;
             *detail="a field value is outside its spec range";
             break;
         case KX_RULE_RESERVED_BITS_SET:
-            *sev=KX_SEVERITY_WARN;  *field="reserved";
-            *reg="ASTM F3411";
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_RESERVED;
+            *reg=KX_REG_F3411;
             *detail="reserved bits observed set";
             break;
         case KX_RULE_IMPLAUSIBLE_JUMP:
-            *sev=KX_SEVERITY_WARN;  *field="location";
-            *reg="plausibility";
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
             *detail="position jump exceeds max speed";
             break;
         default:

@@ -4,6 +4,15 @@
 #include <stdbool.h>
 
 #define KX_MAX_FINDINGS    8
+#define KX_DETAIL_MAX 128
+#define KX_FIELD_TRACK     "track"
+#define KX_FIELD_LOCATION  "location"
+#define KX_FIELD_RESERVED  "reserved"
+#define KX_PLAUSABILITY    "plausability"
+#define KX_FIELD_UAS_ID    "basic_id.uas_id"
+#define KX_REG_EU_945      "EU 2019/945"
+#define KX_REG_EN_4709     "EN 4709-002 DRI"
+#define KX_REG_F3411       "ASTM F3411"
 #define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW     16
 
