@@ -13,6 +13,11 @@
 #define KX_REG_EU_945      "EU 2019/945"
 #define KX_REG_EN_4709     "EN 4709-002 DRI"
 #define KX_REG_F3411       "ASTM F3411"
+#define KX_REQ_MSG_TYPE_MISSING "a required message type is missing"
+#define KX_NO_LOC_UPDATE "no location update within the grace window"
+#define KX_FIELD_VAL_OUTSIDE_SPEC_RANGE "a field value is outside its specification range"
+#define KX_POS_JUMP_EXCEEDS_MAX_SPEED "position jump exceeds maximum speed"
+#define KX_RES_BITS_OBSERVED_SET "reserved bits observed set"
 #define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW     16
 

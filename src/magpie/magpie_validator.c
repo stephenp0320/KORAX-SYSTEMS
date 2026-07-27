@@ -6,27 +6,27 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
         case KX_RULE_MISSING_REQUIRED_MSG:
             *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_TRACK;
             *reg=KX_REG_EU_945;
-            *detail="a required message type is missing";
+            *detail=KX_REQ_MSG_TYPE_MISSING;
             break;
         case KX_RULE_NO_LOCATION_IN_GRACE:
             *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_LOCATION;
             *reg=KX_REG_EN_4709;
-            *detail="no location update within the grace window";
+            *detail=KX_NO_LOC_UPDATE;
             break;
         case KX_RULE_FIELD_OUT_OF_RANGE:
             *sev=KX_SEVERITY_ERROR; *field=KX_FIELD_LOCATION;
             *reg=KX_REG_F3411;
-            *detail="a field value is outside its spec range";
+            *detail=KX_FIELD_VAL_OUTSIDE_SPEC_RANGE;
             break;
         case KX_RULE_RESERVED_BITS_SET:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_RESERVED;
             *reg=KX_REG_F3411;
-            *detail="reserved bits observed set";
+            *detail=KX_RES_BITS_OBSERVED_SET;
             break;
         case KX_RULE_IMPLAUSIBLE_JUMP:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
-            *detail="position jump exceeds max speed";
+            *detail=KX_POS_JUMP_EXCEEDS_MAX_SPEED;
             break;
         default:
             *sev=KX_SEVERITY_INFO;
