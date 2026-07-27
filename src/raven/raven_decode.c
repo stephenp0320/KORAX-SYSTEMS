@@ -10,44 +10,31 @@
 #define PACK_HEADER_SIZE 3
 
 int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table, const magpie_thresholds_t *th){
-    if (packet == NULL || track_table == NULL){
-        return DECODE_ERR_NULL;
-    }
+    if (packet == NULL || track_table == NULL || th == NULL) return DECODE_ERR_NULL;
+    if (packet_len < PACK_HEADER_SIZE) return DECODE_ERR_TOO_SHORT;
 
-    if (packet_len < PACK_HEADER_SIZE){
-        return DECODE_ERR_TOO_SHORT;
-    }
     uint8_t msg_type = (packet[0] >> 4) & 0x0F;
-    if (msg_type != MESSAGETYPE_PACKED){
-        return DECODE_ERR_BAD_TYPE;
-    }
+    if (msg_type != MESSAGETYPE_PACKED) return DECODE_ERR_BAD_TYPE;
+
     uint8_t single_msg_size =packet[1];
     uint8_t msg_count = packet[2];
-    if (single_msg_size != RID_MESSAGE_SIZE){
-        return DECODE_ERR_RANGE;
-    }
-    if (msg_count == 0 || msg_count > ODID_PACK_MAX_MESSAGES) {
-        return DECODE_ERR_RANGE;
-    }
+
+    if (single_msg_size != RID_MESSAGE_SIZE) return DECODE_ERR_RANGE;
+    if (msg_count == 0 || msg_count > ODID_PACK_MAX_MESSAGES) return DECODE_ERR_RANGE;
 
     int expected_len = PACK_HEADER_SIZE + (msg_count * RID_MESSAGE_SIZE);
-    if (packet_len < expected_len){
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet_len < expected_len) return DECODE_ERR_TOO_SHORT;
 
-    for (int i = 0; i < msg_count; i++){
+    int i = 0;
+    for (; i < msg_count; i++){
         const uint8_t *msg_start = packet + PACK_HEADER_SIZE + (i * RID_MESSAGE_SIZE);
         decoded_message_t msg;
 
         int decode_msg_result = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
-        if (decode_msg_result != 0){
-            return decode_msg_result;
-        }
+        if (decode_msg_result != 0) return decode_msg_result;
 
         int processed_decoded_msg = process_decoded_message(track_table, &msg, th);
-        if (processed_decoded_msg < 0) {
-            return processed_decoded_msg;
-        }
+        if (processed_decoded_msg < 0) return processed_decoded_msg;
     }
     return 0;
 }

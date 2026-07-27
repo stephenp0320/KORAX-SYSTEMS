@@ -9,9 +9,7 @@
 #define MIN_LOCATION_MESSAGES_FOR_JUMP_CHECK 2
 
 void track_table_init(track_table_t *table){
-    if (table == NULL){
-        return;
-    }
+    if (table == NULL) return;
     memset(table, 0, sizeof(track_table_t));
 }
 
@@ -50,9 +48,8 @@ int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
 }
 
 int find_track(track_table_t *tracks, const char *uas_id){
-    if (tracks == NULL || uas_id == NULL){
-        return TRACK_NOT_FOUND;
-    }
+    if (tracks == NULL || uas_id == NULL) return TRACK_NOT_FOUND;
+
     int curr_track;
     for (curr_track = 0; curr_track < tracks->num_tracks; curr_track++){
         if (strcmp(tracks->tracks[curr_track].uas_id, uas_id) == 0){
@@ -63,19 +60,18 @@ int find_track(track_table_t *tracks, const char *uas_id){
 }
 
 int track_table_create(track_table_t *table, const char *uas_id){
-    if (table == NULL || uas_id == NULL){
-        return TRACK_ERR;
-    }
-    if (table->num_tracks >= MAX_TRACKS){
-        return TRACK_TABLE_FULL;
-    }
+    if (table == NULL || uas_id == NULL) return TRACK_ERR;
+    if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+
     int track_num = table->num_tracks;
     memset(&table->tracks[track_num], 0, sizeof(track_t));
     strncpy(table->tracks[track_num].uas_id, uas_id, 20);
+
     table->tracks[track_num].uas_id[20] = '\0';
     table->tracks[track_num].first_seen = time(NULL);
     table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
     table->num_tracks++;
+
     return track_num;
 }
 
@@ -94,9 +90,8 @@ double jump_detection(const track_t *table){
 }
 
 int track_table_update(track_t *drone_track, const decoded_message_t *msg){
-    if (drone_track == NULL || msg == NULL){
-        return TRACK_ERR;
-    }
+    if (drone_track == NULL || msg == NULL) return TRACK_ERR;
+
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
             drone_track->basic_id = msg->data.basic_id;
