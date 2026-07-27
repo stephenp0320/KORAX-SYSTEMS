@@ -692,6 +692,66 @@ static void test_find_by_mac(void){
     ASSERT_EQ_INT(find_track_by_mac(&table, mac_none), TRACK_NOT_FOUND, "unknown mac -> NOT_FOUND");
 }
 
+/* Golden-verdict regression: fixed inputs + fixed ruleset version must yield
+ * byte-identical verdicts and serialisation. If any of these change, the
+ * on-the-wire validation contract has changed and the break is intentional. */
+static void test_golden_verdict(void){
+    /* 1. Fully compliant track -> empty verdict. */
+    track_t ok; memset(&ok, 0, sizeof ok);
+    ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
+    ok.last_location_seen = 5000; ok.msg_count_location = 1;
+    kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    ASSERT_EQ_INT(v_ok.flags, KX_RULE_NONE, "golden: compliant track -> flags 0");
+    ASSERT_TRUE(v_ok.compliant, "golden: compliant track -> compliant true");
+    ASSERT_EQ_INT(v_ok.finding_count, 0, "golden: compliant track -> no findings");
+    ASSERT_EQ_INT(v_ok.ruleset_version, KX_RULESET_VERSION, "golden: ruleset version stamped");
+
+    /* 2. Missing required messages -> exactly one ERROR finding. */
+    track_t miss; memset(&miss, 0, sizeof miss);
+    miss.has_basic_id = 1;   /* no location / system / operator */
+    kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    ASSERT_EQ_INT(v_miss.flags, KX_RULE_MISSING_REQUIRED_MSG, "golden: incomplete -> exactly MISSING_REQUIRED_MSG");
+    ASSERT_TRUE(!v_miss.compliant, "golden: incomplete -> not compliant");
+    ASSERT_EQ_INT(v_miss.finding_count, 1, "golden: incomplete -> one finding");
+    ASSERT_EQ_INT(v_miss.findings[0].rule, KX_RULE_MISSING_REQUIRED_MSG, "golden: finding rule id");
+    ASSERT_EQ_INT(v_miss.findings[0].severity, KX_SEVERITY_ERROR, "golden: finding severity ERROR");
+
+    /* 3. Reserved bits -> one WARN finding, still compliant. */
+    track_t res; memset(&res, 0, sizeof res);
+    res.has_basic_id = 1; res.has_location = 1; res.has_system = 1; res.has_operator_id = 1;
+    res.last_location_seen = 5000; res.msg_count_location = 1; res.reserved_bits_seen = 1;
+    kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    ASSERT_EQ_INT(v_res.flags, KX_RULE_RESERVED_BITS_SET, "golden: reserved -> exactly RESERVED_BITS_SET");
+    ASSERT_TRUE(v_res.compliant, "golden: reserved (WARN) -> still compliant");
+    ASSERT_EQ_INT(v_res.finding_count, 1, "golden: reserved -> one finding");
+    ASSERT_EQ_INT(v_res.findings[0].severity, KX_SEVERITY_WARN, "golden: reserved severity WARN");
+
+    /* 4. Determinism: same input + same ruleset -> identical verdict. */
+    kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    ASSERT_EQ_INT(again.flags, v_miss.flags, "golden: deterministic flags");
+    ASSERT_EQ_INT(again.finding_count, v_miss.finding_count, "golden: deterministic finding_count");
+    ASSERT_TRUE(again.compliant == v_miss.compliant, "golden: deterministic compliant");
+
+    /* 5. Golden serialisation: the validation block is byte-exact. */
+    track_t jt; memset(&jt, 0, sizeof jt);
+    jt.has_basic_id = 1;   /* incomplete -> MISSING_REQUIRED_MSG */
+    strcpy(jt.uas_id, "GOLDEN-0001");
+    kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    jt.flags = jv.flags; jt.is_compliant = jv.compliant;
+    jt.finding_count = jv.finding_count;
+    memcpy(jt.findings, jv.findings, sizeof jt.findings);
+
+    char buf[1024];
+    int n = track_to_json(&jt, buf, sizeof buf);
+    ASSERT_TRUE(n > 0, "golden: track serialises");
+    const char *golden =
+        "\"validation\":{\"compliant\":false,\"ruleset_version\":1,\"flags\":1,"
+        "\"findings\":[{\"rule\":\"missing_required_msg\",\"severity\":\"error\","
+        "\"field\":\"track\",\"reg\":\"EU 2019/945\","
+        "\"detail\":\"a required message type is missing\"}]}";
+    ASSERT_TRUE(strstr(buf, golden) != NULL, "golden: validation block byte-exact");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -723,12 +783,10 @@ int main(void){
     test_magpie_jump();
     test_magpie_validate_composed();
     test_magpie_config_thresholds();
+    test_golden_verdict();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }
     printf("\nSOME TESTS FAILED\n");
     return 1;
 }
-
-
-
