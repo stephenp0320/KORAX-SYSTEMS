@@ -8,7 +8,7 @@
 
 int process_rid_message(const uint8_t *rid_msg, int len, track_table_t *table);
 
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg, const magpie_thresholds_t *th);
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg, const magpie_thresholds_t *th, const ble_adv_frame_t *frame);
 
 int process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table);
 

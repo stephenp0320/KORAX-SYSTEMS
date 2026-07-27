@@ -33,7 +33,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
         int decode_msg_result = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
         if (decode_msg_result != 0) return decode_msg_result;
 
-        int processed_decoded_msg = process_decoded_message(track_table, &msg, th);
+        int processed_decoded_msg = process_decoded_message(track_table, &msg, th, NULL);
         if (processed_decoded_msg < 0) return processed_decoded_msg;
     }
     return 0;

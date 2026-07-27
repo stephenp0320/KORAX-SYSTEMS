@@ -5,25 +5,29 @@
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
 
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg,  const magpie_thresholds_t *th){
-	if (table == NULL || msg == NULL) return TRACK_ERR;
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg,  const magpie_thresholds_t *th, const ble_adv_frame_t *frame){
+    if (table == NULL || msg == NULL) return TRACK_ERR;
 
     int idx;
-	if (msg->type == MESSAGETYPE_BASIC_ID){
-        const char *uas_id = msg->data.basic_id.UASID;
-        idx = find_track(table, uas_id);
-		if (idx == TRACK_NOT_FOUND) {
-            idx = track_table_create(table, uas_id);
-            if (idx < 0){
-                return idx;
-            }
+    if (frame != NULL){
+        idx = find_track_by_mac(table, frame->source_mac);
+        if (idx == TRACK_NOT_FOUND){
+            if (msg->type != MESSAGETYPE_BASIC_ID) return TRACK_NOT_FOUND;
+            idx = track_table_create_by_source_mac(table, frame->source_mac);
+            if (idx < 0) return idx;
         }
     } else {
-		if (table->num_tracks == 0){
-			return TRACK_NOT_FOUND;
-		}
-        idx = 0;
-	}
+        if (msg->type == MESSAGETYPE_BASIC_ID){
+            idx = find_track(table, msg->data.basic_id.UASID);
+            if (idx == TRACK_NOT_FOUND){
+                idx = track_table_create(table, msg->data.basic_id.UASID);
+                if (idx < 0) return idx;
+            }
+        } else {
+            if (table->num_tracks == 0) return TRACK_NOT_FOUND;
+            idx = 0;
+        }
+    }
     track_t *track = &table->tracks[idx];
 
     int rc = track_table_update(track, msg);
@@ -46,7 +50,7 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
     if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0) return;
 	if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return;
 
-	int idx = process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
+	int idx = process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS, ble_frame);
     if (idx >= 0){
         table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
         table->tracks[idx].last_msg_counter = msg_counter;

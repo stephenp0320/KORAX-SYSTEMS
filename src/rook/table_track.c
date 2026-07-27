@@ -75,6 +75,21 @@ int track_table_create(track_table_t *table, const char *uas_id){
     return track_num;
 }
 
+int track_table_create_by_source_mac(track_table_t *table, const uint8_t *source_mac){
+    if (table == NULL || source_mac == NULL) return TRACK_ERR;
+    if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+
+    int track_num = table->num_tracks;
+    memset(&table->tracks[track_num], 0, sizeof(track_t));
+    memcpy(table->tracks[track_num].source_mac, source_mac, sizeof(table->tracks[track_num].source_mac));
+
+    table->tracks[track_num].first_seen = time(NULL);
+    table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
+    table->num_tracks++;
+
+    return track_num;
+}
+
 double to_radians(double degrees){
     return degrees * (PI / 180.0);
 }
