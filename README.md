@@ -24,7 +24,7 @@ and manufacturer compliance tooling rather than run as a standalone appliance.
 
 > **Status:** pre-alpha (v0.1). The decode engine is complete and verified
 > against the ASTM F3411 / opendroneid wire format; capture and the validation
-> engine are in progress. See the [roadmap](#roadmap).
+> engine are in progress.
 
 ## Why
 
@@ -103,15 +103,6 @@ examples/        small usage examples
 tests/unit/      unit tests (run via ctest or `make test`)
 docs/            verification notes and design docs
 ```
-
-## Roadmap
-
-- [x] Wire-accurate ODID decoder (all message types + message pack)
-- [x] In-memory track table with expiry
-- [ ] Live BLE / Wi-Fi capture (Linux)
-- [ ] Magpie validation engine
-- [ ] JSON / socket output daemon
-- [ ] Sensor fusion
 
 ## Contributing
 
