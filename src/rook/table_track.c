@@ -97,9 +97,6 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
     if (drone_track == NULL || msg == NULL){
         return TRACK_ERR;
     }
-    drone_track->arrival_ms[drone_track->head] = (uint64_t)time(NULL) * 1000;
-    drone_track->head = (drone_track->head + 1) % KX_RATE_WINDOW;
-    drone_track->last_seen = time(NULL);
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
             drone_track->basic_id = msg->data.basic_id;
@@ -139,6 +136,8 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
         default:
             return TRACK_ERR;
     }
+    drone_track->arrival_ms[drone_track->head] = (uint64_t)time(NULL) * 1000;
+    drone_track->head = (drone_track->head + 1) % KX_RATE_WINDOW;
     drone_track->last_seen = time(NULL);
     return TRACK_OK;
 }
