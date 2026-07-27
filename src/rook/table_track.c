@@ -93,10 +93,13 @@ double jump_detection(const track_t *table){
     return EARTH_RADIUS_KM * c;
 }
 
-int track_table_update(track_t *drone_track, const decoded_message_t *msg){
-    if (drone_track == NULL || msg == NULL){
+int track_table_update(track_t *drone_track, const decoded_message_t *msg, magpie_track_state_t *state){
+    if (drone_track == NULL || msg == NULL || state == NULL){
         return TRACK_ERR;
     }
+    state->arrival_ms[state->head] = (uint64_t)time(NULL) * 1000;
+    state->head = (state->head + 1) % KX_RATE_WINDOW;
+    drone_track->last_seen = time(NULL);
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
             drone_track->basic_id = msg->data.basic_id;

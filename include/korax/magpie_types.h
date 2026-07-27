@@ -53,4 +53,13 @@ typedef struct {
     uint8_t      finding_count;
     kx_finding_t findings[KX_MAX_FINDINGS];
 } kx_verdict_t;
+
+typedef struct {
+    uint64_t arrival_ms[KX_RATE_WINDOW];
+    uint8_t head;
+    uint8_t last_msg_counter;
+    bool have_counter;
+    int8_t last_rssi_dbm;
+} magpie_track_state_t;
+
 #endif

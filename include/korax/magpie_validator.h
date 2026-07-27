@@ -33,14 +33,6 @@ typedef struct magpie_thresholds {
     double max_speed_kmh;
 } magpie_thresholds_t;
 
-typedef struct {
-    uint64_t arrival_ms[KX_RATE_WINDOW];
-    uint8_t head;
-    uint8_t last_msg_counter;
-    bool have_counter;
-    int8_t last_rssi_dbm;
-} magpie_track_state_t;
-
 /* Per-aspect checks (pure). */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);
 kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id);
