@@ -35,52 +35,6 @@ static void json_escape(const char *src, char *dst, size_t dstlen){
     dst[j] = '\0';
 }
 
-int track_to_json(const track_t *track, char *buffer, size_t len){;
-    if (track == NULL || buffer == NULL || len == 0){
-        return -1;
-    }
-    char uas_esc[160];
-    char op_esc[160];
-    json_escape(track->uas_id, uas_esc, sizeof uas_esc);
-    json_escape(track->has_operator_id ? track->operator_id.OperatorId : "", op_esc, sizeof op_esc);
-
-    char _timestamp[24];
-    if (track->location.TimeStamp < 0.0f){
-        snprintf(_timestamp, sizeof _timestamp, "null");
-    } else {
-        snprintf(_timestamp, sizeof _timestamp, "%.1f", track->location.TimeStamp);
-    }
-
-    int write_json = snprintf(buffer, len,
-         "{"
-          "\"schema_version\":%d,"
-          "\"uas_id\":\"%s\","
-          "\"operator_id\":\"%s\","
-          "\"position\":{\"lat\":%.7f,\"lon\":%.7f,\"alt_geo_m\":%.1f,\"alt_baro_m\":%.1f},"
-          "\"velocity\":{\"speed_mps\":%.2f,\"vspeed_mps\":%.2f,\"heading_deg\":%.1f},"
-          "\"timestamp_s\":%s,"
-          "\"compliant\":%s,"
-          "\"flags\":%u"
-        "}",
-        KX_JSON_SCHEMA_VERSION,
-        uas_esc,
-        op_esc,
-        track->location.Latitude,  track->location.Longitude,
-        track->location.AltitudeGeo, track->location.AltitudeBaro,
-        track->location.SpeedHorizontal, track->location.SpeedVertical,
-        track->location.Direction,
-        _timestamp,
-        track->is_compliant ? "true" : "false",
-        (unsigned)track->flags);
-    if (write_json < 0){
-        return -1;
-    }
-    if (write_json >= (int)len){
-        return -2;
-    }
-    return write_json;
-}
-
 static const char *rule_name(kx_rule_t r){
     switch(r){
         case KX_RULE_MISSING_REQUIRED_MSG:
@@ -109,35 +63,97 @@ static const char *sev_name(kx_severity_t s){
     }
 }
 
-static int findings_to_json(const kx_verdict_t *v, char *buf, size_t len){
+static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, size_t len){
     int n = snprintf(buf, len, "[");
-    if (n < 0 || (size_t)n >= len) return -1;
+    if (n < 0 || (size_t)n >= len){
+        return -1;
+    }
 
-    for (uint8_t i = 0; i < v->finding_count; i++){
-        const kx_finding_t *f = &v->findings[i];
-
-        int m = snprintf(buf+n, len-n,
+    for (uint8_t i = 0; i < count; i++){
+        int m = snprintf(buf + n, len - n,
             "%s{\"rule\":\"%s\",\"severity\":\"%s\",\"field\":\"%s\",\"reg\":\"%s\",\"detail\":\"%s\"}",
-            i?",":"",
-            rule_name(f->rule),
-            sev_name(f->severity),
-            f->field,
-            f->reg_ref,
-            f->detail);
+            i ? "," : "",
+            rule_name(f[i].rule),
+            sev_name(f[i].severity),
+            f[i].field,
+            f[i].reg_ref,
+            f[i].detail);
 
-        if (m < 0 || (size_t)(n+m) >= len) return -1;
+        if (m < 0 || (size_t)(n + m) >= len){
+            return -1;
+        }
         n += m;
     }
-    int m = snprintf(buf+n, len-n, "]");
-    if (m < 0 || (size_t)(n+m) >= len) return -1;
-    return n+m;
+
+    int m = snprintf(buf + n, len - n, "]");
+    if (m < 0 || (size_t)(n + m) >= len){
+        return -1;
+    }
+    return n + m;
 }
 
-int verdict_to_json(kx_verdict_t *verdict, char *buffer, size_t len){;
+int track_to_json(const track_t *track, char *buffer, size_t len){;
+    if (track == NULL || buffer == NULL || len == 0){
+        return -1;
+    }
+    char uas_esc[160];
+    char op_esc[160];
+    json_escape(track->uas_id, uas_esc, sizeof uas_esc);
+    json_escape(track->has_operator_id ? track->operator_id.OperatorId : "", op_esc, sizeof op_esc);
+
+    char _timestamp[24];
+    if (track->location.TimeStamp < 0.0f){
+        snprintf(_timestamp, sizeof _timestamp, "null");
+    } else {
+        snprintf(_timestamp, sizeof _timestamp, "%.1f", track->location.TimeStamp);
+    }
+
+    char fbuf[512];
+    if (findings_to_json(track->findings, track->finding_count, fbuf, sizeof(fbuf)) < 0){
+        return -2;
+    }
+
+    int write_json = snprintf(buffer, len,
+         "{"
+          "\"schema_version\":%d,"
+          "\"uas_id\":\"%s\","
+          "\"operator_id\":\"%s\","
+          "\"position\":{\"lat\":%.7f,\"lon\":%.7f,\"alt_geo_m\":%.1f,\"alt_baro_m\":%.1f},"
+          "\"velocity\":{\"speed_mps\":%.2f,\"vspeed_mps\":%.2f,\"heading_deg\":%.1f},"
+          "\"timestamp_s\":%s,"
+              "\"validation\":{"
+              "\"compliant\":%s,"
+              "\"ruleset_version\":%u,"
+              "\"flags\":%u,"
+              "\"findings\":%s"
+          "}"
+        "}",
+        KX_JSON_SCHEMA_VERSION,
+        uas_esc,
+        op_esc,
+        track->location.Latitude,  track->location.Longitude,
+        track->location.AltitudeGeo, track->location.AltitudeBaro,
+        track->location.SpeedHorizontal, track->location.SpeedVertical,
+        track->location.Direction,
+        _timestamp,
+        track->is_compliant ? "true" : "false",
+        (unsigned)KX_RULESET_VERSION,
+        (unsigned)track->flags,
+        fbuf);
+    if (write_json < 0){
+        return -1;
+    }
+    if (write_json >= (int)len){
+        return -2;
+    }
+    return write_json;
+}
+
+int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
     char temp[KX_MAX_DETAILS];
     char fbuf[512];
-    if (findings_to_json(verdict, fbuf, sizeof fbuf) < 0) return -1;
+    if (findings_to_json(verdict->findings, count, fbuf, sizeof fbuf) < 0) return -1;
 
     int write_json = snprintf(temp, sizeof(temp),
           "{"
