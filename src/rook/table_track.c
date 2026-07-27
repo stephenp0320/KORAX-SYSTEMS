@@ -93,8 +93,8 @@ double jump_detection(const track_t *table){
     return EARTH_RADIUS_KM * c;
 }
 
-int track_table_update(track_t *drone_track, const decoded_message_t *msg, magpie_track_state_t *state){
-    if (drone_track == NULL || msg == NULL || state == NULL){
+int track_table_update(track_t *drone_track, const decoded_message_t *msg){
+    if (drone_track == NULL || msg == NULL){
         return TRACK_ERR;
     }
     drone_track->arrival_ms[drone_track->head] = (uint64_t)time(NULL) * 1000;
