@@ -42,8 +42,9 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
 
 void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	uint8_t rid_msg[RID_MSG_SIZE];
+    uint8_t msg_counter = 0;
 	decoded_message_t msg;
-	if (ble_rid_extraction(ble_frame, rid_msg) != 0){
+	if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0){
 		return;
 	}
 	if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0){
@@ -52,6 +53,7 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	int idx = process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
     if (idx >= 0){
         table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
+        table->tracks[idx].last_msg_counter = msg_counter;
     }
 }
 
