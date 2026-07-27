@@ -35,8 +35,8 @@ static void json_escape(const char *src, char *dst, size_t dstlen){
     dst[j] = '\0';
 }
 
-static const char *rule_name(kx_rule_t r){
-    switch(r){
+static const char *rule_name(kx_rule_t rule){
+    switch(rule){
         case KX_RULE_MISSING_REQUIRED_MSG:
             return "missing_required_msg";
         case KX_RULE_NO_LOCATION_IN_GRACE:
@@ -52,8 +52,8 @@ static const char *rule_name(kx_rule_t r){
     }
 }
 
-static const char *sev_name(kx_severity_t s){
-    switch(s){
+static const char *sev_name(kx_severity_t severity){
+    switch(severity){
         case KX_SEVERITY_ERROR:
             return "error";
         case KX_SEVERITY_WARN:
@@ -65,9 +65,7 @@ static const char *sev_name(kx_severity_t s){
 
 static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, size_t len){
     int n = snprintf(buf, len, "[");
-    if (n < 0 || (size_t)n >= len){
-        return -1;
-    }
+    if (n < 0 || (size_t)n >= len) return -1;
 
     for (uint8_t i = 0; i < count; i++){
         int m = snprintf(buf + n, len - n,
@@ -79,23 +77,18 @@ static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, siz
             f[i].reg_ref,
             f[i].detail);
 
-        if (m < 0 || (size_t)(n + m) >= len){
-            return -1;
-        }
+        if (m < 0 || (size_t)(n + m) >= len) return -1;
         n += m;
     }
 
     int m = snprintf(buf + n, len - n, "]");
-    if (m < 0 || (size_t)(n + m) >= len){
-        return -1;
-    }
+    if (m < 0 || (size_t)(n + m) >= len) return -1;
     return n + m;
 }
 
 int track_to_json(const track_t *track, char *buffer, size_t len){;
-    if (track == NULL || buffer == NULL || len == 0){
-        return -1;
-    }
+    if (track == NULL || buffer == NULL || len == 0) return -1;
+
     char uas_esc[160];
     char op_esc[160];
     json_escape(track->uas_id, uas_esc, sizeof uas_esc);
@@ -109,9 +102,7 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     }
 
     char fbuf[512];
-    if (findings_to_json(track->findings, track->finding_count, fbuf, sizeof(fbuf)) < 0){
-        return -2;
-    }
+    if (findings_to_json(track->findings, track->finding_count, fbuf, sizeof(fbuf)) < 0) return -2;
 
     int write_json = snprintf(buffer, len,
          "{"
@@ -140,12 +131,9 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
         (unsigned)KX_RULESET_VERSION,
         (unsigned)track->flags,
         fbuf);
-    if (write_json < 0){
-        return -1;
-    }
-    if (write_json >= (int)len){
-        return -2;
-    }
+
+    if (write_json < 0) return -1;
+    if (write_json >= (int)len) return -2;
     return write_json;
 }
 
@@ -171,6 +159,5 @@ int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t l
     if (write_json < 0 || (size_t)write_json >= sizeof(temp)) return -1;
     if ((size_t)write_json >= len) return -2;
     memcpy(buffer, temp, (size_t)write_json + 1);
-
     return write_json;
 }
