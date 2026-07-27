@@ -273,6 +273,9 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     if (packet_len < AUTH_PACK_SIZE){
         return DECODE_ERR_TOO_SHORT;
     }
+    auth_data->last_page_idx = 0;
+    auth_data->timestamp = 0;
+    auth_data->length = 0;
     auth_data->msg_type = (packet[0] >> 4) & 0x0F;
     auth_data->auth_type = (packet[1] >> 4) & 0x0F;
     auth_data->data_page = packet[1] & 0x0F;

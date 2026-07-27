@@ -19,10 +19,13 @@ static void print_decoded_message(const decoded_message_t *msg){
             printf("Timestamp: %.1f s\n\n", msg->data.location.TimeStamp);
             break;
         case MESSAGETYPE_AUTH:
-            printf("===== Authentication =====\n");
             printf("Data Page : %u\n", msg->data.auth.data_page);
-            printf("Length    : %u bytes\n", msg->data.auth.length);
-            printf("Timestamp : %u\n\n", msg->data.auth.timestamp);
+            if (msg->data.auth.data_page == 0){
+                printf("Length    : %u bytes\n", msg->data.auth.length);
+                printf("Timestamp : %u\n\n", msg->data.auth.timestamp);
+            } else {
+                printf("(continuation page - no length/timestamp)\n\n");
+            }
             break;
         case MESSAGETYPE_SELF_ID:
             printf("===== Self ID =====\n");

@@ -54,14 +54,24 @@ kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
     }
 
     int out_of_range = 0;
-    if (location->Latitude     < MIN_LAT      || location->Latitude     > MAX_LAT)      out_of_range = 1;
-    if (location->Longitude    < MIN_LON      || location->Longitude    > MAX_LON)      out_of_range = 1;
-    if (location->AltitudeGeo  < MIN_ALT      || location->AltitudeGeo  > MAX_ALT)      out_of_range = 1;
-    if (location->AltitudeBaro < MIN_ALT_BARO || location->AltitudeBaro > MAX_ALT_BARO) out_of_range = 1;
-    if (location->TimeStamp != -1.0f &&
-        (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP))            out_of_range = 1;
-    if (location->Status > DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE)                    out_of_range = 1;
-
+    if (location->Latitude < MIN_LAT|| location->Latitude > MAX_LAT){
+        out_of_range = 1;
+    }
+    if (location->Longitude < MIN_LON || location->Longitude > MAX_LON){
+        out_of_range = 1;
+    }
+    if (location->AltitudeGeo < MIN_ALT|| location->AltitudeGeo > MAX_ALT){
+        out_of_range = 1;
+    }
+    if (location->AltitudeBaro < MIN_ALT_BARO || location->AltitudeBaro > MAX_ALT_BARO){
+        out_of_range = 1;
+    }
+    if (location->TimeStamp != -1.0f && (location->TimeStamp < 0.0f || location->TimeStamp > MAX_TIMESTAMP)){
+        out_of_range = 1;
+    }
+    if (location->Status > DRONE_ID_STATUS_REMOTE_ID_SYSTEM_FAILURE){
+        out_of_range = 1;
+    }
     if (out_of_range) {
         r.rule    |= KX_RULE_FIELD_OUT_OF_RANGE;
         r.severity = KX_SEVERITY_ERROR;
@@ -148,7 +158,6 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     return r;
 }
 
-// return type of uint32_t is limiting, adding verification structs instead
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
@@ -184,7 +193,6 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
 
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
-        // bitwise check using &
         if (verdict.flags & all[i]){
             kx_finding_t *f = &verdict.findings[verdict.finding_count++];
             f->rule = all[i];
