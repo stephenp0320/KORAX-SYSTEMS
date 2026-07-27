@@ -49,6 +49,9 @@ void process_ble_frame(const ble_adv_frame_t *ble_frame, track_table_t *table){
 	if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0){
 		return;
 	}
-	process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
+	int idx = process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
+    if (idx >= 0){
+        table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
+    }
 }
 
