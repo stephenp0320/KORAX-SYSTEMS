@@ -97,8 +97,8 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg, magpi
     if (drone_track == NULL || msg == NULL || state == NULL){
         return TRACK_ERR;
     }
-    state->arrival_ms[state->head] = (uint64_t)time(NULL) * 1000;
-    state->head = (state->head + 1) % KX_RATE_WINDOW;
+    drone_track->arrival_ms[drone_track->head] = (uint64_t)time(NULL) * 1000;
+    drone_track->head = (drone_track->head + 1) % KX_RATE_WINDOW;
     drone_track->last_seen = time(NULL);
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
