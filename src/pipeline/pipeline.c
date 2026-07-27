@@ -31,7 +31,6 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
         return rc;
     }
     track->reserved_bits_seen |= msg->reserved_bits;
-    track->flags = magpie_validate(track, msg, time(NULL), th);
     kx_verdict_t verdict = magpie_evaluate(track, msg, time(NULL), th);
     track->flags = verdict.flags;
     track->is_compliant = verdict.compliant;
