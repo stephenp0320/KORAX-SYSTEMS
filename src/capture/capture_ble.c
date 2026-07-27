@@ -3,7 +3,7 @@
 #include "korax/raven_decode.h"
 #include <stdbool.h>
 
-int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]){
+int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE], uint8_t *msg_counter){
     if (ble_frame == NULL || rid_msg == NULL) {
         return BLE_ADV_ERR;
     }
@@ -26,9 +26,14 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
 
             uint16_t uuid = ble_frame->adv_data[pos + 2] | (ble_frame->adv_data[pos + 3] << 8);
             uint8_t app_code = ble_frame->adv_data[pos + 4];
+
             if (uuid != ODID_SERVICE_UUID || app_code != ODID_APP_CODE) {
                 pos += len + 1;
                 continue;
+            }
+            uint8_t counter = ble_frame->adv_data[pos + 5];
+            if (msg_counter){
+                *msg_counter = counter;
             }
 
             memcpy(rid_msg, &ble_frame->adv_data[payload_start], RID_MSG_SIZE);

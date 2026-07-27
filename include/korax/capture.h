@@ -51,7 +51,7 @@ typedef struct wifi_frame_t {
     	uint64_t timestamp;
 } wifi_frame_t;
 
-int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE]);
+int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE], uint8_t *msg_counter);
 int wp_replay_run(const char *path, wp_frame_cb_t cb, void *user_data);
 FILE *read_file(const char *filename);
 int get_file_line(FILE *fp, wp_frame_cb_t cb, void *user_data);
