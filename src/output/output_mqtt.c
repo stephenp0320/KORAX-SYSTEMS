@@ -67,14 +67,15 @@ int mqtt_disconnect(struct mosquitto *mosq){
     if (mosq == NULL) return MOSQ_ERR_INVAL;
 
     int disconnect = mosquitto_disconnect(mosq);
-    if (disconnect == MOSQ_ERR_INVAL){
-        log_msg(LOG_ERROR, "he input parameters were invalid: %s", strerror(errno));
-        return MOSQ_ERR_INVAL;
-    } else if (disconnect == MOSQ_ERR_NO_CONN){
-        log_msg(LOG_ERROR, "the client isn’t connected to a broker: %s", strerror(errno));
-        return MOSQ_ERR_NO_CONN;
-    } else {
-        return MOSQ_ERR_SUCCESS;
+    switch(disconnect){
+        case MOSQ_ERR_INVAL:
+            log_msg(LOG_ERROR, "he input parameters were invalid: %s", strerror(errno));
+            return MOSQ_ERR_INVAL;
+        case MOSQ_ERR_NO_CONN:
+            log_msg(LOG_ERROR, "the client isn’t connected to a broker: %s", strerror(errno));
+            return MOSQ_ERR_NO_CONN;
+        default:
+            return MOSQ_ERR_SUCCESS;
     }
 }
 
