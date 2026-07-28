@@ -6,6 +6,8 @@
 #include "korax/magpie_validator.h"
 #include "korax/output_json.h"
 #include "korax/server.h"
+#include "korax/capture.h"
+#include "korax/pipeline.h"
 #include "daemon/config.h"
 #include "daemon/log.h"
 #include <unistd.h>
@@ -752,6 +754,83 @@ static void test_golden_verdict(void){
     ASSERT_TRUE(strstr(buf, golden) != NULL, "golden: validation block byte-exact");
 }
 
+/* ---- BLE extraction / MAC keying / data-plumbing ---- */
+/* Wrap a 25-byte ODID payload in a spec-shaped BLE Service Data advert:
+   [len][0x16][FA FF = 0xFFFA][0x0D app][counter][25-byte payload]. */
+static ble_adv_frame_t make_ble_frame(const uint8_t payload[25], const uint8_t mac[6],
+                                      uint8_t counter, int8_t rssi){
+    ble_adv_frame_t f;
+    memset(&f, 0, sizeof f);
+    f.adv_data[0] = 30;                              /* AD length after this byte */
+    f.adv_data[1] = BLE_AD_TYPE_SERVICE_DATA_16BIT;  /* 0x16 */
+    f.adv_data[2] = 0xFA;                            /* UUID 0xFFFA, little-endian */
+    f.adv_data[3] = 0xFF;
+    f.adv_data[4] = ODID_APP_CODE;                   /* 0x0D */
+    f.adv_data[5] = counter;
+    memcpy(&f.adv_data[6], payload, 25);
+    f.adv_len   = 31;
+    memcpy(f.source_mac, mac, 6);
+    f.rssi_dbm  = rssi;
+    return f;
+}
+
+static void test_ble_extraction(void){
+    uint8_t mac[6] = {0,0,0,0,0,0xAA};
+    ble_adv_frame_t f = make_ble_frame(PKT_BASIC, mac, 0x2A, -55);
+    uint8_t out[RID_MSG_SIZE]; uint8_t counter = 0;
+    ASSERT_EQ_INT(ble_rid_extraction(&f, out, &counter), 0, "valid ODID advert extracts OK");
+    ASSERT_EQ_INT(memcmp(out, PKT_BASIC, 25), 0, "extracted payload matches");
+    ASSERT_EQ_INT(counter, 0x2A, "counter byte (offset +5) extracted");
+
+    ble_adv_frame_t bad = f;
+    bad.adv_data[2] = 0xFB;   /* UUID 0xFFFB -> not Remote ID */
+    ASSERT_EQ_INT(ble_rid_extraction(&bad, out, &counter), BLE_ADV_ERR,
+                  "non-ODID service data rejected");
+}
+
+static void test_create_by_mac(void){
+    track_table_t table; track_table_init(&table);
+    uint8_t mac[6] = {0x11,0x22,0x33,0x44,0x55,0x66};
+    int idx = track_table_create_by_source_mac(&table, mac);
+    ASSERT_TRUE(idx >= 0, "create_by_mac returns an index");
+    ASSERT_EQ_INT(table.num_tracks, 1, "num_tracks incremented");
+    ASSERT_EQ_INT(memcmp(table.tracks[idx].source_mac, mac, 6), 0, "all 6 MAC bytes copied");
+}
+
+static void test_mac_multi_drone(void){
+    track_table_t table; track_table_init(&table);
+    uint8_t macA[6] = {0,0,0,0,0,0xAA};
+    uint8_t macB[6] = {0,0,0,0,0,0xBB};
+
+    /* two Basic IDs (same UAS ID) from two MACs must key to two tracks */
+    ble_adv_frame_t ba = make_ble_frame(PKT_BASIC, macA, 1, -50);
+    ble_adv_frame_t bb = make_ble_frame(PKT_BASIC, macB, 1, -60);
+    process_ble_frame(&ba, &table);
+    process_ble_frame(&bb, &table);
+    ASSERT_EQ_INT(table.num_tracks, 2, "two MACs -> two tracks (keyed by MAC, not UAS ID)");
+
+    /* a Location from macA must attach to macA's track only, not blindly tracks[0] */
+    ble_adv_frame_t la = make_ble_frame(PKT_LOCATION, macA, 2, -50);
+    process_ble_frame(&la, &table);
+    int a = find_track_by_mac(&table, macA);
+    int b = find_track_by_mac(&table, macB);
+    ASSERT_TRUE(a >= 0 && b >= 0, "both MAC tracks present");
+    ASSERT_TRUE(table.tracks[a].has_location, "location routed to macA's track");
+    ASSERT_TRUE(!table.tracks[b].has_location, "macB's track did NOT receive it");
+}
+
+static void test_ble_frame_plumbing(void){
+    track_table_t table; track_table_init(&table);
+    uint8_t mac[6] = {0,0,0,0,0,0xCC};
+    ble_adv_frame_t f = make_ble_frame(PKT_BASIC, mac, 0x2A, -73);
+    process_ble_frame(&f, &table);
+    int idx = find_track_by_mac(&table, mac);
+    ASSERT_TRUE(idx >= 0, "track created from BLE frame");
+    ASSERT_EQ_INT(table.tracks[idx].last_rssi_dbm, -73, "RSSI carried onto the track");
+    ASSERT_EQ_INT(table.tracks[idx].last_msg_counter, 0x2A, "counter carried onto the track");
+    ASSERT_EQ_INT(table.tracks[idx].head, 1, "arrival ring buffer advanced once");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -773,6 +852,10 @@ int main(void){
     test_pack_multi_drone();
     test_expiry();
     test_find_by_mac();
+    test_ble_extraction();
+    test_create_by_mac();
+    test_mac_multi_drone();
+    test_ble_frame_plumbing();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
