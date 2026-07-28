@@ -14,7 +14,7 @@ static void handle_frame(const uint8_t *buf, int len, track_table_t *table){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, len, &msg) == DECODE_OK){
-            process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS);
+            process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
         }
     }
 }
