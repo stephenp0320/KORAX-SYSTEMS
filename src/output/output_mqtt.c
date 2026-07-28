@@ -3,13 +3,7 @@
 #include <string.h>
 #include "daemon/log.h"
 #include <errno.h>
-#define payloadlen_max 268435455
-
-struct mosquitto {
-    const char *id;
-    bool clean_session;
-    void *obj;
-} *mosq;
+#include "korax/output_mqtt.h"
 
 int mqtt_init(bool optional_mqtt){
     if (optional_mqtt == false) return -1;
@@ -23,7 +17,6 @@ int mqtt_init(bool optional_mqtt){
     }
     return MOSQ_ERR_SUCCESS;
 }
-
 
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive){
     if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5) return MOSQ_ERR_INVAL;
