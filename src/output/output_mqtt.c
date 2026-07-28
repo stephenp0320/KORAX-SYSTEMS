@@ -8,7 +8,7 @@
 int mqtt_init(bool optional_mqtt){
     if (optional_mqtt == false) return -1;
     if (optional_mqtt == true){
-        int mosquitto_lib_init();
+        mosquitto_lib_init();
         mosq = mosquitto_new(NULL, true, NULL);
         if (mosq == NULL){
             log_msg(LOG_ERROR, "mosquitto_new failed: %s", strerror(errno));
@@ -22,12 +22,11 @@ int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_al
     if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5) return MOSQ_ERR_INVAL;
 
     int broker_connection = mosquitto_connect(mosq, host, port, keep_alive);
-    if (broker_connection == MOSQ_ERR_INVAL){
-        log_msg(LOG_ERROR, "the input parameters were invalid: %s", strerror(errno));
-        return MOSQ_ERR_INVAL;
-    } else {
-        return MOSQ_ERR_SUCCESS;
+    if (broker_connection != MOSQ_ERR_SUCCESS){
+        log_msg(LOG_ERROR, "mqtt connect failed: %s", strerror(errno));
+        return broker_connection;
     }
+    return MOSQ_ERR_SUCCESS;
 }
 
 int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloadlen,
@@ -35,7 +34,7 @@ int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloa
     if (mosq == NULL || topic == NULL || payloadlen < 0 ||
         (payloadlen > 0 && payload == NULL) || qos < 0 || qos > 2) return MOSQ_ERR_INVAL;
 
-    int publish_message = mosquitto_publish(mosq, mid, topic, payloadlen, payload, qos, retain=false);
+    int publish_message = mosquitto_publish(mosq, mid, topic, payloadlen, payload, qos, retain);
     if (publish_message == MOSQ_ERR_INVAL){
         log_msg(LOG_ERROR, "input parameters were invalid: %s", strerror(errno));
         return MOSQ_ERR_INVAL;
