@@ -15,6 +15,7 @@
 #include "daemon/config.h"
 #include "daemon/log.h"
 #include "korax/output_mqtt.h"
+#define MQTT_TOPIC_SIZE 128
 
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
@@ -26,7 +27,7 @@ typedef struct {
     int expiry_seconds;
     magpie_thresholds_t thresholds;
     struct mosquitto *mqtt;
-    char mqtt_topic[128];
+    char mqtt_topic[MQTT_TOPIC_SIZE];
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;

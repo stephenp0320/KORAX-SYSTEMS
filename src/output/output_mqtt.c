@@ -33,32 +33,33 @@ int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloa
         (payloadlen > 0 && payload == NULL) || qos < 0 || qos > 2) return MOSQ_ERR_INVAL;
 
     int publish_message = mosquitto_publish(mosq, mid, topic, payloadlen, payload, qos, retain);
-    if (publish_message == MOSQ_ERR_INVAL){
-        log_msg(LOG_ERROR, "input parameters were invalid: %s", strerror(errno));
-        return MOSQ_ERR_INVAL;
-    } else if (publish_message == MOSQ_ERR_NOMEM){
-        log_msg(LOG_ERROR, "out of memory condition occurred: %s", strerror(errno));
-        return MOSQ_ERR_NOMEM;
-    } else if (publish_message == MOSQ_ERR_NO_CONN){
-        log_msg(LOG_ERROR, "client isn’t connected to a broker: %s", strerror(errno));
-        return MOSQ_ERR_NO_CONN;
-    } else if (publish_message == MOSQ_ERR_PROTOCOL){
-        log_msg(LOG_ERROR, "protocol error communicating with the broker: %s", strerror(errno));
-        return MOSQ_ERR_PROTOCOL;
-    } else if (publish_message == MOSQ_ERR_PAYLOAD_SIZE){
-        log_msg(LOG_ERROR, "payload length is too large: %s", strerror(errno));
-        return MOSQ_ERR_PAYLOAD_SIZE;
-    } else if (publish_message == MOSQ_ERR_MALFORMED_UTF8){
-        log_msg(LOG_ERROR, "topic is not valid UTF-8: %s", strerror(errno));
-        return MOSQ_ERR_MALFORMED_UTF8;
-    } else if (publish_message == MOSQ_ERR_QOS_NOT_SUPPORTED){
-        log_msg(LOG_ERROR, "the QoS is greater than that supported by the broker: %s", strerror(errno));
-        return MOSQ_ERR_QOS_NOT_SUPPORTED;
-    } else if (publish_message == MOSQ_ERR_OVERSIZE_PACKET){
-        log_msg(LOG_ERROR, "the resulting packet would be larger than supported by the broker: %s", strerror(errno));
-        return MOSQ_ERR_OVERSIZE_PACKET;
-    } else {
-        return MOSQ_ERR_SUCCESS;
+    switch(publish_message){
+        case MOSQ_ERR_INVAL:
+            log_msg(LOG_ERROR, "input parameters were invalid: %s", strerror(errno));
+            return MOSQ_ERR_INVAL;
+        case MOSQ_ERR_NOMEM:
+            log_msg(LOG_ERROR, "out of memory condition occurred: %s", strerror(errno));
+            return MOSQ_ERR_NOMEM;
+        case MOSQ_ERR_NO_CONN:
+            log_msg(LOG_ERROR, "client isn’t connected to a broker: %s", strerror(errno));
+            return MOSQ_ERR_NO_CONN;
+        case MOSQ_ERR_PROTOCOL:
+            log_msg(LOG_ERROR, "protocol error communicating with the broker: %s", strerror(errno));
+            return MOSQ_ERR_PROTOCOL;
+        case MOSQ_ERR_PAYLOAD_SIZE:
+            log_msg(LOG_ERROR, "payload length is too large: %s", strerror(errno));
+            return MOSQ_ERR_PAYLOAD_SIZE;
+        case MOSQ_ERR_MALFORMED_UTF8:
+            log_msg(LOG_ERROR, "topic is not valid UTF-8: %s", strerror(errno));
+            return MOSQ_ERR_MALFORMED_UTF8;
+        case MOSQ_ERR_QOS_NOT_SUPPORTED:
+            log_msg(LOG_ERROR, "the QoS is greater than that supported by the broker: %s", strerror(errno));
+            return MOSQ_ERR_QOS_NOT_SUPPORTED;
+        case MOSQ_ERR_OVERSIZE_PACKET:
+            log_msg(LOG_ERROR, "the resulting packet would be larger than supported by the broker: %s", strerror(errno));
+            return MOSQ_ERR_OVERSIZE_PACKET;
+        default:
+            return MOSQ_ERR_SUCCESS;
     }
 }
 
