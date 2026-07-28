@@ -5,17 +5,15 @@
 #include <errno.h>
 #include "korax/output_mqtt.h"
 
-int mqtt_init(bool optional_mqtt){
-    if (optional_mqtt == false) return -1;
-    if (optional_mqtt == true){
-        mosquitto_lib_init();
-        mosq = mosquitto_new(NULL, true, NULL);
-        if (mosq == NULL){
-            log_msg(LOG_ERROR, "mosquitto_new failed: %s", strerror(errno));
-            return MOSQ_ERR_UNKNOWN;
-        }
+struct mosquitto *mqtt_init(bool optional_mqtt){
+    if (!optional_mqtt) return NULL;
+    mosquitto_lib_init();
+    struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
+    if (mosq == NULL){
+        log_msg(LOG_ERROR, "mosquitto_new failed: %s", strerror(errno));
+        mosquitto_lib_cleanup();
     }
-    return MOSQ_ERR_SUCCESS;
+    return mosq;
 }
 
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive){
