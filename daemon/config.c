@@ -18,6 +18,10 @@ int config_defaults(korax_config_t *cfg) {
     cfg->grace_seconds = KX_DEFAULT_GRACE;
     cfg->max_speed_kmh = KX_DEFAULT_MAX_SPEED;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
+    cfg->mqtt_enabled = KX_DEFAULT_MQTT_ENABLED;
+    snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
+    cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
+    snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
 
     if (cfg->expiry_seconds <= 0) return CONFIG_ERR;
     return CONFIG_OK;

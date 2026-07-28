@@ -14,6 +14,7 @@
 #include "korax/output_json.h"
 #include "daemon/config.h"
 #include "daemon/log.h"
+#include "korax/output_mqtt.h"
 
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
@@ -24,6 +25,7 @@ typedef struct {
     volatile sig_atomic_t running;     /* cleared by SIGINT/SIGTERM           */
     int expiry_seconds;
     magpie_thresholds_t thresholds;
+    struct mosquitto *mqtt;
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -67,15 +69,21 @@ static void on_track_expired(const track_t *track, void *user_data){
     server_broadcast(&daemon->server, line, (size_t)len);
 }
 
-/* Serialise one track and broadcast it as a track_update. */
 static void broadcast_track_update(koraxd_t *daemon, int idx){
     if (idx < 0 || idx >= daemon->table.num_tracks) return;
-    char jbuf[512], line[640];
+    char jbuf[1024], line[1280];
     if (track_to_json(&daemon->table.tracks[idx], jbuf, sizeof jbuf) < 0) return;
+
     int len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", jbuf);
     if (len > 0 && (size_t)len < sizeof line){
         server_broadcast(&daemon->server, line, (size_t)len);
     }
+#ifdef KORAX_WITH_MQTT
+    if (daemon->mqtt){
+        mqtt_publish(daemon->mqtt, NULL, daemon->mqtt_topic,
+                     (int)strlen(jbuf), jbuf, 0, false);
+    }
+#endif
 }
 
 static void handle_source_frame(koraxd_t *daemon){
@@ -183,7 +191,10 @@ int main(int argc, char **argv){
     daemon.expiry_seconds = cfg.expiry_seconds;
 
     track_table_init(&daemon.table);
-
+    daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
+    if (daemon.mqtt){
+        mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30);
+    }
     if (server_init(&daemon.server, cfg.socket_path) != 0){
         log_msg(LOG_ERROR, "server_init failed on %s", cfg.socket_path);
         return 1;
