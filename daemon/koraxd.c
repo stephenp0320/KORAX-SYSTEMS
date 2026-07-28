@@ -26,6 +26,7 @@ typedef struct {
     int expiry_seconds;
     magpie_thresholds_t thresholds;
     struct mosquitto *mqtt;
+    char mqtt_topic[128];
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -191,10 +192,13 @@ int main(int argc, char **argv){
     daemon.expiry_seconds = cfg.expiry_seconds;
 
     track_table_init(&daemon.table);
-    daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
-    if (daemon.mqtt){
-        mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30);
-    }
+    #ifdef KORAX_WITH_MQTT
+        daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
+        if (daemon.mqtt){
+            mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30);
+            snprintf(daemon.mqtt_topic, sizeof daemon.mqtt_topic, "%s", cfg.mqtt_topic);
+        }
+    #endif
     if (server_init(&daemon.server, cfg.socket_path) != 0){
         log_msg(LOG_ERROR, "server_init failed on %s", cfg.socket_path);
         return 1;
@@ -212,6 +216,12 @@ int main(int argc, char **argv){
     log_msg(LOG_INFO, "feed on %s, replaying %s", cfg.socket_path, cfg.source_path);
     run_event_loop(&daemon);
 
+    #ifdef KORAX_WITH_MQTT
+    if (daemon.mqtt){
+        mqtt_disconnect(daemon.mqtt);
+        mqtt_destroy(daemon.mqtt);
+    }
+    #endif
     fclose(daemon.source);
     server_close(&daemon.server);
     log_msg(LOG_INFO, "stopped");
