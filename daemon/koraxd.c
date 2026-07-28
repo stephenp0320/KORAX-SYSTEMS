@@ -102,7 +102,7 @@ static void handle_source_frame(koraxd_t *daemon){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
-            int idx = process_decoded_message(&daemon->table, &msg, &daemon->thresholds);
+            int idx = process_decoded_message(&daemon->table, &msg, &daemon->thresholds, NULL);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
             }
