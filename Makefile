@@ -12,6 +12,21 @@ LIB_SRC := \
     src/magpie/magpie_validator.c \
     src/output/output_json.c \
     src/output/server.c
+
+MQTT ?= 0
+ifeq ($(MQTT),1)
+    CFLAGS  += -DKORAX_WITH_MQTT
+    LIB_SRC += src/output/output_mqtt.c
+    MQTT_PREFIX  := $(shell brew --prefix mosquitto 2>/dev/null)
+    CJSON_PREFIX := $(shell brew --prefix cjson 2>/dev/null)
+    ifneq ($(MQTT_PREFIX),)
+        CFLAGS += -I$(MQTT_PREFIX)/include -I$(CJSON_PREFIX)/include
+        LDLIBS += -L$(MQTT_PREFIX)/lib
+    endif
+    LDLIBS  += -lmosquitto
+endif
+
+
 BUILD   := build
 
 .PHONY: all test replay demo daemon clean

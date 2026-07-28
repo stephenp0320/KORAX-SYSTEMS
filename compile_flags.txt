@@ -2,3 +2,5 @@
 -std=c11
 -Wall
 -Wextra
+-I/opt/homebrew/opt/mosquitto/include
+-I/opt/homebrew/opt/cjson/include
