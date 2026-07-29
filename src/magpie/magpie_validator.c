@@ -229,7 +229,7 @@ kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thr
     if (!track->has_basic_id || !track->has_location) return r;
 
     float speed = track->location.SpeedHorizontal;
-    if (speed >= 255.0f) return r;
+    if (speed >= (float)INV_SPEED_H) return r;
     double cap = max_speed_ms_for_type(track->basic_id.UAType);
     if (cap < 0.0) return r;
 
@@ -240,12 +240,32 @@ kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thr
     return r;
 }
 
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
+kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL) return r;
+    (void)th;
+    if (!track->has_location) return r;
+
+    float ver_speed = track->location.SpeedVertical;
+    if (ver_speed >= (float)INV_SPEED_V) return r;
+    float magnitude = (ver_speed < 0.0f) ? -ver_speed : ver_speed;
+    if (magnitude > th->max_climb_ms){
+        r.rule     = KX_MAX_CLIMB_MS;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th)
+{
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
     flags |= magpie_validate_jump(track, th).rule;
     flags |= magpie_validate_reserved_bitsets(track).rule;
     flags |= magpie_validate_timestamp(track, th).rule;
+    flags |= magpie_validate_speed_vs_type(track, th).rule;
+    flags |= magpie_validate_climb_rate(track, th).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
