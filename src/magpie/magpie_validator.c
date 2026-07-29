@@ -158,11 +158,29 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     return r;
 }
 
+kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresholds_t *th){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL) return r;
+    (void)th;
+
+    if (track->msg_count_location < 2) return r;
+    float now_ts  = track->location.TimeStamp;
+    float prev_ts = track->prev_location.TimeStamp;
+
+    if (now_ts < 0.0f || prev_ts < 0.0f) return r;
+    if (now_ts < prev_ts){
+        r.rule     = KX_RULE_TIMESTAMP_REWIND;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
     flags |= magpie_validate_jump(track, th).rule;
     flags |= magpie_validate_reserved_bitsets(track).rule;
+    flags |= magpie_validate_timestamp(track, th).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
@@ -179,6 +197,8 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     return flags;
 }
 
+
+
 kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
@@ -190,6 +210,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
 
     verdict.flags = magpie_validate(track, msg, now, th);
     verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
+    verdict.flags |= magpie_validate_timestamp(track, th).rule;
 
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
