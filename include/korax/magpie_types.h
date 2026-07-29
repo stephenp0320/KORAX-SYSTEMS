@@ -33,7 +33,8 @@ typedef enum {
     KX_RULE_TIMESTAMP_REWIND     = 1u<<5,
     KX_RULE_BROADCAST_RATE       = 1u<<6,
     KX_RULE_SPEED_EXCEEDS_TYPE   = 1u<<7,
-    KX_RULE_ALT_ENVELOPE         = 1u<<8
+    KX_RULE_ALT_ENVELOPE         = 1u<<8,
+    KX_RULE_OPERATOR_DISTANCE    = 1u<<9
 } kx_rule_t;
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \

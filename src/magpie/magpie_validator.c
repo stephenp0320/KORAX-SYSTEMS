@@ -273,6 +273,31 @@ kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie
     return r;
 }
 
+int haversine_km(const track_t *track)
+{
+    int res = jump_detection(track);
+    return res;
+}
+
+kx_result_t magpie_validate_operator_distance(const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL) return r;
+    (void)th;
+    if (!track->has_location || !track->has_system) return r;
+
+    double dlat = track->location.Latitude, dlon = track->location.Longitude;
+    double olat = track->system.OperatorLatitude, olon = track->system.OperatorLongitude;
+
+    if ((dlat == 0.0 && dlon == 0.0) || (olat == 0.0 && olon == 0.0)) return r;
+    double dist = haversine_km(track);
+    if (dist > th->max_operator_distance_km){
+        r.rule = KX_RULE_OPERATOR_DISTANCE;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th)
 {
     uint32_t flags = KX_RULE_NONE;

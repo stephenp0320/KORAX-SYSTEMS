@@ -23,7 +23,9 @@
 #define KX_MAX_CLIMB_MS           20.0
 #define KX_ALT_FLOOR            -500.0
 #define KX_MAX_ALT              MAX_ALT
-#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH, KX_MIN_BROADCAST_RATE, KX_MAX_CLIMB_MS, KX_ALT_FLOOR, KX_MAX_ALT })
+#define KX_MAX_OP_DIST          5.0
+#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH, KX_MIN_BROADCAST_RATE, KX_MAX_CLIMB_MS, KX_ALT_FLOOR, KX_MAX_ALT, KX_MAX_OP_DIST })
+
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 #define KX_MAX_DETAILS 256
 #define KX_FIELD_MAX 128
@@ -39,6 +41,7 @@ typedef struct magpie_thresholds {
     float max_climb_ms;
     float altitude_floor_m;
     float max_altitude_m;
+    double max_operator_distance_km;
 } magpie_thresholds_t;
 
 /* Per-aspect checks (pure). */
