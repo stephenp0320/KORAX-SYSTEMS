@@ -631,8 +631,8 @@ static void test_magpie_config_thresholds(void){
     t.prev_location.Latitude = 51.0000; t.location.Latitude = 51.0005;  /* ~55 m */
     t.prev_location_seen = 1000; t.last_location_seen = 1010;           /* over 10 s */
 
-    magpie_thresholds_t loose  = { 5, 150.0 };   /* 150 km/h cap */
-    magpie_thresholds_t strict = { 5, 5.0 };     /* 5 km/h cap   */
+    magpie_thresholds_t loose  = { .grace_seconds = 5, .max_speed_kmh = 150.0 };   /* 150 km/h cap */
+    magpie_thresholds_t strict = { .grace_seconds = 5, .max_speed_kmh = 5.0  };     /* 5 km/h cap   */
 
     ASSERT_TRUE((magpie_validate_jump(&t, &loose).rule  & KX_RULE_IMPLAUSIBLE_JUMP) == 0,
                 "20 km/h move OK under 150 km/h cap");
