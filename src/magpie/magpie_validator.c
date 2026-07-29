@@ -203,6 +203,43 @@ kx_result_t magpie_validate_broadcast_rate(const track_t *track, const magpie_th
     return r;
 }
 
+static double max_speed_ms_for_type(DRONE_ID_uatype_t t){
+    switch (t){
+        case DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR:
+            return 30.0;
+        case DRONE_ID_UATYPE_AEROPLANE:
+            return 120.0;
+        case DRONE_ID_UATYPE_GYROPLANE:
+            return 60.0;
+        case DRONE_ID_UATYPE_HYBRID_LIFT:
+            return 90.0;
+        case DRONE_ID_UATYPE_GLIDER:
+            return 70.0;
+        default:
+            return -1.0;
+    }
+}
+
+kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL) return r;
+    (void)th;
+
+    if (!track->has_basic_id || !track->has_location) return r;
+
+    float speed = track->location.SpeedHorizontal;
+    if (speed >= 255.0f) return r;
+    double cap = max_speed_ms_for_type(track->basic_id.UAType);
+    if (cap < 0.0) return r;
+
+    if ((double)speed > cap){
+        r.rule = KX_RULE_SPEED_EXCEEDS_TYPE;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
