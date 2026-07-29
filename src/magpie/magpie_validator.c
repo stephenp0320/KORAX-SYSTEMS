@@ -266,7 +266,7 @@ kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie
     if (!track->has_location) return r;
     float alt = track->location.AltitudeGeo;
     if (alt <= (float)INV_ALT) return r;
-    if (alt > th->max_altitude_m || alt < th.altitude_floor_m){
+    if (alt > th->max_altitude_m || alt < th->altitude_floor_m){
         r.rule = KX_RULE_ALT_ENVELOPE;
         r.severity = KX_SEVERITY_WARN;
     }
