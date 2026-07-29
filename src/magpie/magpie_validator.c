@@ -158,7 +158,8 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     return r;
 }
 
-kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresholds_t *th){
+kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresholds_t *th)
+{
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
     if (track == NULL) return r;
     (void)th;
@@ -171,6 +172,33 @@ kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresho
     if (now_ts < prev_ts){
         r.rule     = KX_RULE_TIMESTAMP_REWIND;
         r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
+kx_result_t magpie_validate_broadcast_rate(const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL || th == NULL) return r;
+
+    uint64_t oldest = 0, newest = 0;
+    int count = 0;
+    for (int i = 0; i < KX_RATE_WINDOW; i++){
+        uint64_t t = track->arrival_ms[i];
+        if (t == 0) continue;
+        if (count == 0 || t < oldest) oldest = t;
+        if (count == 0 || t > newest) newest = t;
+        count++;
+    }
+
+    if (count < 2) return r;
+    double span_s = (double)(newest - oldest) / 1000.0;
+    if (span_s <= 0.0) return r;
+
+    double rate_hz = (double)(count - 1) / span_s;
+    if (rate_hz < th->min_broadcast_hz){
+        r.rule = KX_RULE_BROADCAST_RATE;
+        r.severity = KX_SEVERITY_ERROR;
     }
     return r;
 }

@@ -31,6 +31,7 @@
 typedef struct magpie_thresholds {
     int    grace_seconds;
     double max_speed_kmh;
+    double min_broadcast_hz;
 } magpie_thresholds_t;
 
 /* Per-aspect checks (pure). */
