@@ -364,6 +364,10 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags = magpie_validate(track, msg, now, th);
     verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
     verdict.flags |= magpie_validate_timestamp(track, th).rule;
+    verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
+    verdict.flags |= magpie_validate_climb_rate(track, th).rule;
+    verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
+    verdict.flags |= magpie_validate_operator_distance(track, th).rule;
 
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
