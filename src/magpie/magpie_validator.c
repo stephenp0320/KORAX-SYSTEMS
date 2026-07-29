@@ -28,6 +28,31 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_POS_JUMP_EXCEEDS_MAX_SPEED;
             break;
+        case KX_RULE_TIMESTAMP_REWIND:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail="location timestamp moved backwards";
+            break;
+        case KX_RULE_BROADCAST_RATE:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_TRACK;
+            *reg=KX_REG_EN_4709;
+            *detail="broadcast rate below the required minimum";
+            break;
+        case KX_RULE_SPEED_EXCEEDS_TYPE:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail="speed exceeds the envelope for the declared aircraft type";
+            break;
+        case KX_RULE_ALT_ENVELOPE:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail="altitude outside the plausible envelope";
+            break;
+        case KX_RULE_OPERATOR_DISTANCE:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail="drone implausibly far from declared operator location";
+            break;
         default:
             *sev=KX_SEVERITY_INFO;
             *field="";
@@ -307,6 +332,8 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_timestamp(track, th).rule;
     flags |= magpie_validate_speed_vs_type(track, th).rule;
     flags |= magpie_validate_climb_rate(track, th).rule;
+    flags |= magpie_validate_altitude_envelope(track, th).rule;
+    flags |= magpie_validate_operator_distance(track, th).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
