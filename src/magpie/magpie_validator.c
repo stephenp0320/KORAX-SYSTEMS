@@ -257,6 +257,22 @@ kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresh
     return r;
 }
 
+kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL) return r;
+    (void)th;
+
+    if (!track->has_location) return r;
+    float alt = track->location.AltitudeGeo;
+    if (alt <= (float)INV_ALT) return r;
+    if (alt > th->max_altitude_m || alt < th.altitude_floor_m){
+        r.rule = KX_RULE_ALT_ENVELOPE;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th)
 {
     uint32_t flags = KX_RULE_NONE;
