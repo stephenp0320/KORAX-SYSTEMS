@@ -70,6 +70,11 @@ static const kx_rule_t all[] = {
         KX_RULE_RESERVED_BITS_SET,
         KX_RULE_FIELD_OUT_OF_RANGE,
         KX_RULE_IMPLAUSIBLE_JUMP,
+        KX_RULE_TIMESTAMP_REWIND,
+        KX_RULE_BROADCAST_RATE,
+        KX_RULE_SPEED_EXCEEDS_TYPE,
+        KX_RULE_ALT_ENVELOPE,
+        KX_RULE_OPERATOR_DISTANCE,
 };
 
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
