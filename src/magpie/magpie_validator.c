@@ -1,5 +1,7 @@
 #include <stddef.h>
 #include "korax/magpie_validator.h"
+#include <math.h>
+#define EARTH_RADIUS_KM 6371.0
 
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
     switch (rule){
@@ -298,10 +300,15 @@ kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie
     return r;
 }
 
-double haversine_km(const track_t *track)
-{
-    double res = jump_detection(track);
-    return res;
+double haversine_km(double lat1, double lon1, double lat2, double lon2){
+    double phi1        = to_radians(lat1);
+    double phi2        = to_radians(lat2);
+    double delta_phi   = to_radians(lat2 - lat1);
+    double delta_lambda= to_radians(lon2 - lon1);
+    double a = sin(delta_phi/2.0) * sin(delta_phi/2.0) + cos(phi1) * cos(phi2) * sin(delta_lambda/2.0) * sin(delta_lambda/2.0);
+
+    double c = 2.0 * asin(sqrt(a));
+    return EARTH_RADIUS_KM * c;
 }
 
 kx_result_t magpie_validate_operator_distance(const track_t *track, const magpie_thresholds_t *th)
@@ -315,7 +322,7 @@ kx_result_t magpie_validate_operator_distance(const track_t *track, const magpie
     double olat = track->system.OperatorLatitude, olon = track->system.OperatorLongitude;
 
     if ((dlat == 0.0 && dlon == 0.0) || (olat == 0.0 && olon == 0.0)) return r;
-    double dist = haversine_km(track);
+    double dist = haversine_km(dlat, dlon, olat, olon);
     if (dist > th->max_operator_distance_km){
         r.rule = KX_RULE_OPERATOR_DISTANCE;
         r.severity = KX_SEVERITY_WARN;
