@@ -35,7 +35,8 @@ static void json_escape(const char *src, char *dst, size_t dstlen){
     dst[j] = '\0';
 }
 
-static const char *rule_name(kx_rule_t rule){
+static const char *rule_name(kx_rule_t rule)
+{
     switch(rule){
         case KX_RULE_MISSING_REQUIRED_MSG:
             return "missing_required_msg";
@@ -47,6 +48,16 @@ static const char *rule_name(kx_rule_t rule){
             return "field_out_of_range";
         case KX_RULE_IMPLAUSIBLE_JUMP:
             return "implausible_jump";
+        case KX_RULE_TIMESTAMP_REWIND:
+            return "timestamp_rewind";
+        case KX_RULE_BROADCAST_RATE:
+            return "broadcast_rate";
+        case KX_RULE_SPEED_EXCEEDS_TYPE:
+            return "speed_exceeds_type";
+        case KX_RULE_ALT_ENVELOPE:
+            return "alt_envelope";
+        case KX_RULE_OPERATOR_DISTANCE:
+            return "operator_distance";
         default:
             return "unknown";
     }
