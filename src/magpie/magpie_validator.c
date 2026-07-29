@@ -300,7 +300,7 @@ kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie
 
 double haversine_km(const track_t *track)
 {
-    int res = jump_detection(track);
+    double res = jump_detection(track);
     return res;
 }
 
