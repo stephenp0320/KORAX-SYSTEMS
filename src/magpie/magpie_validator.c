@@ -283,7 +283,7 @@ kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresh
     if (ver_speed >= (float)INV_SPEED_V) return r;
     float magnitude = (ver_speed < 0.0f) ? -ver_speed : ver_speed;
     if (magnitude > th->max_climb_ms){
-        r.rule     = KX_RULE_MAX_CLIMB_MS; // this needs to be a rule ! [KX_MAX_CLIMB_MS];
+        r.rule     = KX_RULE_MAX_CLIMB_MS;
         r.severity = KX_SEVERITY_WARN;
     }
     return r;

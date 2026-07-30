@@ -5,6 +5,11 @@
 #define KX_DEFAULT_GRACE     5
 #define KX_DEFAULT_MAX_SPEED 150.0
 #define KX_DEFAULT_LOG_LEVEL 2
+#define KX_DEFAULT_MIN_BROADCAST_HZ 0.5
+#define KX_DEFAULT_MAX_CLIMB 20.0
+#define KX_DEFAULT_ALT_FLOOR -500.0
+#define KX_DEFAULT_MAX_ALT MAX_ALT
+#define KX_DEFAULT_MAX_OP_DIST 5.0
 #define KX_DEFAULT_MQTT_ENABLED false
 #define KX_DEFAULT_MQTT_HOST    "localhost"
 #define KX_DEFAULT_MQTT_PORT    1883
@@ -16,6 +21,11 @@ typedef struct {
     int    expiry_seconds;
     int    grace_seconds;
     double max_speed_kmh;
+    double min_broadcast_hz;
+    float max_climb_ms;
+    float altitude_floor_m;
+    float max_altitude_m;
+    double max_operator_distance_km;
     int    log_level;
     bool   mqtt_enabled;
     char   mqtt_host[256];

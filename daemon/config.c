@@ -19,6 +19,11 @@ int config_defaults(korax_config_t *cfg) {
     cfg->max_speed_kmh = KX_DEFAULT_MAX_SPEED;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->mqtt_enabled = KX_DEFAULT_MQTT_ENABLED;
+    cfg->min_broadcast_hz = KX_DEFAULT_MIN_BROADCAST_HZ;
+    cfg->altitude_floor_m = KX_DEFAULT_ALT_FLOOR;
+    cfg->max_altitude_m = KX_DEFAULT_MAX_ALT;
+    cfg->max_climb_ms = KX_DEFAULT_MAX_CLIMB;
+    cfg->max_operator_distance_km = KX_DEFAULT_MAX_OP_DIST;
     snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
