@@ -8,13 +8,14 @@
 #include "korax/pipeline.h"
 
 static void handle_frame(const uint8_t *buf, int len, track_table_t *table){
+    time_t now = time(NULL);
     uint8_t type = (buf[0] >> 4) & 0x0F;
     if (type == MESSAGETYPE_PACKED) {
-        decode_message_pack((uint8_t *)buf, len, table, &MAGPIE_DEFAULT_THRESHOLDS);
+        decode_message_pack((uint8_t *)buf, len, now, table, &MAGPIE_DEFAULT_THRESHOLDS);
     } else {
         decoded_message_t msg;
         if (decode_message(buf, len, &msg) == DECODE_OK){
-            process_decoded_message(table, &msg, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+            process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
         }
     }
 }
