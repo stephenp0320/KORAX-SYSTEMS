@@ -238,17 +238,17 @@ kx_result_t magpie_validate_broadcast_rate(const track_t *track, const magpie_th
 static double max_speed_ms_for_type(DRONE_ID_uatype_t t){
     switch (t){
         case DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR:
-            return 30.0;
+            return DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR_MAX_SPEED;
         case DRONE_ID_UATYPE_AEROPLANE:
-            return 120.0;
+            return DRONE_ID_UATYPE_AEROPLANE_MAX_SPEED;
         case DRONE_ID_UATYPE_GYROPLANE:
-            return 60.0;
+            return DRONE_ID_UATYPE_GYROPLANE_MAX_SPEED;
         case DRONE_ID_UATYPE_HYBRID_LIFT:
-            return 90.0;
+            return DRONE_ID_UATYPE_HYBRID_LIFT_MAX_SPEED;
         case DRONE_ID_UATYPE_GLIDER:
-            return 70.0;
+            return DRONE_ID_UATYPE_GLIDER_MAX_SPEED;
         default:
-            return -1.0;
+            return UNDEFINED_MAX_SPEED;
     }
 }
 
@@ -346,6 +346,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_climb_rate(track, th).rule;
     flags |= magpie_validate_altitude_envelope(track, th).rule;
     flags |= magpie_validate_operator_distance(track, th).rule;
+    flags |= magpie_validate_broadcast_rate(track, th).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
@@ -380,6 +381,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_climb_rate(track, th).rule;
     verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
     verdict.flags |= magpie_validate_operator_distance(track, th).rule;
+    verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
 
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){

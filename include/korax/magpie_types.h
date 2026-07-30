@@ -23,6 +23,12 @@
 #define KX_SPEED_EXCEEDS_ENVELOPE "speed exceeds the envelope for the declared aircraft type"
 #define KX_ALT_OUTSIDE_PLAUSIBLE_ENVELOPE "altitude outside the plausible envelope"
 #define KX_DRONE_OPERATOR_LOC_TOO_FAR "drone implausibly far from declared operator location"
+#define DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR_MAX_SPEED 30.0
+#define DRONE_ID_UATYPE_AEROPLANE_MAX_SPEED 120.0
+#define DRONE_ID_UATYPE_GYROPLANE_MAX_SPEED 60.0
+#define DRONE_ID_UATYPE_HYBRID_LIFT_MAX_SPEED 90.0
+#define DRONE_ID_UATYPE_GLIDER_MAX_SPEED 70.0
+#define UNDEFINED_MAX_SPEED -1.0
 #define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW     16
 
