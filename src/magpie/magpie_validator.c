@@ -33,27 +33,27 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
         case KX_RULE_TIMESTAMP_REWIND:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
-            *detail="location timestamp moved backwards";
+            *detail=KX_LOC_TIMESTAMP_MOVED_BACKWARDS;
             break;
         case KX_RULE_BROADCAST_RATE:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_TRACK;
             *reg=KX_REG_EN_4709;
-            *detail="broadcast rate below the required minimum";
+            *detail=KX_BROADCAST_RATE_BELOW_REQ_MIN;
             break;
         case KX_RULE_SPEED_EXCEEDS_TYPE:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
-            *detail="speed exceeds the envelope for the declared aircraft type";
+            *detail=KX_SPEED_EXCEEDS_ENVELOPE;
             break;
         case KX_RULE_ALT_ENVELOPE:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
-            *detail="altitude outside the plausible envelope";
+            *detail=KX_ALT_OUTSIDE_PLAUSIBLE_ENVELOPE;
             break;
         case KX_RULE_OPERATOR_DISTANCE:
             *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
-            *detail="drone implausibly far from declared operator location";
+            *detail=KX_DRONE_OPERATOR_LOC_TOO_FAR;
             break;
         default:
             *sev=KX_SEVERITY_INFO;

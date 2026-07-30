@@ -18,6 +18,11 @@
 #define KX_FIELD_VAL_OUTSIDE_SPEC_RANGE "a field value is outside its specification range"
 #define KX_POS_JUMP_EXCEEDS_MAX_SPEED "position jump exceeds maximum speed"
 #define KX_RES_BITS_OBSERVED_SET "reserved bits observed set"
+#define KX_LOC_TIMESTAMP_MOVED_BACKWARDS "location timestamp moved backwards"
+#define KX_BROADCAST_RATE_BELOW_REQ_MIN "broadcast rate below the required minimum"
+#define KX_SPEED_EXCEEDS_ENVELOPE "speed exceeds the envelope for the declared aircraft type"
+#define KX_ALT_OUTSIDE_PLAUSIBLE_ENVELOPE "altitude outside the plausible envelope"
+#define KX_DRONE_OPERATOR_LOC_TOO_FAR "drone implausibly far from declared operator location"
 #define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW     16
 
