@@ -805,13 +805,13 @@ static void test_mac_multi_drone(void){
     /* two Basic IDs (same UAS ID) from two MACs must key to two tracks */
     ble_adv_frame_t ba = make_ble_frame(PKT_BASIC, macA, 1, -50);
     ble_adv_frame_t bb = make_ble_frame(PKT_BASIC, macB, 1, -60);
-    process_ble_frame(&ba, &table);
-    process_ble_frame(&bb, &table);
+    process_ble_frame(&ba, 5000, &table);
+    process_ble_frame(&bb, 5000, &table);
     ASSERT_EQ_INT(table.num_tracks, 2, "two MACs -> two tracks (keyed by MAC, not UAS ID)");
 
     /* a Location from macA must attach to macA's track only, not blindly tracks[0] */
     ble_adv_frame_t la = make_ble_frame(PKT_LOCATION, macA, 2, -50);
-    process_ble_frame(&la, &table);
+    process_ble_frame(&la, 5000, &table);
     int a = find_track_by_mac(&table, macA);
     int b = find_track_by_mac(&table, macB);
     ASSERT_TRUE(a >= 0 && b >= 0, "both MAC tracks present");
@@ -823,7 +823,7 @@ static void test_ble_frame_plumbing(void){
     track_table_t table; track_table_init(&table);
     uint8_t mac[6] = {0,0,0,0,0,0xCC};
     ble_adv_frame_t f = make_ble_frame(PKT_BASIC, mac, 0x2A, -73);
-    process_ble_frame(&f, &table);
+    process_ble_frame(&f, 5000, &table);
     int idx = find_track_by_mac(&table, mac);
     ASSERT_TRUE(idx >= 0, "track created from BLE frame");
     ASSERT_EQ_INT(table.tracks[idx].last_rssi_dbm, -73, "RSSI carried onto the track");
