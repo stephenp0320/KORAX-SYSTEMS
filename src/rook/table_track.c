@@ -59,7 +59,7 @@ int find_track(track_table_t *tracks, const char *uas_id){
     return TRACK_NOT_FOUND;
 }
 
-int track_table_create(track_table_t *table, const char *uas_id){
+int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     if (table == NULL || uas_id == NULL) return TRACK_ERR;
     if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
 
@@ -68,14 +68,14 @@ int track_table_create(track_table_t *table, const char *uas_id){
     strncpy(table->tracks[track_num].uas_id, uas_id, 20);
 
     table->tracks[track_num].uas_id[20] = '\0';
-    table->tracks[track_num].first_seen = time(NULL);
+    table->tracks[track_num].first_seen = time(&now);
     table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
     table->num_tracks++;
 
     return track_num;
 }
 
-int track_table_create_by_source_mac(track_table_t *table, const uint8_t *source_mac){
+int track_table_create_by_source_mac(track_table_t *table, time_t now, const uint8_t *source_mac){
     if (table == NULL || source_mac == NULL) return TRACK_ERR;
     if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
 
@@ -83,7 +83,7 @@ int track_table_create_by_source_mac(track_table_t *table, const uint8_t *source
     memset(&table->tracks[track_num], 0, sizeof(track_t));
     memcpy(table->tracks[track_num].source_mac, source_mac, sizeof(table->tracks[track_num].source_mac));
 
-    table->tracks[track_num].first_seen = time(NULL);
+    table->tracks[track_num].first_seen = time(&now);
     table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
     table->num_tracks++;
 
@@ -104,7 +104,7 @@ double jump_detection(const track_t *table){
     return EARTH_RADIUS_KM * c;
 }
 
-int track_table_update(track_t *drone_track, const decoded_message_t *msg){
+int track_table_update(track_t *drone_track, time_t now, const decoded_message_t *msg){
     if (drone_track == NULL || msg == NULL) return TRACK_ERR;
 
     switch (msg->type){
@@ -119,7 +119,7 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
             drone_track->prev_location = drone_track->location;
             drone_track->prev_location_seen = drone_track->last_location_seen;
             drone_track->location = msg->data.location;
-            drone_track->last_location_seen = time(NULL);
+            drone_track->last_location_seen = time(&now);
             drone_track->has_location = 1;
             drone_track->msg_count_location++;
             break;
@@ -146,9 +146,9 @@ int track_table_update(track_t *drone_track, const decoded_message_t *msg){
         default:
             return TRACK_ERR;
     }
-    drone_track->arrival_ms[drone_track->head] = (uint64_t)time(NULL) * 1000;
+    drone_track->arrival_ms[drone_track->head] = (uint64_t)time(&now) * 1000;
     drone_track->head = (drone_track->head + 1) % KX_RATE_WINDOW;
-    drone_track->last_seen = time(NULL);
+    drone_track->last_seen = time(&now);
     return TRACK_OK;
 }
 

@@ -9,7 +9,7 @@
 #define ODID_PACK_MAX_MESSAGES 9
 #define PACK_HEADER_SIZE 3
 
-int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_table, const magpie_thresholds_t *th){
+int decode_message_pack(uint8_t *packet, int packet_len, time_t now, track_table_t *track_table, const magpie_thresholds_t *th){
     if (packet == NULL || track_table == NULL || th == NULL) return DECODE_ERR_NULL;
     if (packet_len < PACK_HEADER_SIZE) return DECODE_ERR_TOO_SHORT;
 
@@ -33,7 +33,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, track_table_t *track_ta
         int decode_msg_result = decode_message(msg_start, RID_MESSAGE_SIZE, &msg);
         if (decode_msg_result != 0) return decode_msg_result;
 
-        int processed_decoded_msg = process_decoded_message(track_table, &msg, th, NULL);
+        int processed_decoded_msg = process_decoded_message(track_table, &msg, now, th, NULL);
         if (processed_decoded_msg < 0) return processed_decoded_msg;
     }
     return 0;

@@ -187,7 +187,7 @@ static void test_message_pack_valid(void)
     track_table_t table;
     track_table_init(&table);
 
-    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_OK, "pack decodes");
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_OK, "pack decodes");
     ASSERT_EQ_INT(table.num_tracks, 1, "pack -> one track");
     ASSERT_EQ_INT(table.tracks[0].has_basic_id, 1, "pack track has basic id");
     ASSERT_EQ_INT(table.tracks[0].has_location, 1, "pack track has location");
@@ -202,26 +202,26 @@ static void test_message_pack_errors(void)
 
     uint8_t zero_count[3] = { 0xF2, 0x19, 0x00 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
 
     uint8_t big_count[3] = { 0xF2, 0x19, 0xFF };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
 
     uint8_t bad_size[3] = { 0xF2, 0x18, 0x03 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
 
     uint8_t truncated[10] = { 0xF2, 0x19, 0x02, 0x02, 0x12, 0x31 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
 
     uint8_t tiny[2] = { 0xF2, 0x19 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
 
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
 }
 
 static void test_jump_distance(void){
@@ -257,8 +257,8 @@ static void test_previous_location_tracking(void){
     second.data.location.Latitude  = 51.4788;
     second.data.location.TimeStamp = 101.0;
 
-    track_table_update(&track, &first);
-    track_table_update(&track, &second);
+    track_table_update(&track, 3000, &first);
+    track_table_update(&track, 3000, &second);
 
     ASSERT_EQ_INT(track.msg_count_location, 2, "two locations counted");
     ASSERT_NEAR(track.prev_location.Latitude,  51.4778, 1e-6, "previous latitude retained");
@@ -275,7 +275,7 @@ static void test_first_location_has_no_previous(void){
     first.type = MESSAGETYPE_LOCATION;
     first.data.location.Latitude  = 51.4778;
     first.data.location.TimeStamp = 100.0;
-    track_table_update(&track, &first);
+    track_table_update(&track, 3000, &first);
 
     ASSERT_EQ_INT(track.msg_count_location, 1, "one location counted");
     ASSERT_NEAR(track.location.Latitude,       51.4778, 1e-6, "current latitude set");
@@ -292,9 +292,9 @@ static void test_previous_location_rolls_forward(void){
     m1.data.location.Latitude = 51.0; m1.data.location.TimeStamp = 100.0;
     m2.data.location.Latitude = 52.0; m2.data.location.TimeStamp = 101.0;
     m3.data.location.Latitude = 53.0; m3.data.location.TimeStamp = 102.0;
-    track_table_update(&track, &m1);
-    track_table_update(&track, &m2);
-    track_table_update(&track, &m3);
+    track_table_update(&track, 3000, &m1);
+    track_table_update(&track, 3000, &m2);
+    track_table_update(&track, 3000, &m3);
 
     ASSERT_EQ_INT(track.msg_count_location, 3, "three locations counted");
     ASSERT_NEAR(track.prev_location.Latitude,  52.0, 1e-6, "prev is the 2nd fix");
@@ -619,7 +619,7 @@ static void test_pack_multi_drone(void){
     track_table_t table;
     track_table_init(&table);
 
-    ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, &table, &MAGPIE_DEFAULT_THRESHOLDS), 0, "multi-drone pack decodes");
+    ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), 0, "multi-drone pack decodes");
     ASSERT_EQ_INT(table.num_tracks, 2, "both sub-messages land -> 2 tracks (2nd not dropped)");
     ASSERT_TRUE(find_track(&table, "AAAAAAAAAAAAAAAAAAAA") >= 0, "drone A tracked");
     ASSERT_TRUE(find_track(&table, "BBBBBBBBBBBBBBBBBBBB") >= 0, "drone B tracked");
@@ -649,9 +649,9 @@ static void test_expiry(void){
     track_table_t table;
     track_table_init(&table);
 
-    int a = track_table_create(&table, "EXPIREDRONE0");
-    int b = track_table_create(&table, "EXPIREDRONE1");
-    int c = track_table_create(&table, "FRESHDRONE2");
+    int a = track_table_create(&table, 3000, "EXPIREDRONE0");
+    int b = track_table_create(&table, 3000, "EXPIREDRONE1");
+    int c = track_table_create(&table, 3000, "FRESHDRONE2");
     ASSERT_TRUE(a >= 0 && b >= 0 && c >= 0, "three tracks created");
 
     table.tracks[a].last_seen = 1000;   /* stale */
@@ -669,7 +669,7 @@ static void test_expiry(void){
 
     /* boundary: exactly at the timeout is NOT removed (now - last_seen == expiry) */
     track_table_init(&table);
-    int d = track_table_create(&table, "BOUNDARY");
+    int d = track_table_create(&table, 3000, "BOUNDARY");
     table.tracks[d].last_seen = 1000;
     ASSERT_EQ_INT(track_table_expire(&table, 1060, 60, NULL, NULL), 0, "exactly at timeout -> not removed");
 }
@@ -684,8 +684,8 @@ static void test_find_by_mac(void){
 
     ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), TRACK_NOT_FOUND, "empty table -> NOT_FOUND");
 
-    int a = track_table_create(&table, "MACDRONE_A");
-    int b = track_table_create(&table, "MACDRONE_B");
+    int a = track_table_create(&table, 3000, "MACDRONE_A");
+    int b = track_table_create(&table, 3000, "MACDRONE_B");
     memcpy(table.tracks[a].source_mac, mac_a, 6);
     memcpy(table.tracks[b].source_mac, mac_b, 6);
 
@@ -791,7 +791,7 @@ static void test_ble_extraction(void){
 static void test_create_by_mac(void){
     track_table_t table; track_table_init(&table);
     uint8_t mac[6] = {0x11,0x22,0x33,0x44,0x55,0x66};
-    int idx = track_table_create_by_source_mac(&table, mac);
+    int idx = track_table_create_by_source_mac(&table, 3000, mac);
     ASSERT_TRUE(idx >= 0, "create_by_mac returns an index");
     ASSERT_EQ_INT(table.num_tracks, 1, "num_tracks incremented");
     ASSERT_EQ_INT(memcmp(table.tracks[idx].source_mac, mac, 6), 0, "all 6 MAC bytes copied");
