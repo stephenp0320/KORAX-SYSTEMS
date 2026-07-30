@@ -48,8 +48,8 @@ int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_
     uint8_t msg_counter = 0;
     decoded_message_t msg;
 
-    if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0) return;
-    if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return;
+    if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0) return -1;
+    if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return -1;
 
     int idx = process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, ble_frame);
     if (idx >= 0){
