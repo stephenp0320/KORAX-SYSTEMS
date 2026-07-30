@@ -89,6 +89,7 @@ static void broadcast_track_update(koraxd_t *daemon, int idx){
 }
 
 static void handle_source_frame(koraxd_t *daemon){
+    time_t now = time(NULL);
     char linebuf[512];
     if (fgets(linebuf, sizeof linebuf, daemon->source) == NULL){
         rewind(daemon->source);
@@ -105,14 +106,14 @@ static void handle_source_frame(koraxd_t *daemon){
 
     uint8_t type = (buf[0] >> 4) & 0x0F;
     if (type == MESSAGETYPE_PACKED){
-        decode_message_pack(buf, count, &daemon->table, &daemon->thresholds);
+        decode_message_pack(buf, count, now, &daemon->table, &daemon->thresholds);
         for (int i = 0; i < daemon->table.num_tracks; i++){
             broadcast_track_update(daemon, i);
         }
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
-            int idx = process_decoded_message(&daemon->table, &msg, &daemon->thresholds, NULL);
+            int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
             }
