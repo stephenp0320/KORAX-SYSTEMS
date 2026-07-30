@@ -4,6 +4,7 @@
 #include "korax/capture.h"
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
+#include "korax/pipeline.h"
 
 int process_decoded_message(track_table_t *table, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const ble_adv_frame_t *frame){
     if (table == NULL || msg == NULL) return TRACK_ERR;
