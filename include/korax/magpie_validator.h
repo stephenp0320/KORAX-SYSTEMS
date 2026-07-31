@@ -60,5 +60,6 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
 kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table);
 kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *table);
+kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *table);
 #endif
 

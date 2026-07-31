@@ -354,6 +354,24 @@ kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *
     }
     return r;
 }
+kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *table)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (track == NULL || table == NULL) return r;
+    if (track->source_mac[0] == '\0') return r;
+
+    int count = 0;
+    for (int i = 0; i < table->num_tracks; i++){
+        if (memcmp(table->tracks[i].source_mac, track->source_mac, sizeof track->source_mac) == 0){
+            count++;
+        }
+    }
+    if (count > 1){
+        r.rule = KX_RULE_ID_CHURN;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
 {
@@ -368,6 +386,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_operator_distance(track, th).rule;
     flags |= magpie_validate_broadcast_rate(track, th).rule;
     flags |= magpie_validate_id_clone(track, table).rule;
+    flags |= magpie_validate_id_churn(track, table).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
@@ -404,6 +423,8 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_operator_distance(track, th).rule;
     verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
     verdict.flags |= magpie_validate_id_clone(track, table).rule;
+    verdict.flags |= magpie_validate_id_churn(track, table).rule;
+
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
         if (verdict.flags & all[i]){

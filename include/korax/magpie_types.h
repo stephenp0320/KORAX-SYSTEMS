@@ -48,7 +48,8 @@ typedef enum {
     KX_RULE_ALT_ENVELOPE         = 1u<<9,
     KX_RULE_OPERATOR_DISTANCE    = 1u<<10,
     KX_RULE_CLIMB_RATE           = 1u<<11,
-    KX_RULE_DUPLICATION_DETECTED = 1u<<12
+    KX_RULE_DUPLICATION_DETECTED = 1u<<12,
+    KX_RULE_ID_CHURN             = 1u<<13
 } kx_rule_t;
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \
