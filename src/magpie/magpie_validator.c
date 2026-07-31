@@ -1,6 +1,8 @@
 #include <stddef.h>
+#include <stdio.h>
 #include "korax/magpie_validator.h"
 #include <math.h>
+#include <string.h>
 #define EARTH_RADIUS_KM 6371.0
 
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
@@ -335,7 +337,25 @@ kx_result_t magpie_validate_operator_distance(const track_t *track, const magpie
     return r;
 }
 
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th)
+kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *table){
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
+    if (track == NULL || table == NULL) return r;
+    if (track->uas_id[0] == '\0') return r;
+
+    int count = 0;
+    for (int i = 0; i < table->num_tracks; i++){
+        if (strcmp(table->tracks[i].uas_id, track->uas_id) == 0){
+            count++;
+        }
+    }
+    if (count > 1){
+        r.rule     = KX_RULE_DUPLICATION_DETECTED;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
 {
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
@@ -347,6 +367,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_altitude_envelope(track, th).rule;
     flags |= magpie_validate_operator_distance(track, th).rule;
     flags |= magpie_validate_broadcast_rate(track, th).rule;
+    flags |= magpie_validate_id_clone(track, table).rule;
 
     if (msg != NULL) {
         switch (msg->type) {
@@ -365,7 +386,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
 
 
 
-kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th){
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
@@ -374,7 +395,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     };
     if (track == NULL) return verdict;
 
-    verdict.flags = magpie_validate(track, msg, now, th);
+    verdict.flags = magpie_validate(track, msg, now, th, table);
     verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
     verdict.flags |= magpie_validate_timestamp(track, th).rule;
     verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
@@ -382,7 +403,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
     verdict.flags |= magpie_validate_operator_distance(track, th).rule;
     verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
-
+    verdict.flags |= magpie_validate_id_clone(track, table).rule;
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
         if (verdict.flags & all[i]){
