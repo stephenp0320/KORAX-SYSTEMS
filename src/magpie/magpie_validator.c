@@ -373,6 +373,29 @@ kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *
     return r;
 }
 
+kx_result_t magpie_validate_counter_replay(const track_table_t *table, const track_t *track)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (table == NULL || track == NULL) return r;
+
+    uint8_t new_msg_counter = 0;
+    uint8_t last_msg_counter = 0;
+    uint8_t flag = 0;
+    for (int i = 0; i < table->num_tracks; i++){
+        new_msg_counter = track->head;
+        last_msg_counter = table->tracks[i].last_msg_counter;
+        uint8_t delta = (new_msg_counter - last_msg_counter);
+        if (delta == 0 || delta > REPLAY_BACKWARD_WINDOW){
+            flag = 1;
+        }
+    }
+    if (flag == 1){
+        r.rule = KX_RULE_COUNTER_REPLAY;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
 {
     uint32_t flags = KX_RULE_NONE;
