@@ -421,12 +421,12 @@ static void test_magpie_validate_composed(void){
     msg.data.location.Latitude = 51.0; msg.data.location.AltitudeGeo = 100.0;
     msg.data.location.AltitudeBaro = 100.0; msg.data.location.TimeStamp = 10.0;
     msg.data.location.Status = DRONE_ID_STATUS_AIRBORNE;
-    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS), 0, "compliant track+msg -> 0 (compliant)");
+    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL), 0, "compliant track+msg -> 0 (compliant)");
 
     /* incomplete track -> at least the missing-required bit set */
     track_t bad; memset(&bad, 0, sizeof bad);
     bad.has_basic_id = 1;   /* missing location/system/operator */
-    uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS);
+    uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
 }
 
@@ -702,7 +702,7 @@ static void test_golden_verdict(void){
     track_t ok; memset(&ok, 0, sizeof ok);
     ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
     ok.last_location_seen = 5000; ok.msg_count_location = 1;
-    kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     ASSERT_EQ_INT(v_ok.flags, KX_RULE_NONE, "golden: compliant track -> flags 0");
     ASSERT_TRUE(v_ok.compliant, "golden: compliant track -> compliant true");
     ASSERT_EQ_INT(v_ok.finding_count, 0, "golden: compliant track -> no findings");
@@ -711,7 +711,7 @@ static void test_golden_verdict(void){
     /* 2. Missing required messages -> exactly one ERROR finding. */
     track_t miss; memset(&miss, 0, sizeof miss);
     miss.has_basic_id = 1;   /* no location / system / operator */
-    kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     ASSERT_EQ_INT(v_miss.flags, KX_RULE_MISSING_REQUIRED_MSG, "golden: incomplete -> exactly MISSING_REQUIRED_MSG");
     ASSERT_TRUE(!v_miss.compliant, "golden: incomplete -> not compliant");
     ASSERT_EQ_INT(v_miss.finding_count, 1, "golden: incomplete -> one finding");
@@ -722,14 +722,14 @@ static void test_golden_verdict(void){
     track_t res; memset(&res, 0, sizeof res);
     res.has_basic_id = 1; res.has_location = 1; res.has_system = 1; res.has_operator_id = 1;
     res.last_location_seen = 5000; res.msg_count_location = 1; res.reserved_bits_seen = 1;
-    kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     ASSERT_EQ_INT(v_res.flags, KX_RULE_RESERVED_BITS_SET, "golden: reserved -> exactly RESERVED_BITS_SET");
     ASSERT_TRUE(v_res.compliant, "golden: reserved (WARN) -> still compliant");
     ASSERT_EQ_INT(v_res.finding_count, 1, "golden: reserved -> one finding");
     ASSERT_EQ_INT(v_res.findings[0].severity, KX_SEVERITY_WARN, "golden: reserved severity WARN");
 
     /* 4. Determinism: same input + same ruleset -> identical verdict. */
-    kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     ASSERT_EQ_INT(again.flags, v_miss.flags, "golden: deterministic flags");
     ASSERT_EQ_INT(again.finding_count, v_miss.finding_count, "golden: deterministic finding_count");
     ASSERT_TRUE(again.compliant == v_miss.compliant, "golden: deterministic compliant");
@@ -738,7 +738,7 @@ static void test_golden_verdict(void){
     track_t jt; memset(&jt, 0, sizeof jt);
     jt.has_basic_id = 1;   /* incomplete -> MISSING_REQUIRED_MSG */
     strcpy(jt.uas_id, "GOLDEN-0001");
-    kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS);
+    kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
     jt.flags = jv.flags; jt.is_compliant = jv.compliant;
     jt.finding_count = jv.finding_count;
     memcpy(jt.findings, jv.findings, sizeof jt.findings);
