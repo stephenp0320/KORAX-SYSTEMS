@@ -27,7 +27,8 @@ int config_defaults(korax_config_t *cfg) {
     snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
-
+    cfg->sensor_lat = KX_DEFAULT_SENSOR_LAT;
+    cfg->sensor_lon = KX_DEFAULT_SENSOR_LON;
     if (cfg->expiry_seconds <= 0) return CONFIG_ERR;
     return CONFIG_OK;
 }

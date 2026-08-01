@@ -14,6 +14,8 @@
 #define KX_DEFAULT_MQTT_HOST    "localhost"
 #define KX_DEFAULT_MQTT_PORT    1883
 #define KX_DEFAULT_MQTT_TOPIC   "korax/tracks"
+#define KX_DEFAULT_SENSOR_LAT 0.0
+#define KX_DEFAULT_SENSOR_LON 0.0
 
 typedef struct {
     char   socket_path[108];
@@ -31,6 +33,8 @@ typedef struct {
     char   mqtt_host[256];
     int    mqtt_port;
     char   mqtt_topic[128];
+    double sensor_lat;
+    double sensor_lon;
 } korax_config_t;
 
 int config_defaults(korax_config_t *cfg);

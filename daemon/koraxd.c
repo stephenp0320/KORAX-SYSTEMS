@@ -28,6 +28,8 @@ typedef struct {
     magpie_thresholds_t thresholds;
     struct mosquitto *mqtt;
     char mqtt_topic[MQTT_TOPIC_SIZE];
+    double sensor_lat;
+    double sensor_lon;
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -197,7 +199,8 @@ int main(int argc, char **argv){
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
-
+    daemon.sensor_lat = cfg.sensor_lat;
+    daemon.sensor_lon = cfg.sensor_lon;
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
