@@ -32,6 +32,9 @@
 #define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW     16
 #define REPLAY_BACKWARD_WINDOW 32
+#define KX_RSSI_AT_1M    (-50.0)
+#define KX_PATHLOSS_N      2.5
+#define KX_RSSI_MARGIN_DB  20.0
 
 typedef enum { KX_SEVERITY_INFO=0, KX_SEVERITY_WARN, KX_SEVERITY_ERROR } kx_severity_t;
 
@@ -51,7 +54,8 @@ typedef enum {
     KX_RULE_CLIMB_RATE           = 1u<<11,
     KX_RULE_DUPLICATION_DETECTED = 1u<<12,
     KX_RULE_ID_CHURN             = 1u<<13,
-    KX_RULE_COUNTER_REPLAY            = 1u<<14
+    KX_RULE_COUNTER_REPLAY       = 1u<<14,
+    KX_RULE_RSSI_POSITION        = 1u<<15
 } kx_rule_t;
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \

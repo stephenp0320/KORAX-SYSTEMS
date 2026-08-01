@@ -42,6 +42,9 @@ typedef struct magpie_thresholds {
     float altitude_floor_m;
     float max_altitude_m;
     double max_operator_distance_km;
+    double sensor_lat;
+    double sensor_lon;
+    bool   has_sensor_pos;
 } magpie_thresholds_t;
 
 /* Per-aspect checks (pure). */

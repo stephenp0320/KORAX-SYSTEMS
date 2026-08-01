@@ -396,6 +396,32 @@ kx_result_t magpie_validate_counter_replay(const track_table_t *table, const tra
     return r;
 }
 
+
+kx_result_t magpie_validate_rssi_position(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (table == NULL || track == NULL) return r;
+
+    int flag = 0;
+    if (track == NULL || th == NULL) return r;
+    if (!th->has_sensor_pos) return r;
+    if (!track->has_location) return r;
+    if (track->location.Latitude == 0.0 && track->location.Longitude == 0.0) return r;
+    if (track->last_rssi_dbm == 0) return r;
+    double claimed_dist_km = haversine_km(track->location.Latitude,
+                                              track->location.Longitude,
+                                              th->sensor_lat,
+                                              th->sensor_lon) * 1000.0;
+    if (claimed_dist_km < 1.0) claimed_dist_km = 1.0;
+    double expected_rssi = KX_RSSI_AT_1M - 10.0 * KX_PATHLOSS_N * log10(claimed_dist_km);
+    if ((double)track->last_rssi_dbm > expected_rssi + KX_RSSI_MARGIN_DB) flag = 1;
+    if (flag == 1){
+        r.rule = KX_RULE_RSSI_POSITION;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
 {
     uint32_t flags = KX_RULE_NONE;
@@ -410,7 +436,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_broadcast_rate(track, th).rule;
     flags |= magpie_validate_id_clone(track, table).rule;
     flags |= magpie_validate_id_churn(track, table).rule;
-
+    flags |= magpie_validate_rssi_position(table, track, th).rule;
     if (msg != NULL) {
         switch (msg->type) {
             case MESSAGETYPE_BASIC_ID:
@@ -447,6 +473,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
     verdict.flags |= magpie_validate_id_clone(track, table).rule;
     verdict.flags |= magpie_validate_id_churn(track, table).rule;
+    verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
 
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
