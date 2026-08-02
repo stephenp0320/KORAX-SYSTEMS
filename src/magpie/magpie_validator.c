@@ -76,7 +76,9 @@ static const kx_rule_t all[] = {
         KX_RULE_BROADCAST_RATE,
         KX_RULE_SPEED_EXCEEDS_TYPE,
         KX_RULE_ALT_ENVELOPE,
+        KX_RULE_COUNTER_REPLAY,
         KX_RULE_OPERATOR_DISTANCE,
+        KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT
 };
 
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
@@ -463,7 +465,9 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_broadcast_rate(track, th).rule;
     flags |= magpie_validate_id_clone(track, table).rule;
     flags |= magpie_validate_id_churn(track, table).rule;
+    flags |= magpie_validate_counter_replay(table, track).rule;
     flags |= magpie_validate_rssi_position(table, track, th).rule;
+    flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
     if (msg != NULL) {
         switch (msg->type) {
             case MESSAGETYPE_BASIC_ID:
@@ -500,8 +504,9 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
     verdict.flags |= magpie_validate_id_clone(track, table).rule;
     verdict.flags |= magpie_validate_id_churn(track, table).rule;
+    verdict.flags |= magpie_validate_counter_replay(table, track).rule;
     verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
-
+    verdict.flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
         if (verdict.flags & all[i]){
