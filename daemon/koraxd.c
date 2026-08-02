@@ -30,6 +30,7 @@ typedef struct {
     char mqtt_topic[MQTT_TOPIC_SIZE];
     double sensor_lat;
     double sensor_lon;
+    bool   has_sensor_pos;
 } koraxd_t;
 
 static koraxd_t *g_daemon = NULL;
@@ -201,6 +202,7 @@ int main(int argc, char **argv){
     daemon.expiry_seconds = cfg.expiry_seconds;
     daemon.sensor_lat = cfg.sensor_lat;
     daemon.sensor_lon = cfg.sensor_lon;
+    daemon.has_sensor_pos = cfg.has_sensor_pos;
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
