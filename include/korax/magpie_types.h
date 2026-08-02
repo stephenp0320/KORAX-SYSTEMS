@@ -55,7 +55,8 @@ typedef enum {
     KX_RULE_DUPLICATION_DETECTED = 1u<<12,
     KX_RULE_ID_CHURN             = 1u<<13,
     KX_RULE_COUNTER_REPLAY       = 1u<<14,
-    KX_RULE_RSSI_POSITION        = 1u<<15
+    KX_RULE_RSSI_POSITION        = 1u<<15,
+    KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT = 1u<<16
 } kx_rule_t;
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \

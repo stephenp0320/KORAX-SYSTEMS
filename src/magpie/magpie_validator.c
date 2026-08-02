@@ -422,6 +422,33 @@ kx_result_t magpie_validate_rssi_position(const track_table_t *table, const trac
     return r;
 }
 
+kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (table == NULL || track == NULL) return r;
+    int flag = 0;
+    if (!th->has_sensor_pos) return r;
+    if (!track->has_location) return r;
+    if (track->location.Latitude == 0.0 && track->location.Longitude == 0.0) return r;
+    double claimed_dist_km = haversine_km(track->location.Latitude,
+                                              track->location.Longitude,
+                                              th->sensor_lat,
+                                              th->sensor_lon) * 1000.0;
+    double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
+    if (elapsed_secs <= 0.0) return r;
+
+    if ((claimed_dist_km * 3600.0 / elapsed_secs) > MAX_SPEED_KMH){
+        flag = 1;
+    }
+
+    if (flag == 1){
+        r.rule = KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
 {
     uint32_t flags = KX_RULE_NONE;
