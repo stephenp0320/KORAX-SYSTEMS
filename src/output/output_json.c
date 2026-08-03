@@ -5,6 +5,7 @@
 #include "korax/rook_track.h"
 #include "korax/output_json.h"
 #include "korax/magpie_validator.h"
+#define FBUF_SIZE 1024
 
 static void json_escape(const char *src, char *dst, size_t dstlen){
     size_t j = 0;
@@ -124,7 +125,7 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
         snprintf(_timestamp, sizeof _timestamp, "%.1f", track->location.TimeStamp);
     }
 
-    char fbuf[512];
+    char fbuf[FBUF_SIZE];
     if (findings_to_json(track->findings, track->finding_count, fbuf, sizeof(fbuf)) < 0) return -2;
 
     int write_json = snprintf(buffer, len,
