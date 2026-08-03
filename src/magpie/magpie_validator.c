@@ -370,8 +370,12 @@ kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
     if (track == NULL || table == NULL) return r;
-    if (track->source_mac[0] == '\0') return r;
 
+    static const char ZERO_MAC[6] = {0};
+
+    if (memcmp(track->source_mac, ZERO_MAC, sizeof(ZERO_MAC)) == 0) {
+        return r;
+    }
     int count = 0;
     for (int i = 0; i < table->num_tracks; i++){
         if (memcmp(table->tracks[i].source_mac, track->source_mac, sizeof track->source_mac) == 0){
