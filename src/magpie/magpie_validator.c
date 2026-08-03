@@ -375,29 +375,17 @@ kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *
     return r;
 }
 
-kx_result_t magpie_validate_counter_replay(const track_table_t *table, const track_t *track)
+kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *new_counter)
 {
-    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (table == NULL || track == NULL) return r;
+      kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_WARN };
+      if (track == NULL || !track->have_counter) return r;
 
-    uint8_t new_msg_counter = 0;
-    uint8_t last_msg_counter = 0;
-    uint8_t flag = 0;
-    for (int i = 0; i < table->num_tracks; i++){
-        new_msg_counter = track->head;
-        last_msg_counter = table->tracks[i].last_msg_counter;
-        uint8_t delta = (new_msg_counter - last_msg_counter);
-        if (delta == 0 || delta > REPLAY_BACKWARD_WINDOW){
-            flag = 1;
-        }
-    }
-    if (flag == 1){
-        r.rule = KX_RULE_COUNTER_REPLAY;
-        r.severity = KX_SEVERITY_WARN;
-    }
-    return r;
+      uint8_t delta = (uint8_t)(*new_counter - track->last_msg_counter);
+      if (delta == 0 || delta > REPLAY_BACKWARD_WINDOW){
+          r.rule = KX_RULE_COUNTER_REPLAY;
+      }
+      return r;
 }
-
 
 kx_result_t magpie_validate_rssi_position(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th)
 {
@@ -451,7 +439,7 @@ kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const
 }
 
 
-uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table)
+uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {
     uint32_t flags = KX_RULE_NONE;
     flags |= magpie_validate_track(track, now, th).rule;
@@ -465,7 +453,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_broadcast_rate(track, th).rule;
     flags |= magpie_validate_id_clone(track, table).rule;
     flags |= magpie_validate_id_churn(track, table).rule;
-    flags |= magpie_validate_counter_replay(table, track).rule;
+    flags |= magpie_validate_counter_replay(track, msg_counter).rule;
     flags |= magpie_validate_rssi_position(table, track, th).rule;
     flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
     if (msg != NULL) {
@@ -483,9 +471,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     return flags;
 }
 
-
-
-kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table){
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
@@ -494,7 +480,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     };
     if (track == NULL) return verdict;
 
-    verdict.flags = magpie_validate(track, msg, now, th, table);
+    verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter);
     verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
     verdict.flags |= magpie_validate_timestamp(track, th).rule;
     verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
@@ -504,7 +490,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
     verdict.flags |= magpie_validate_id_clone(track, table).rule;
     verdict.flags |= magpie_validate_id_churn(track, table).rule;
-    verdict.flags |= magpie_validate_counter_replay(table, track).rule;
+    verdict.flags |= magpie_validate_counter_replay(track, msg_counter).rule;
     verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
     verdict.flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
     size_t i;
