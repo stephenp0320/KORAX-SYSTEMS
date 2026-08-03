@@ -200,9 +200,9 @@ int main(int argc, char **argv){
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
-    daemon.sensor_lat = cfg.sensor_lat;
-    daemon.sensor_lon = cfg.sensor_lon;
-    daemon.has_sensor_pos = cfg.has_sensor_pos;
+    daemon.thresholds.sensor_lat = cfg.sensor_lat;
+    daemon.thresholds.sensor_lon = cfg.sensor_lon;
+    daemon.thresholds.has_sensor_pos = cfg.has_sensor_pos;
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
