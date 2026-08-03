@@ -430,14 +430,12 @@ kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const
     if (!th->has_sensor_pos) return r;
     if (!track->has_location) return r;
     if (track->location.Latitude == 0.0 && track->location.Longitude == 0.0) return r;
-    double claimed_dist_km = haversine_km(track->location.Latitude,
-                                              track->location.Longitude,
-                                              th->sensor_lat,
-                                              th->sensor_lon) * 1000.0;
+
+    double distance_km = jump_detection(track);
     double elapsed_secs = (double)(track->last_location_seen - track->prev_location_seen);
     if (elapsed_secs <= 0.0) return r;
 
-    if ((claimed_dist_km * 3600.0 / elapsed_secs) > MAX_SPEED_KMH){
+    if ((distance_km * 3600.0 / elapsed_secs) > MAX_SPEED_KMH){
         flag = 1;
     }
 
