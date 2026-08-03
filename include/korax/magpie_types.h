@@ -25,6 +25,10 @@
 #define KX_DRONE_OPERATOR_LOC_TOO_FAR "drone implausibly far from declared operator location"
 #define KX_COUNTER_REPLAY_DETECTED "message counter repeated or moved backwards"
 #define KX_KINEMATIC_TELEPORT_DETECTED "position implausible for elapsed time relative to sensor"
+#define KX_CLIMB_EXCEEDS "vertical speed exceeds a plausible climb/descent rate"
+#define KX_DUPLICATION_DETECTED "duplicate UAS ID seen across multiple tracks (possible clone/spoof)"
+#define KX_ID_CHURN_DETECTED "source MAC broadcast multiple UAS IDs (identity churn / possible spoof)"
+#define KX_RSSI_POS "signal strength inconsistent with claimed position (possible spoof)"
 #define DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR_MAX_SPEED 30.0
 #define DRONE_ID_UATYPE_AEROPLANE_MAX_SPEED 120.0
 #define DRONE_ID_UATYPE_GYROPLANE_MAX_SPEED 60.0

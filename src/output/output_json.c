@@ -62,6 +62,14 @@ static const char *rule_name(kx_rule_t rule)
             return "counter_replay";
         case KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT:
             return "kinematic_teleport";
+        case KX_RULE_MAX_CLIMB_MS:
+            return "max_climb_ms";
+        case KX_RULE_DUPLICATION_DETECTED:
+            return "duplication_detected";
+        case KX_RULE_ID_CHURN:
+            return "i_churn";
+        case KX_RULE_RSSI_POSITION:
+            return "rssi_position";
         default:
             return "unknown";
     }

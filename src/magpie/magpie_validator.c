@@ -67,6 +67,28 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_KINEMATIC_TELEPORT_DETECTED;
             break;
+        case KX_RULE_MAX_CLIMB_MS:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_CLIMB_EXCEEDS;
+            break;
+        case KX_RULE_DUPLICATION_DETECTED:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_DUPLICATION_DETECTED;
+            break;
+        case KX_RULE_ID_CHURN:
+            *sev=KX_SEVERITY_WARN;
+            *field=KX_FIELD_UAS_ID;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_ID_CHURN_DETECTED;
+            break;
+            case KX_RULE_RSSI_POSITION:
+            *sev=KX_SEVERITY_WARN;
+            *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_RSSI_POS;
+            break;
         default:
             *sev=KX_SEVERITY_INFO;
             *field="";
@@ -88,7 +110,11 @@ static const kx_rule_t all[] = {
         KX_RULE_ALT_ENVELOPE,
         KX_RULE_COUNTER_REPLAY,
         KX_RULE_OPERATOR_DISTANCE,
-        KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT
+        KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT,
+        KX_MAX_CLIMB_MS,
+        KX_RULE_DUPLICATION_DETECTED,
+        KX_RULE_ID_CHURN,
+        KX_RULE_RSSI_POSITION
 };
 
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
