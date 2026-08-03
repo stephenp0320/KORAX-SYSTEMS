@@ -57,6 +57,16 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_DRONE_OPERATOR_LOC_TOO_FAR;
             break;
+        case KX_RULE_COUNTER_REPLAY:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_TRACK;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_COUNTER_REPLAY_DETECTED;
+            break;
+        case KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT:
+            *sev=KX_SEVERITY_WARN;  *field=KX_FIELD_LOCATION;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_KINEMATIC_TELEPORT_DETECTED;
+            break;
         default:
             *sev=KX_SEVERITY_INFO;
             *field="";
@@ -378,7 +388,7 @@ kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *
 kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *new_counter)
 {
       kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_WARN };
-      if (track == NULL || !track->have_counter) return r;
+      if (track == NULL || new_counter == NULL || !track->have_counter) return r;
 
       uint8_t delta = (uint8_t)(*new_counter - track->last_msg_counter);
       if (delta == 0 || delta > REPLAY_BACKWARD_WINDOW){

@@ -58,6 +58,10 @@ static const char *rule_name(kx_rule_t rule)
             return "alt_envelope";
         case KX_RULE_OPERATOR_DISTANCE:
             return "operator_distance";
+        case KX_RULE_COUNTER_REPLAY:
+            return "counter_replay";
+        case KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT:
+            return "kinematic_teleport";
         default:
             return "unknown";
     }

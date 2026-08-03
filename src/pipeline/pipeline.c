@@ -36,7 +36,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
 
     track->reserved_bits_seen |= msg->reserved_bits;
     kx_verdict_t verdict = magpie_evaluate(track, msg, now, th, table, msg_counter);
-    if (msg_counter == NULL){
+    if (msg_counter != NULL){
         track->last_msg_counter = *msg_counter;
         track->have_counter = true;
     }

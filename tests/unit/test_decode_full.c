@@ -411,6 +411,42 @@ static void test_magpie_reserved_bits(void){
     ASSERT_EQ_INT(magpie_validate_reserved_bitsets(&clean_t).rule, KX_RULE_NONE, "no reserved bits -> not flagged");
 }
 
+static void test_magpie_counter_replay(void){
+    /* no prior counter recorded yet (first message ever) -> never flagged */
+    track_t fresh; memset(&fresh, 0, sizeof fresh);
+    uint8_t c = 5;
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&fresh, &c).rule, KX_RULE_NONE,
+                  "no prior counter -> not flagged");
+
+    track_t t; memset(&t, 0, sizeof t);
+    t.have_counter = true;
+    t.last_msg_counter = 10;
+
+    /* normal forward increment -> not flagged */
+    uint8_t next = 11;
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &next).rule, KX_RULE_NONE,
+                  "normal increment -> not flagged");
+
+    /* exact repeat of the last counter -> flagged (duplicate/replay) */
+    uint8_t same = 10;
+    ASSERT_TRUE(magpie_validate_counter_replay(&t, &same).rule & KX_RULE_COUNTER_REPLAY,
+                "repeated counter -> flagged");
+
+    /* large backward jump (wraps through 0 as an unsigned delta) -> flagged */
+    uint8_t back = 5; /* delta = (5 - 10) mod 256 = 251, > REPLAY_BACKWARD_WINDOW */
+    ASSERT_TRUE(magpie_validate_counter_replay(&t, &back).rule & KX_RULE_COUNTER_REPLAY,
+                "counter moved far backwards -> flagged");
+
+    /* modest forward gap (e.g. a couple of dropped frames) -> not flagged */
+    uint8_t skip = 20; /* delta = 10, within REPLAY_BACKWARD_WINDOW */
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &skip).rule, KX_RULE_NONE,
+                  "modest forward gap -> not flagged");
+
+    /* no new counter supplied (e.g. file replay has no BLE counter) -> not flagged */
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&t, NULL).rule, KX_RULE_NONE,
+                  "no new counter supplied -> not flagged");
+}
+
 static void test_magpie_validate_composed(void){
     /* fully compliant track + valid location message -> 0 */
     track_t t; memset(&t, 0, sizeof t);
@@ -421,12 +457,12 @@ static void test_magpie_validate_composed(void){
     msg.data.location.Latitude = 51.0; msg.data.location.AltitudeGeo = 100.0;
     msg.data.location.AltitudeBaro = 100.0; msg.data.location.TimeStamp = 10.0;
     msg.data.location.Status = DRONE_ID_STATUS_AIRBORNE;
-    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL), 0, "compliant track+msg -> 0 (compliant)");
+    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL), 0, "compliant track+msg -> 0 (compliant)");
 
     /* incomplete track -> at least the missing-required bit set */
     track_t bad; memset(&bad, 0, sizeof bad);
     bad.has_basic_id = 1;   /* missing location/system/operator */
-    uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
 }
 
@@ -702,7 +738,7 @@ static void test_golden_verdict(void){
     track_t ok; memset(&ok, 0, sizeof ok);
     ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
     ok.last_location_seen = 5000; ok.msg_count_location = 1;
-    kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     ASSERT_EQ_INT(v_ok.flags, KX_RULE_NONE, "golden: compliant track -> flags 0");
     ASSERT_TRUE(v_ok.compliant, "golden: compliant track -> compliant true");
     ASSERT_EQ_INT(v_ok.finding_count, 0, "golden: compliant track -> no findings");
@@ -711,7 +747,7 @@ static void test_golden_verdict(void){
     /* 2. Missing required messages -> exactly one ERROR finding. */
     track_t miss; memset(&miss, 0, sizeof miss);
     miss.has_basic_id = 1;   /* no location / system / operator */
-    kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     ASSERT_EQ_INT(v_miss.flags, KX_RULE_MISSING_REQUIRED_MSG, "golden: incomplete -> exactly MISSING_REQUIRED_MSG");
     ASSERT_TRUE(!v_miss.compliant, "golden: incomplete -> not compliant");
     ASSERT_EQ_INT(v_miss.finding_count, 1, "golden: incomplete -> one finding");
@@ -722,14 +758,14 @@ static void test_golden_verdict(void){
     track_t res; memset(&res, 0, sizeof res);
     res.has_basic_id = 1; res.has_location = 1; res.has_system = 1; res.has_operator_id = 1;
     res.last_location_seen = 5000; res.msg_count_location = 1; res.reserved_bits_seen = 1;
-    kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     ASSERT_EQ_INT(v_res.flags, KX_RULE_RESERVED_BITS_SET, "golden: reserved -> exactly RESERVED_BITS_SET");
     ASSERT_TRUE(v_res.compliant, "golden: reserved (WARN) -> still compliant");
     ASSERT_EQ_INT(v_res.finding_count, 1, "golden: reserved -> one finding");
     ASSERT_EQ_INT(v_res.findings[0].severity, KX_SEVERITY_WARN, "golden: reserved severity WARN");
 
     /* 4. Determinism: same input + same ruleset -> identical verdict. */
-    kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     ASSERT_EQ_INT(again.flags, v_miss.flags, "golden: deterministic flags");
     ASSERT_EQ_INT(again.finding_count, v_miss.finding_count, "golden: deterministic finding_count");
     ASSERT_TRUE(again.compliant == v_miss.compliant, "golden: deterministic compliant");
@@ -738,7 +774,7 @@ static void test_golden_verdict(void){
     track_t jt; memset(&jt, 0, sizeof jt);
     jt.has_basic_id = 1;   /* incomplete -> MISSING_REQUIRED_MSG */
     strcpy(jt.uas_id, "GOLDEN-0001");
-    kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL);
+    kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
     jt.flags = jv.flags; jt.is_compliant = jv.compliant;
     jt.finding_count = jv.finding_count;
     memcpy(jt.findings, jv.findings, sizeof jt.findings);
@@ -831,6 +867,29 @@ static void test_ble_frame_plumbing(void){
     ASSERT_EQ_INT(table.tracks[idx].head, 1, "arrival ring buffer advanced once");
 }
 
+static void test_ble_counter_replay_end_to_end(void){
+    track_table_t table; track_table_init(&table);
+    uint8_t mac[6] = {0,0,0,0,0,0xDD};
+
+    ble_adv_frame_t f1 = make_ble_frame(PKT_BASIC, mac, 1, -50);
+    int idx = process_ble_frame(&f1, 5000, &table);
+    ASSERT_TRUE(idx >= 0, "first frame creates the track");
+    ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
+                "first frame ever -> no replay flag (nothing to compare against)");
+
+    /* second frame with an advanced counter -> still clean */
+    ble_adv_frame_t f2 = make_ble_frame(PKT_BASIC, mac, 2, -50);
+    process_ble_frame(&f2, 5001, &table);
+    ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
+                "normal increment over BLE -> no replay flag");
+
+    /* replay the same counter value seen last time */
+    ble_adv_frame_t f3 = make_ble_frame(PKT_BASIC, mac, 2, -50);
+    process_ble_frame(&f3, 5002, &table);
+    ASSERT_TRUE(table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY,
+                "repeated counter over BLE -> flagged end-to-end");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -845,6 +904,7 @@ int main(void){
     test_message_pack_errors();
     test_jump_distance();
     test_magpie_reserved_bits();
+    test_magpie_counter_replay();
     test_output_json();
     test_server_feed();
     test_config();
@@ -856,6 +916,7 @@ int main(void){
     test_create_by_mac();
     test_mac_multi_drone();
     test_ble_frame_plumbing();
+    test_ble_counter_replay_end_to_end();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();
