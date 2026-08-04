@@ -116,7 +116,7 @@ static void handle_source_frame(koraxd_t *daemon){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
-            int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL, NULL);
+            int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
             }
