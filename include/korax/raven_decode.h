@@ -69,11 +69,9 @@ typedef enum DRONE_ID_uatype {
 typedef enum DRONE_ID_idtype {
     DRONE_ID_IDTYPE_NONE = 0,
     DRONE_ID_IDTYPE_SERIAL_NUMBER = 1,
-    DRONE_ID_IDTYPE_CAA_REGISTRATION_ID = 2, // Civil Aviation Authority
-    DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID = 3,   // UAS (Unmanned Aircraft System) Traffic Management
-    DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID = 4, // The exact id type is specified by the first byte of UASID and these type
-                                         // values are managed by ICAO. 0 is reserved. 1 - 224 are managed by ICAO.
-                                         // 225 - 255 are available for private experimental usage only
+    DRONE_ID_IDTYPE_CAA_REGISTRATION_ID = 2,
+    DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID = 3,
+    DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID = 4,
 } DRONE_ID_idtype_t;
 
 typedef struct droneID_basicID_data {

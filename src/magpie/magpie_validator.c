@@ -3,6 +3,7 @@
 #include "korax/magpie_validator.h"
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #define EARTH_RADIUS_KM 6371.0
 
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
@@ -83,7 +84,7 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_ID_CHURN_DETECTED;
             break;
-            case KX_RULE_RSSI_POSITION:
+        case KX_RULE_RSSI_POSITION:
             *sev=KX_SEVERITY_WARN;
             *field=KX_FIELD_LOCATION;
             *reg=KX_PLAUSABILITY;
@@ -93,6 +94,21 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *sev=KX_SEVERITY_WARN;
             *reg=KX_PLAUSABILITY;
             *detail=KX_CLIMB_RATE;
+            break;
+        case KX_RULE_UASID_FORMAT:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail= KX_UASID_FORMAT;
+            break;
+        case KX_RULE_OPERATOR_ID_FORMAT:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_OPERATOR_ID_FORMAT;
+            break;
+        case KX_RULE_EU_CLASS_CONSISTENCY:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_EU_CLASS;
             break;
         default:
             *sev=KX_SEVERITY_INFO;
@@ -119,7 +135,10 @@ static const kx_rule_t all[] = {
         KX_RULE_MAX_CLIMB_MS,
         KX_RULE_DUPLICATION_DETECTED,
         KX_RULE_ID_CHURN,
-        KX_RULE_RSSI_POSITION
+        KX_RULE_RSSI_POSITION,
+        KX_RULE_UASID_FORMAT,
+        KX_RULE_OPERATOR_ID_FORMAT,
+        KX_RULE_EU_CLASS_CONSISTENCY
 };
 
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
@@ -481,6 +500,64 @@ kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const
     return r;
 }
 
+static bool is_valid_cta2063a(const char *id){
+    size_t len = strlen(id);
+
+    if (len < 6 || len > 20) return false;
+    for (int i = 0; i < 4; i++){
+        char c = id[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z'))) return false;
+    }
+
+    char lc = id[4];
+    int n;
+    if (lc >= '1' && lc <= '9') n = lc - '0';
+    else if (lc >= 'A' && lc <= 'F') n = 10 + (lc - 'A');
+    else return false;
+
+    if (len - 5 != (size_t)n) return false;
+    for (size_t i = 5; i < len; i++){
+        char c = id[i];
+        bool ok = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z' && c != 'O' && c != 'I');
+        if (!ok) return false;
+    }
+    return true;
+}
+
+static bool is_valid_caa_registration(const char *id)
+{
+    size_t len = strlen(id);
+    if (len < 0 || len > 20) return false;
+    for (size_t i = 0; i < len; i++){
+        unsigned char c = id[i];
+        if (!(isalnum(c) || c == '-' || c == '.')){
+            return false;
+        }
+    }
+    return true;
+}
+
+kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (data == NULL) return r;
+    bool ok = true;
+    switch(data->IDType){
+        case DRONE_ID_IDTYPE_SERIAL_NUMBER:
+            ok = is_valid_cta2063a(data->UASID);
+            break;
+        case DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID:
+            ok = is_valid_caa_registration(data->UASID);
+            break;
+        default:
+            return r;
+    }
+    if (!ok){
+        r.rule = KX_RULE_UASID_FORMAT;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {

@@ -30,6 +30,9 @@
 #define KX_ID_CHURN_DETECTED "source MAC broadcast multiple UAS IDs (identity churn / possible spoof)"
 #define KX_RSSI_POS "signal strength inconsistent with claimed position (possible spoof)"
 #define KX_CLIMB_RATE "vertical speed exceeds a plausible climb/descent rate"
+#define KX_UASID_FORMAT "UAS ID does not match the required format for its declared ID type"
+#define KX_OPERATOR_ID_FORMAT "operator ID is not a valid registration format"
+#define KX_EU_CLASS "EU category and class combination is inconsistent"
 #define DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR_MAX_SPEED 30.0
 #define DRONE_ID_UATYPE_AEROPLANE_MAX_SPEED 120.0
 #define DRONE_ID_UATYPE_GYROPLANE_MAX_SPEED 60.0
@@ -63,7 +66,10 @@ typedef enum {
     KX_RULE_ID_CHURN             = 1u<<13,
     KX_RULE_COUNTER_REPLAY       = 1u<<14,
     KX_RULE_RSSI_POSITION        = 1u<<15,
-    KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT = 1u<<16
+    KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT = 1u<<16,
+    KX_RULE_UASID_FORMAT         = 1u<<17,
+    KX_RULE_OPERATOR_ID_FORMAT   = 1u<<18,
+    KX_RULE_EU_CLASS_CONSISTENCY = 1u<<19
 } kx_rule_t;
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \
