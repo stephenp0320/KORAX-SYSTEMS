@@ -50,6 +50,13 @@ typedef struct magpie_thresholds {
     bool   has_sensor_pos;
 } magpie_thresholds_t;
 
+typedef struct magpie_profile_t {
+    const char *name;
+    uint16_t version;
+    uint32_t enabled_rules;
+    magpie_thresholds_t thresholds;
+} magpie_profile_t;
+
 /* Per-aspect checks (pure). */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);
 kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id);

@@ -515,10 +515,11 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
 }
 
 kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter){
+    magpie_profile_t profile;
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
-        .ruleset_version = KX_RULESET_VERSION,
+        .ruleset_version = profile.version,
         .finding_count = 0
     };
     if (track == NULL) return verdict;
