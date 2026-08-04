@@ -29,6 +29,7 @@
 #define KX_DUPLICATION_DETECTED "duplicate UAS ID seen across multiple tracks (possible clone/spoof)"
 #define KX_ID_CHURN_DETECTED "source MAC broadcast multiple UAS IDs (identity churn / possible spoof)"
 #define KX_RSSI_POS "signal strength inconsistent with claimed position (possible spoof)"
+#define KX_CLIMB_RATE "vertical speed exceeds a plausible climb/descent rate"
 #define DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR_MAX_SPEED 30.0
 #define DRONE_ID_UATYPE_AEROPLANE_MAX_SPEED 120.0
 #define DRONE_ID_UATYPE_GYROPLANE_MAX_SPEED 60.0

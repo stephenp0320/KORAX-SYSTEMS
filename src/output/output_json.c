@@ -71,6 +71,8 @@ static const char *rule_name(kx_rule_t rule)
             return "i_churn";
         case KX_RULE_RSSI_POSITION:
             return "rssi_position";
+        case KX_RULE_CLIMB_RATE:
+            return "climb_rate";
         default:
             return "unknown";
     }

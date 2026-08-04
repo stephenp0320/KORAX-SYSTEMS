@@ -89,6 +89,10 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_RSSI_POS;
             break;
+        case KX_RULE_CLIMB_RATE:
+            *sev=KX_SEVERITY_WARN;
+            *reg=KX_PLAUSABILITY;
+            *detail=KX_CLIMB_RATE;
         default:
             *sev=KX_SEVERITY_INFO;
             *field="";
