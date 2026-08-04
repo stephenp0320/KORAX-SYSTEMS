@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include "korax/pipeline.h"
 
-int process_decoded_message(track_table_t *table, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const ble_adv_frame_t *frame, const uint8_t *msg_counter){
+int process_decoded_message(track_table_t *table, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const ble_adv_frame_t *frame, const uint8_t *msg_counter, const magpie_profile_t *profile){
     if (table == NULL || msg == NULL) return TRACK_ERR;
 
     int idx;
@@ -35,7 +35,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
     if (rc != TRACK_OK) return rc;
 
     track->reserved_bits_seen |= msg->reserved_bits;
-    kx_verdict_t verdict = magpie_evaluate(track, msg, now, th, table, msg_counter);
+    kx_verdict_t verdict = magpie_evaluate(track, msg, now, th, table, msg_counter, profile);
     if (msg_counter != NULL){
         track->last_msg_counter = *msg_counter;
         track->have_counter = true;
@@ -55,7 +55,7 @@ int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_
     if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0) return -1;
     if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return -1;
 
-    int idx = process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, ble_frame, &msg_counter);
+    int idx = process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, ble_frame, &msg_counter, &MAGPIE_DEFAULT_PROFILE);
     if (idx >= 0){
         table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
     }

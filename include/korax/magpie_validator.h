@@ -27,13 +27,17 @@
 #define KX_SENSOR_LAT             0.0
 #define KX_SENSOR_LON             0.0
 #define KX_SENSOR_POS             false
+#define KX_PROFILE_NAME "default"
+#define KX_DISABLED_RULES 0
+#define KX_ENABLED_RULES 0
 #define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH, KX_MIN_BROADCAST_RATE, KX_MAX_CLIMB_MS, KX_ALT_FLOOR, KX_MAX_ALT, KX_MAX_OP_DIST , KX_SENSOR_LAT, KX_SENSOR_LON, KX_SENSOR_POS })
+
+#define MAGPIE_DEFAULT_PROFILE ((magpie_profile_t){ KX_PROFILE_NAME, KX_RULESET_VERSION, KX_ENABLED_RULES, MAGPIE_DEFAULT_THRESHOLDS, KX_DISABLED_RULES })
 
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 #define KX_MAX_DETAILS 256
 #define KX_FIELD_MAX 128
 #define KX_MAX_FINDINGS 8
-#define KX_RULESET_VERSION 1
 #define KX_RATE_WINDOW 16
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
@@ -55,6 +59,7 @@ typedef struct magpie_profile_t {
     uint16_t version;
     uint32_t enabled_rules;
     magpie_thresholds_t thresholds;
+    uint32_t disabled_rules;
 } magpie_profile_t;
 
 /* Per-aspect checks (pure). */
@@ -71,7 +76,7 @@ kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
-kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter);
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter, const magpie_profile_t *profile);
 kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *table);
 kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *table);
 kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *new_counter);

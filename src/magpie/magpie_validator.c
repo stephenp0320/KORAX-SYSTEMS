@@ -514,29 +514,50 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     return flags;
 }
 
-kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter){
-    magpie_profile_t profile;
+kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter, const magpie_profile_t *profile){
     kx_verdict_t verdict = {
         .flags = KX_RULE_NONE,
         .compliant = true,
-        .ruleset_version = profile.version,
+        .ruleset_version = KX_RULESET_VERSION,
         .finding_count = 0
     };
     if (track == NULL) return verdict;
 
     verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter);
     verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
-    verdict.flags |= magpie_validate_timestamp(track, th).rule;
-    verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
-    verdict.flags |= magpie_validate_climb_rate(track, th).rule;
-    verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
-    verdict.flags |= magpie_validate_operator_distance(track, th).rule;
-    verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
-    verdict.flags |= magpie_validate_id_clone(track, table).rule;
-    verdict.flags |= magpie_validate_id_churn(track, table).rule;
-    verdict.flags |= magpie_validate_counter_replay(track, msg_counter).rule;
-    verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
-    verdict.flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
+    if (!(profile->disabled_rules & KX_RULE_TIMESTAMP_REWIND)){
+        verdict.flags |= magpie_validate_timestamp(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_SPEED_EXCEEDS_TYPE)){
+        verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_CLIMB_RATE)){
+        verdict.flags |= magpie_validate_climb_rate(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_ALT_ENVELOPE)){
+        verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_OPERATOR_DISTANCE)){
+        verdict.flags |= magpie_validate_operator_distance(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_BROADCAST_RATE)){
+        verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_DUPLICATION_DETECTED)){
+        verdict.flags |= magpie_validate_id_clone(track, table).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_ID_CHURN)){
+        verdict.flags |= magpie_validate_id_churn(track, table).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_COUNTER_REPLAY)){
+        verdict.flags |= magpie_validate_counter_replay(track, msg_counter).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_RSSI_POSITION)){
+        verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
+    }
+    if (!(profile->disabled_rules & KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT)){
+        verdict.flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
+    }
     size_t i;
     for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
         if (verdict.flags & all[i]){
