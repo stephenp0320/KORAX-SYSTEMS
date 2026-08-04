@@ -527,7 +527,7 @@ static bool is_valid_cta2063a(const char *id){
 static bool is_valid_caa_registration(const char *id)
 {
     size_t len = strlen(id);
-    if (len < 0 || len > 20) return false;
+    if (len == 0 || len > 20) return false;
     for (size_t i = 0; i < len; i++){
         unsigned char c = id[i];
         if (!(isalnum(c) || c == '-' || c == '.')){
@@ -580,6 +580,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
         switch (msg->type) {
             case MESSAGETYPE_BASIC_ID:
                 flags |= magpie_validate_basic_id(&msg->data.basic_id).rule;
+                flags |= magpie_validate_uasid_format(&msg->data.basic_id).rule;
                 break;
             case MESSAGETYPE_LOCATION:
                 flags |= magpie_validate_location(&msg->data.location).rule;
