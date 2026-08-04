@@ -783,7 +783,7 @@ static void test_golden_verdict(void){
     int n = track_to_json(&jt, buf, sizeof buf);
     ASSERT_TRUE(n > 0, "golden: track serialises");
     const char *golden =
-        "\"validation\":{\"compliant\":false,\"ruleset_version\":1,\"flags\":1,"
+        "\"validation\":{\"compliant\":false,\"ruleset_version\":2,\"flags\":1,"
         "\"findings\":[{\"rule\":\"missing_required_msg\",\"severity\":\"error\","
         "\"field\":\"track\",\"reg\":\"EU 2019/945\","
         "\"detail\":\"a required message type is missing\"}]}";
