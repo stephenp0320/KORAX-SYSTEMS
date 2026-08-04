@@ -586,6 +586,30 @@ kx_result_t magpie_validate_operator_id_format(const OperatorID_data *data)
     return r;
 }
 
+static bool is_valid_eu_class(category_EU_t cat, class_EU_t cls){
+    if (cat == CATEGORY_EU_UNDECLARED || cls == CLASS_EU_UNDECLARED) return true;
+    switch (cat){
+        case CATEGORY_EU_OPEN:
+            return (cls >= CLASS_EU_CLASS_0 && cls <= CLASS_EU_CLASS_4);
+        case CATEGORY_EU_SPECIFIC:
+            return true;
+        case CATEGORY_EU_CERTIFIED:
+            return false;
+        default:
+            return true;
+    }
+}
+
+kx_result_t magpie_validate_eu_class_consistency(const sys_data *data)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (data == NULL) return r;
+    if (!is_valid_eu_class(data->CategoryEU, data->ClassEU)){
+        r.rule = KX_RULE_EU_CLASS_CONSISTENCY;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
 
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {
@@ -615,6 +639,9 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
                 break;
             case MESSAGETYPE_OPERATOR_ID:
                 flags |= magpie_validate_operator_id_format(&msg->data.operator_id).rule;
+                break;
+            case MESSAGETYPE_SYSTEM:
+                flags |= magpie_validate_eu_class_consistency(&msg->data.system).rule;
                 break;
             default:
                 break;
