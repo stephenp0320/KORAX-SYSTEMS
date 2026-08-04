@@ -559,6 +559,34 @@ kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data)
     return r;
 }
 
+static bool is_valid_operator_id(const char *id){
+    size_t len = strlen(id);
+    if (len < 4 || len > 20) return false;
+
+    for (int i = 0; i < 3; i++){
+        if (!(id[i] >= 'A' && id[i] <= 'Z')) return false;
+    }
+    for (size_t i = 3; i < len; i++){
+        unsigned char c = (unsigned char)id[i];
+        if (!(isalnum(c) || c == '-')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+kx_result_t magpie_validate_operator_id_format(const OperatorID_data *data)
+{
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    if (data == NULL) return r;
+    if (!is_valid_operator_id(data->OperatorId)){
+        r.rule = KX_RULE_OPERATOR_ID_FORMAT;
+        r.severity = KX_SEVERITY_WARN;
+    }
+    return r;
+}
+
+
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {
     uint32_t flags = KX_RULE_NONE;
@@ -584,6 +612,9 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
                 break;
             case MESSAGETYPE_LOCATION:
                 flags |= magpie_validate_location(&msg->data.location).rule;
+                break;
+            case MESSAGETYPE_OPERATOR_ID:
+                flags |= magpie_validate_operator_id_format(&msg->data.operator_id).rule;
                 break;
             default:
                 break;
