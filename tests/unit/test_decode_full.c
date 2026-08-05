@@ -890,6 +890,114 @@ static void test_ble_counter_replay_end_to_end(void){
                 "repeated counter over BLE -> flagged end-to-end");
 }
 
+/* ---- Magpie P3 (integrity) + P4 (ID-format) rule tests ---- */
+
+static void test_id_clone(void){
+    track_table_t t; track_table_init(&t);
+    int a = track_table_create(&t, 1000, "SAMEID");
+    (void)track_table_create(&t, 1000, "SAMEID");   /* same UAS ID, second track */
+    ASSERT_TRUE(magpie_validate_id_clone(&t.tracks[a], &t).rule & KX_RULE_DUPLICATION_DETECTED,
+                "same UAS ID on two tracks -> clone flagged");
+
+    track_table_t s; track_table_init(&s);
+    int c = track_table_create(&s, 1000, "UNIQUE");
+    ASSERT_EQ_INT(magpie_validate_id_clone(&s.tracks[c], &s).rule, KX_RULE_NONE,
+                  "single unique UAS ID -> no clone");
+}
+
+static void test_counter_replay(void){
+    track_t t; memset(&t, 0, sizeof t);
+    t.have_counter = true; t.last_msg_counter = 10;
+
+    uint8_t repeat = 10, forward = 11, backward = 5, wrap = 1;
+    ASSERT_TRUE(magpie_validate_counter_replay(&t, &repeat).rule & KX_RULE_COUNTER_REPLAY,
+                "repeated counter -> replay");
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &forward).rule, KX_RULE_NONE,
+                  "forward counter -> ok");
+    ASSERT_TRUE(magpie_validate_counter_replay(&t, &backward).rule & KX_RULE_COUNTER_REPLAY,
+                "backward counter -> replay");
+
+    t.last_msg_counter = 255;   /* wrap: 255 -> 1 is a forward step of 2 */
+    ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &wrap).rule, KX_RULE_NONE,
+                  "counter wrap 255->1 -> ok (forward)");
+}
+
+static void test_rssi_position(void){
+    magpie_thresholds_t th = MAGPIE_DEFAULT_THRESHOLDS;
+    th.has_sensor_pos = true; th.sensor_lat = 53.0; th.sensor_lon = -8.0;
+    track_table_t tbl; track_table_init(&tbl);
+
+    /* spoof: claims ~55 km away but the signal is strong */
+    track_t far; memset(&far, 0, sizeof far);
+    far.has_location = 1; far.location.Latitude = 53.5; far.location.Longitude = -8.0;
+    far.last_rssi_dbm = -45;
+    ASSERT_TRUE(magpie_validate_rssi_position(&tbl, &far, &th).rule & KX_RULE_RSSI_POSITION,
+                "far claim + strong signal -> flagged");
+
+    /* consistent: ~100 m away with a weak signal */
+    track_t near; memset(&near, 0, sizeof near);
+    near.has_location = 1; near.location.Latitude = 53.0009; near.location.Longitude = -8.0;
+    near.last_rssi_dbm = -95;
+    ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &near, &th).rule, KX_RULE_NONE,
+                  "close + weak signal -> ok");
+
+    /* no sensor position configured -> rule disabled */
+    magpie_thresholds_t off = th; off.has_sensor_pos = false;
+    ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &far, &off).rule, KX_RULE_NONE,
+                  "no sensor position -> not judged");
+}
+
+static void test_uasid_format(void){
+    droneID_basicID_data good; memset(&good, 0, sizeof good);
+    good.IDType = DRONE_ID_IDTYPE_SERIAL_NUMBER;
+    strcpy(good.UASID, "1871C000000007000");   /* standard example: mfr 1871, len C=12, 12-char body */
+    ASSERT_EQ_INT(magpie_validate_uasid_format(&good).rule, KX_RULE_NONE,
+                  "valid CTA-2063-A serial -> ok");
+
+    droneID_basicID_data shortbody = good;
+    strcpy(shortbody.UASID, "1871C00007");      /* length code says 12, body is 5 */
+    ASSERT_TRUE(magpie_validate_uasid_format(&shortbody).rule & KX_RULE_UASID_FORMAT,
+                "declared length != actual -> flagged");
+
+    droneID_basicID_data badchar = good;
+    strcpy(badchar.UASID, "1871C00000000000I"); /* body contains 'I' (not allowed) */
+    ASSERT_TRUE(magpie_validate_uasid_format(&badchar).rule & KX_RULE_UASID_FORMAT,
+                "excluded char (I) in body -> flagged");
+}
+
+static void test_operator_id_format(void){
+    OperatorID_data good; memset(&good, 0, sizeof good);
+    strcpy(good.OperatorId, "IRL87astrdge12k8");   /* 3-letter country prefix + alphanumeric */
+    ASSERT_EQ_INT(magpie_validate_operator_id_format(&good).rule, KX_RULE_NONE,
+                  "valid operator id -> ok");
+
+    OperatorID_data bad = good;
+    strcpy(bad.OperatorId, "12387astrdge12k8");    /* prefix not letters */
+    ASSERT_TRUE(magpie_validate_operator_id_format(&bad).rule & KX_RULE_OPERATOR_ID_FORMAT,
+                "non-letter country prefix -> flagged");
+}
+
+static void test_eu_class_consistency(void){
+    sys_data open_ok; memset(&open_ok, 0, sizeof open_ok);
+    open_ok.CategoryEU = CATEGORY_EU_OPEN; open_ok.ClassEU = CLASS_EU_CLASS_1;
+    ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&open_ok).rule, KX_RULE_NONE,
+                  "open + C1 -> consistent");
+
+    sys_data open_bad; memset(&open_bad, 0, sizeof open_bad);
+    open_bad.CategoryEU = CATEGORY_EU_OPEN; open_bad.ClassEU = CLASS_EU_CLASS_5;
+    ASSERT_TRUE(magpie_validate_eu_class_consistency(&open_bad).rule & KX_RULE_EU_CLASS_CONSISTENCY,
+                "open + C5 -> inconsistent (C5 is Specific-only)");
+
+    sys_data cert; memset(&cert, 0, sizeof cert);
+    cert.CategoryEU = CATEGORY_EU_CERTIFIED; cert.ClassEU = CLASS_EU_CLASS_1;
+    ASSERT_TRUE(magpie_validate_eu_class_consistency(&cert).rule & KX_RULE_EU_CLASS_CONSISTENCY,
+                "certified + class mark -> inconsistent");
+
+    sys_data undecl; memset(&undecl, 0, sizeof undecl);   /* both undeclared */
+    ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&undecl).rule, KX_RULE_NONE,
+                  "undeclared category/class -> not judged");
+}
+
 int main(void){
     printf("Running Raven decoder tests (real ODID fixtures)...\n\n");
     test_string_helpers();
@@ -928,6 +1036,12 @@ int main(void){
     test_magpie_validate_composed();
     test_magpie_config_thresholds();
     test_golden_verdict();
+    test_id_clone();
+    test_counter_replay();
+    test_rssi_position();
+    test_uasid_format();
+    test_operator_id_format();
+    test_eu_class_consistency();
     printf("\nTests run   : %d\n", tests_run);
     printf("Tests failed: %d\n", tests_failed);
     if (tests_failed == 0) { printf("\nALL TESTS PASSED\n"); return 0; }

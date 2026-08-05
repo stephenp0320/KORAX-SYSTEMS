@@ -83,5 +83,7 @@ kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *
 kx_result_t magpie_validate_rssi_position(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data);
+kx_result_t magpie_validate_operator_id_format(const OperatorID_data *data);
+kx_result_t magpie_validate_eu_class_consistency(const sys_data *data);
 #endif
 
