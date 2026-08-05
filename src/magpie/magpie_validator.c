@@ -659,43 +659,10 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
     };
     if (track == NULL) return verdict;
 
-    verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter);
-    verdict.flags |= magpie_validate_reserved_bitsets(track).rule;
-    if (!(profile->disabled_rules & KX_RULE_TIMESTAMP_REWIND)){
-        verdict.flags |= magpie_validate_timestamp(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_SPEED_EXCEEDS_TYPE)){
-        verdict.flags |= magpie_validate_speed_vs_type(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_CLIMB_RATE)){
-        verdict.flags |= magpie_validate_climb_rate(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_ALT_ENVELOPE)){
-        verdict.flags |= magpie_validate_altitude_envelope(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_OPERATOR_DISTANCE)){
-        verdict.flags |= magpie_validate_operator_distance(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_BROADCAST_RATE)){
-        verdict.flags |= magpie_validate_broadcast_rate(track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_DUPLICATION_DETECTED)){
-        verdict.flags |= magpie_validate_id_clone(track, table).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_ID_CHURN)){
-        verdict.flags |= magpie_validate_id_churn(track, table).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_COUNTER_REPLAY)){
-        verdict.flags |= magpie_validate_counter_replay(track, msg_counter).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_RSSI_POSITION)){
-        verdict.flags |= magpie_validate_rssi_position(table, track, th).rule;
-    }
-    if (!(profile->disabled_rules & KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT)){
-        verdict.flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
-    }
+    verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter) & ~profile->disabled_rules;
+
     size_t i;
-    for (i = 0; i < sizeof(all) / sizeof(all[0]); i++){
+    for (i = 0; i < sizeof(all) / sizeof(all[0]) && verdict.finding_count < KX_MAX_FINDINGS; i++){
         if (verdict.flags & all[i]){
             kx_finding_t *f = &verdict.findings[verdict.finding_count++];
             f->rule = all[i];

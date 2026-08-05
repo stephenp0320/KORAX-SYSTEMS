@@ -68,11 +68,17 @@ static const char *rule_name(kx_rule_t rule)
         case KX_RULE_DUPLICATION_DETECTED:
             return "duplication_detected";
         case KX_RULE_ID_CHURN:
-            return "i_churn";
+            return "id_churn";
         case KX_RULE_RSSI_POSITION:
             return "rssi_position";
         case KX_RULE_CLIMB_RATE:
             return "climb_rate";
+        case KX_RULE_UASID_FORMAT:
+            return "uasid_format";
+        case KX_RULE_OPERATOR_ID_FORMAT:
+            return "operator_id_format";
+        case KX_RULE_EU_CLASS_CONSISTENCY:
+            return "eu_class_consistency";
         default:
             return "unknown";
     }
