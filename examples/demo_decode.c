@@ -1,7 +1,13 @@
+/*
+ * demo_decode — minimal example of the Raven decode API: feed raw ODID
+ * bytes to decode_message() and read the typed result. No tracking or
+ * validation here; see koraxd.c/korax_replay.c for the fuller pipeline.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include "korax/raven_decode.h"
 
+/* Dumps one decoded_message_t by type — just a print, no validation. */
 static void print_decoded_message(const decoded_message_t *msg){
     switch (msg->type) {
         case MESSAGETYPE_BASIC_ID:
@@ -20,6 +26,8 @@ static void print_decoded_message(const decoded_message_t *msg){
             break;
         case MESSAGETYPE_AUTH:
             printf("Data Page : %u\n", msg->data.auth.data_page);
+            /* Timestamp/length only exist on data page 0; other pages are
+             * continuation data and decode_message() zeroes those fields. */
             if (msg->data.auth.data_page == 0){
                 printf("Length    : %u bytes\n", msg->data.auth.length);
                 printf("Timestamp : %u\n\n", msg->data.auth.timestamp);
@@ -51,6 +59,7 @@ static void print_decoded_message(const decoded_message_t *msg){
 }
 
 int main(void){
+   /* One raw 25-byte ODID payload per message type, hand-encoded. */
    uint8_t packets[][25] = {
     // 0: Basic ID
     {

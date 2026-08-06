@@ -1,3 +1,6 @@
+/* Optional MQTT adapter — compiled only when KORAX_WITH_MQTT is enabled
+ * (see include/korax/output_mqtt.h). Thin, logging wrapper around
+ * libmosquitto; not part of the pure decode/track/validate core. */
 #include <mosquitto.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,6 +8,11 @@
 #include <errno.h>
 #include "korax/output_mqtt.h"
 
+/* Initialises the mosquitto library and allocates a client handle. Returns
+ * NULL both when MQTT is disabled by config and on allocation failure --
+ * check the returned pointer, not optional_mqtt, before using it. On
+ * failure after a successful lib_init(), rolls back with
+ * mosquitto_lib_cleanup() so there's no leaked global init. */
 struct mosquitto *mqtt_init(bool optional_mqtt){
     if (!optional_mqtt) return NULL;
     mosquitto_lib_init();
@@ -16,6 +24,8 @@ struct mosquitto *mqtt_init(bool optional_mqtt){
     return mosq;
 }
 
+/* keep_alive < 5 is rejected as MOSQ_ERR_INVAL -- guards against a
+ * pathologically short keepalive flooding the broker with pings. */
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive){
     if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5) return MOSQ_ERR_INVAL;
 
@@ -27,6 +37,9 @@ int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_al
     return MOSQ_ERR_SUCCESS;
 }
 
+/* Publishes one NDJSON line to topic. Validates args itself (payload may
+ * be NULL only when payloadlen is 0) and maps each mosquitto error to a
+ * logged reason before returning the same MOSQ_ERR_* code to the caller. */
 int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloadlen,
                  const void *payload, int qos, bool retain){
     if (mosq == NULL || topic == NULL || payloadlen < 0 ||
@@ -79,6 +92,9 @@ int mqtt_disconnect(struct mosquitto *mosq){
     }
 }
 
+/* Tears down the client and the mosquitto library init from mqtt_init();
+ * always call exactly once per successful mqtt_init(), even after a failed
+ * mqtt_connect(), to keep lib_init/lib_cleanup balanced. */
 void mqtt_destroy(struct mosquitto *mosq){
     if (mosq == NULL) return;
     mosquitto_destroy(mosq);

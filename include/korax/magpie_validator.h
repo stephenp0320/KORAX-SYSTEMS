@@ -34,6 +34,9 @@
 
 #define MAGPIE_DEFAULT_PROFILE ((magpie_profile_t){ KX_PROFILE_NAME, KX_RULESET_VERSION, KX_ENABLED_RULES, MAGPIE_DEFAULT_THRESHOLDS, KX_DISABLED_RULES })
 
+/* NOTE: KX_RULE_ERROR_MASK, KX_MAX_DETAILS/FIELD_MAX/MAX_FINDINGS/RATE_WINDOW
+ * below mirror identical macros in magpie_types.h. Identical redefinition is
+ * legal C and harmless, but if either copy ever changes, update both. */
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | KX_RULE_NO_LOCATION_IN_GRACE | KX_RULE_FIELD_OUT_OF_RANGE)
 #define KX_MAX_DETAILS 256
 #define KX_FIELD_MAX 128
@@ -41,6 +44,9 @@
 #define KX_RATE_WINDOW 16
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
+/* sensor_lat/sensor_lon/has_sensor_pos gate the two sensor-relative checks
+ * (magpie_validate_rssi_position, magpie_validate_kinematic_teleport) — both
+ * are no-ops until a fixed sensor location is configured. */
 typedef struct magpie_thresholds {
     int    grace_seconds;
     double max_speed_kmh;
@@ -54,6 +60,10 @@ typedef struct magpie_thresholds {
     bool   has_sensor_pos;
 } magpie_thresholds_t;
 
+/* disabled_rules is applied as a mask in magpie_evaluate to suppress rule
+ * bits before findings are built (the rule-pack gate). enabled_rules is
+ * currently unused by magpie_evaluate/magpie_validate — do not assume it
+ * gates anything until it is wired up. */
 typedef struct magpie_profile_t {
     const char *name;
     uint16_t version;
@@ -62,7 +72,8 @@ typedef struct magpie_profile_t {
     uint32_t disabled_rules;
 } magpie_profile_t;
 
-/* Per-aspect checks (pure). */
+/* Per-aspect checks (pure). Compliance tier — see magpie_validator.c for
+ * per-function domain notes. */
 kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location);
 kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id);
 kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie_thresholds_t *th);
@@ -77,11 +88,13 @@ kx_result_t magpie_validate_jump(const track_t *track, const magpie_thresholds_t
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg,time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter);
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track);
 kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter, const magpie_profile_t *profile);
+/* Integrity / anti-spoof tier (the moat) — cross-track and cross-message checks. */
 kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *table);
 kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *table);
 kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *new_counter);
 kx_result_t magpie_validate_rssi_position(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th);
 kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th);
+/* P4 rule pack: ID-format / cross-field consistency checks. */
 kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data);
 kx_result_t magpie_validate_operator_id_format(const OperatorID_data *data);
 kx_result_t magpie_validate_eu_class_consistency(const sys_data *data);

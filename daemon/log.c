@@ -1,3 +1,7 @@
+/*
+ * Leveled logging to stderr, plus a rate limiter for decode-failure
+ * warnings so a bad/noisy source can't flood the log at line rate.
+ */
 #include <stdio.h>
 #include "daemon/log.h"
 #include <stdarg.h>
@@ -37,6 +41,11 @@ void log_msg(log_level_t level, const char *format, ...){
     va_end(args);
 }
 
+/* Coalesces decode failures instead of logging one line per bad frame:
+ * counts accumulate silently until DECODE_REPORT_INTERVAL seconds have
+ * elapsed since the first failure in the window, then a single summary
+ * WARN is emitted and the window resets. Returns 1 when a summary was
+ * actually logged (window closed), 0 while still accumulating. */
 int log_decode_failure(time_t now){
     if (g_decode_fail_count == 0){
         g_decode_fail_since = now;
@@ -51,6 +60,8 @@ int log_decode_failure(time_t now){
     return 0;
 }
 
+/* Lets callers skip building an expensive log message (e.g. formatting
+ * a findings dump) when the level wouldn't be printed anyway. */
 int log_enabled(log_level_t level){
     return level <= g_log_level;
 }

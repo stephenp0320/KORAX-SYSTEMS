@@ -1,3 +1,11 @@
+/*
+ * Korax — Magpie shared vocabulary.
+ *
+ * Rule IDs, severities, finding/verdict shapes, and per-track anti-spoof
+ * state. This is the contract between magpie_validator.c (produces verdicts)
+ * and the output layer (serialises them to the wire JSON) — treat renames
+ * here as wire-format changes.
+ */
 #ifndef KORAX_MAGPIE_TYPES_H
 #define KORAX_MAGPIE_TYPES_H
 #include <stdint.h>
@@ -42,6 +50,9 @@
 #define KX_RULESET_VERSION 2
 #define KX_RATE_WINDOW     16
 #define REPLAY_BACKWARD_WINDOW 32
+/* Free-space path-loss model for magpie_validate_rssi_position: expected RSSI
+ * at 1m, the path-loss exponent, and the tolerance before a signal is
+ * "too strong for the claimed distance" (possible spoof). */
 #define KX_RSSI_AT_1M    (-50.0)
 #define KX_PATHLOSS_N      2.5
 #define KX_RSSI_MARGIN_DB  20.0
@@ -50,10 +61,14 @@ typedef enum { KX_SEVERITY_INFO=0, KX_SEVERITY_WARN, KX_SEVERITY_ERROR } kx_seve
 
 typedef enum {
     KX_RULE_NONE                 = 0,
+    /* -- compliance rules: is the broadcast legal? ERROR severity, and the
+     * only three bits enforced by KX_RULE_ERROR_MASK below. -- */
     KX_RULE_MISSING_REQUIRED_MSG = 1u<<0,
     KX_RULE_NO_LOCATION_IN_GRACE = 1u<<1,
-    KX_RULE_RESERVED_BITS_SET    = 1u<<2,
+    KX_RULE_RESERVED_BITS_SET    = 1u<<2,   /* WARN, not ERROR — spec nonconformance, not a legal breach */
     KX_RULE_FIELD_OUT_OF_RANGE   = 1u<<3,
+    /* -- plausibility rules: is the physics believable? WARN severity only;
+     * these surface in findings but never flip is_compliant. -- */
     KX_RULE_IMPLAUSIBLE_JUMP     = 1u<<4,
     KX_RULE_TIMESTAMP_REWIND     = 1u<<5,
     KX_RULE_BROADCAST_RATE       = 1u<<6,
@@ -61,17 +76,26 @@ typedef enum {
     KX_RULE_SPEED_EXCEEDS_TYPE   = 1u<<8,
     KX_RULE_ALT_ENVELOPE         = 1u<<9,
     KX_RULE_OPERATOR_DISTANCE    = 1u<<10,
-    KX_RULE_CLIMB_RATE           = 1u<<11,
+    KX_RULE_CLIMB_RATE           = 1u<<11,  /* reserved: no check function sets this bit and it is absent from
+                                              * the `all[]` dispatch table in magpie_validator.c, so it never
+                                              * appears in a verdict today — kept for future use / wire stability */
+    /* -- integrity / anti-spoof rules (the moat): is it lying? WARN severity,
+     * cross-track and cross-message checks (P3). -- */
     KX_RULE_DUPLICATION_DETECTED = 1u<<12,
     KX_RULE_ID_CHURN             = 1u<<13,
     KX_RULE_COUNTER_REPLAY       = 1u<<14,
     KX_RULE_RSSI_POSITION        = 1u<<15,
     KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT = 1u<<16,
+    /* -- P4 rule pack: ID-format / cross-field consistency rules -- */
     KX_RULE_UASID_FORMAT         = 1u<<17,
     KX_RULE_OPERATOR_ID_FORMAT   = 1u<<18,
     KX_RULE_EU_CLASS_CONSISTENCY = 1u<<19
 } kx_rule_t;
 
+/* Compliance gate: is_compliant = (flags & KX_RULE_ERROR_MASK) == 0. Every
+ * other rule bit — including ones a check function locally tags
+ * KX_SEVERITY_ERROR — is reported as a finding but does NOT affect
+ * compliance unless its bit is added here too (see magpie_evaluate). */
 #define KX_RULE_ERROR_MASK (KX_RULE_MISSING_REQUIRED_MSG | \
                             KX_RULE_NO_LOCATION_IN_GRACE | \
                             KX_RULE_FIELD_OUT_OF_RANGE)
@@ -94,6 +118,10 @@ typedef struct {
     kx_finding_t findings[KX_MAX_FINDINGS];
 } kx_verdict_t;
 
+/* Rolling per-track state feeding the plausibility/anti-spoof checks:
+ * a ring buffer of recent arrival times (broadcast-rate), the last-seen
+ * message counter (replay detection), and the last RSSI sample (position
+ * spoof detection). */
 typedef struct {
     uint64_t arrival_ms[KX_RATE_WINDOW];
     uint8_t head;

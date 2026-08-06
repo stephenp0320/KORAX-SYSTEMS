@@ -1,3 +1,9 @@
+/*
+ * koraxd configuration: INI file + CLI flags, layered over compiled-in
+ * defaults. Sections: [output], [capture], [tracks], [validator], [log],
+ * [mqtt]. Precedence is config_defaults() -> config_load_file() ->
+ * config_apply_cli(), applied in that order by the daemon's main().
+ */
 #include <stdio.h>
 #include "daemon/config.h"
 #include <string.h>
@@ -9,6 +15,11 @@
 #define CONFIG_ERR -1
 #define CONFIG_OK 0
 
+/* Every new numeric config value needs three things kept in lockstep:
+ * a default here, a parse branch in config_load_file() (strtol/strtod +
+ * endptr validation), and usually a matching field in magpie_thresholds_t
+ * wired up by the daemon. Missing any one of these is easy to miss since
+ * nothing fails loudly at compile time. */
 int config_defaults(korax_config_t *cfg) {
     if (cfg == NULL) return CONFIG_ERR;
 
@@ -34,6 +45,12 @@ int config_defaults(korax_config_t *cfg) {
     return CONFIG_OK;
 }
 
+/* Minimal INI parser. Note this is intentionally strict: an unknown
+ * key/section or a malformed line is a hard error (CONFIG_ERR), not a
+ * warning — a typo in the config file fails the daemon at startup
+ * instead of silently running with defaults. A missing file, though,
+ * is not an error (ENOENT falls through to CONFIG_OK) so a fresh install
+ * with no config file just runs on compiled-in defaults. */
 int config_load_file(korax_config_t *cfg, const char *path) {
     if (cfg == NULL || path == NULL) return CONFIG_ERR;
 
@@ -134,6 +151,11 @@ int config_load_file(korax_config_t *cfg, const char *path) {
     return CONFIG_OK;
 }
 
+/* Applied after config_load_file(), so CLI flags win over the file.
+ * "config" is accepted here only so getopt_long doesn't reject it as
+ * unknown — the actual --config path was already consumed by main()'s
+ * pre-scan of argv, before config_load_file() ran, since the path has
+ * to be known before the file it names can be loaded. */
 int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
     static struct option opts[] = {
         {"socket",    required_argument, 0, 's'},
@@ -169,7 +191,7 @@ int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
                 cfg->log_level = (int)strtol(optarg, NULL, 10);
                 break;
             case 'c':
-                break;
+                break; /* no-op: value already consumed by main()'s argv pre-scan */
             default:
                 return -1;
         }

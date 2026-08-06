@@ -1,3 +1,8 @@
+/*
+ * Public API for Rook, the track table (ROOK stage of the pipeline). Defines
+ * track_t (fixed-size, one per observed drone) and track_table_t, plus the
+ * create/find/update/expire functions src/rook/table_track.c implements.
+ */
 #ifndef TRACK_TABLE_H
 #define TRACK_TABLE_H
 #include <time.h>
@@ -15,7 +20,7 @@ typedef struct {
     char uas_id[21];
     droneID_basicID_data basic_id;
     DRONE_ID_Location_data location;
-    DRONE_ID_Location_data prev_location;
+    DRONE_ID_Location_data prev_location;  // previous fix, kept for jump/timestamp-rewind checks
     time_t prev_location_seen;
     time_t last_location_seen;
     sys_data system;
@@ -23,7 +28,7 @@ typedef struct {
     selfID_data self_id;
     authentication_data auth;
     int has_basic_id;
-    uint8_t source_mac[6];
+    uint8_t source_mac[6];  // live-capture key (see find_track_by_mac); unused for file replay
     int has_auth;
     int has_location;
     int has_system;
@@ -42,8 +47,8 @@ typedef struct {
     int reserved_bits_seen;
     uint8_t finding_count;
     kx_finding_t findings[KX_MAX_FINDINGS];
-    uint64_t arrival_ms[KX_RATE_WINDOW];
-    uint8_t head;
+    uint64_t arrival_ms[KX_RATE_WINDOW];  // ring buffer of recent arrival times, for broadcast-rate checks
+    uint8_t head;                          // next write index into arrival_ms, wraps mod KX_RATE_WINDOW
     uint8_t last_msg_counter;
     bool have_counter;
     int8_t last_rssi_dbm;

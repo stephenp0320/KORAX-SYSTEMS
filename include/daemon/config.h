@@ -1,3 +1,8 @@
+/*
+ * Compiled-in defaults and the config struct for koraxd. See config.c
+ * for the load order (defaults -> INI file -> CLI) and the rule that
+ * every new numeric knob needs a default here plus a parse branch there.
+ */
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -18,6 +23,7 @@
 #define KX_DEFAULT_SENSOR_LON 0.0
 #define KX_DEFAULT_HAS_SENSOR_LOCATION false
 
+/* Mirrors [output]/[capture]/[tracks]/[validator]/[log]/[mqtt] INI sections. */
 typedef struct {
     char   socket_path[108];
     char   source_path[256];

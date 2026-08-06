@@ -1,3 +1,8 @@
+/*
+ * Public types and decode API for Raven, the ODID/Remote-ID byte decoder.
+ * Wire layout constants, message-type structs, and the decode_*() entry points
+ * that turn a raw broadcast payload into a decoded_message_t for the pipeline.
+ */
 #include <stdint.h>
 #ifndef DECODER_H
 #define DECODER_H
@@ -284,6 +289,9 @@ typedef struct {
     uint8_t raw_messages[MAX_PACK_MSG][RID_MSG_SIZE];
 } message_pack_t;
 
+// ODID fields are little-endian on the wire regardless of host byte order. All
+// decoders MUST read multi-byte fields through these helpers — never hand-roll
+// byte assembly — so behavior stays correct on big-endian hosts too.
 static inline uint16_t rd_u16le(const uint8_t *p){
     return (uint16_t)(p[0] | (p[1] << 8));
 }

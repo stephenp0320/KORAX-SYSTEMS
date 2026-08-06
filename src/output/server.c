@@ -1,3 +1,8 @@
+/* The output stage's transport: a Unix-domain socket serving NDJSON to any
+ * number of subscribers (hello / track_update / track_expired events, one
+ * JSON object per line). The line framing and per-track JSON shape are a
+ * public contract shared with output_json.c/output_mqtt.c -- consumers
+ * split on '\n' and expect a complete object each time. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +31,10 @@ int set_socket_nonblocking(int fd){
     return 0;
 }
 
+/* Blocking (retries on EINTR) full write of one already-framed line; the
+ * fd itself may be non-blocking, so a would-block short write is reported
+ * as failure (-1) rather than looped on, so callers can drop a stalled
+ * client instead of hanging the whole broadcast. */
 static int send_line(int fd, const char *buf, size_t len){
     size_t sent = 0;
     while (sent < len){
@@ -117,6 +126,10 @@ int server_accept(server_t *server, const track_table_t *track){
     }
 
     for (int i = 0; i < track->num_tracks; i++){
+        /* buffer/line must stay large enough for a track's full findings[]
+         * (see FBUF_SIZE in output_json.c); too small makes track_to_json
+         * return -2, and this backfill silently skips that track instead
+         * of erroring -- a newly-connected client just won't see it. */
         char buffer[512];
         if (track_to_json(&track->tracks[i], buffer, sizeof(buffer)) < 0){
             continue;
@@ -136,6 +149,9 @@ int server_accept(server_t *server, const track_table_t *track){
     return 0;
 }
 
+/* O(1) removal: swaps the last fd into slot i, so client_fds order is not
+ * preserved -- fine, since indices are only ever used within one loop
+ * iteration and never persisted. */
 static void remove_client(server_t *server, size_t i){
     server->client_fds[i] = server->client_fds[server->client_count - 1];
     server->client_count--;
@@ -159,6 +175,9 @@ int server_broadcast(server_t *server, const char *line, size_t len){
             delivered++;
             i++;
         } else {
+            /* remove_client swaps the next client into slot i, so i must
+             * NOT be incremented here or that swapped-in client gets
+             * skipped this pass. */
             close(server->client_fds[i]);
             remove_client(server, i);
         }

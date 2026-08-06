@@ -1,3 +1,8 @@
+/*
+ * Raven — the decoder stage of the pipeline (SOURCE -> RAVEN -> PIPELINE -> ROOK -> MAGPIE -> OUTPUT).
+ * Turns raw ODID/Remote-ID message bytes into typed decoded_message_t values.
+ * Pure and allocation-free: no heap, no I/O — callers own all buffers.
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,6 +14,10 @@
 #define ODID_PACK_MAX_MESSAGES 9
 #define PACK_HEADER_SIZE 3
 
+// Splits an ODID "message pack" (header + up to ODID_PACK_MAX_MESSAGES fixed-size
+// sub-messages) into individual messages and feeds each straight into the track
+// pipeline. Stops and propagates the first error (decode or track) it hits, so a
+// bad message later in the pack won't silently mask earlier successful updates.
 int decode_message_pack(uint8_t *packet, int packet_len, time_t now, track_table_t *track_table, const magpie_thresholds_t *th){
     if (packet == NULL || track_table == NULL || th == NULL) return DECODE_ERR_NULL;
     if (packet_len < PACK_HEADER_SIZE) return DECODE_ERR_TOO_SHORT;
@@ -39,6 +48,11 @@ int decode_message_pack(uint8_t *packet, int packet_len, time_t now, track_table
     return 0;
 }
 
+// Dispatches on the message-type nibble in byte 0 and fills the matching union
+// member of decoded_output. Note: a sub-decoder returning DECODE_ERR_RESERVED_BITS
+// is not treated as failure here — the message is still fully decoded, but
+// reserved_bits is set so callers/Magpie can flag it (KX_RULE_RESERVED_BITS_SET)
+// without rejecting the message outright.
 int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *decoded_output){
     if (packet == NULL || decoded_output == NULL){
         return DECODE_ERR_NULL;
@@ -113,7 +127,12 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     }
     location_data->Status = (packet[1] >> 4) & 0x0F;
     location_data->HeightType = (packet[1] >> 2) & 0x01;
+    // packet[2] only covers 0-179 deg (multiplier flag = 0); when the multiplier
+    // bit is set, +180 shifts it to cover 180-359 deg — an ODID-spec encoding trick.
     location_data->Direction = packet[2] + ((packet[1] >> 1) & 0x01) * 180;
+    // Two-range speed encoding: below the bit's threshold, packet[3] is a direct
+    // 0.25 m/s step; above it, the same byte restarts at 63.75 m/s with a coarser
+    // 0.75 m/s step (extends range without a wider field). Per ODID spec.
     location_data->SpeedHorizontal = (packet[1] & 0x01) ? (packet[3] * 0.75 + 63.75) : (packet[3] * 0.25);
     int8_t speed_vertical_raw = (int8_t)packet[4];
     location_data->SpeedVertical = speed_vertical_raw * 0.5;
@@ -260,6 +279,10 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     if (packet_len < AUTH_PACK_SIZE){
         return DECODE_ERR_TOO_SHORT;
     }
+    // last_page_idx/length/timestamp are pre-zeroed because the ODID Auth message
+    // layout only carries them on data_page 0 (page 0 has a small header before
+    // AuthData; pages 1+ are pure signature continuation bytes). Non-zero-page
+    // messages must not report a stale/garbage timestamp from a previous decode.
     auth_data->last_page_idx = 0;
     auth_data->timestamp = 0;
     auth_data->length = 0;

@@ -1,3 +1,13 @@
+/*
+ * koraxd — the Korax daemon.
+ *
+ * A poll() event loop that wires together capture (file replay here),
+ * the decode/track pipeline, and output (Unix-domain socket feed, plus
+ * an optional MQTT publish). See CLAUDE.md for the full data-flow spine.
+ */
+/* sigaction/fileno are POSIX and hidden under strict -std=c11 on glibc;
+ * this compiles fine on macOS regardless but fails on Linux/CI without it. */
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +45,8 @@ typedef struct {
 
 static koraxd_t *g_daemon = NULL;
 
+/* Signal handlers may only touch async-signal-safe state; this just flips
+ * a sig_atomic_t that run_event_loop() polls each iteration. */
 static void handle_stop_signal(int sig){
     (void)sig;
     if (g_daemon != NULL)
@@ -51,6 +63,10 @@ static void setup_signal_handling(koraxd_t *daemon){
     sigaction(SIGINT,  &sa, NULL);
 }
 
+/* Parses one text line of whitespace-separated hex byte pairs (the
+ * frames.txt replay format) into raw bytes. Stops silently at the first
+ * token that isn't a valid hex byte, so trailing comments/garbage are
+ * tolerated rather than rejected. */
 static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     int n = 0;
     const char *p = line;
@@ -65,6 +81,8 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     return n;
 }
 
+/* track_table_expire() callback — fired once per track that ages out.
+ * user_data is the koraxd_t passed in from run_event_loop(). */
 static void on_track_expired(const track_t *track, void *user_data){
     if (track == NULL || user_data == NULL) return;
     koraxd_t *daemon = (koraxd_t *)user_data;
@@ -74,6 +92,9 @@ static void on_track_expired(const track_t *track, void *user_data){
     server_broadcast(&daemon->server, line, (size_t)len);
 }
 
+/* jbuf/line sizes are part of the wire contract's practical limits: too
+ * small and track_to_json() returns -2 (buffer too small for findings),
+ * which we treat as "skip this update" rather than truncate the JSON. */
 static void broadcast_track_update(koraxd_t *daemon, int idx){
     if (idx < 0 || idx >= daemon->table.num_tracks) return;
     char jbuf[1024], line[1280];
@@ -116,6 +137,9 @@ static void handle_source_frame(koraxd_t *daemon){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
+            /* frame == NULL: this daemon's only source is file replay, so
+             * tracks are keyed by UAS-ID, not by source MAC (see
+             * process_decoded_message's MAC-vs-replay keying rule). */
             int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
@@ -126,6 +150,10 @@ static void handle_source_frame(koraxd_t *daemon){
     }
 }
 
+/* Core loop: poll() on the listen socket, the replay source, and every
+ * connected client. The 1000ms timeout isn't just a poll cap — it's what
+ * guarantees the expiry sweep below still runs on schedule even when no
+ * fd is ready. */
 static void run_event_loop(koraxd_t *daemon){
     while (daemon->running){
         struct pollfd fds[2 + KX_MAX_CLIENTS];
@@ -171,6 +199,9 @@ int main(int argc, char **argv){
 
     const char *config_path = "/etc/korax/korax.conf";
 
+    /* --config must be known before config_load_file() runs, so it's
+     * scanned out of argv here rather than left to getopt_long/config_apply_cli
+     * (which sees --config too, but only to avoid an "unknown option" error). */
     for (int i = 1; i < argc - 1; i++){
         if (strcmp(argv[i], "--config") == 0){
             config_path = argv[i + 1];
@@ -178,6 +209,8 @@ int main(int argc, char **argv){
         }
     }
 
+    /* Precedence: config_defaults() above, then the file, then CLI flags
+     * below — each stage may override the previous one. */
     if (config_load_file(&cfg, config_path) != 0){
         log_msg(LOG_ERROR, "failed to load config %s", config_path);
         return 1;

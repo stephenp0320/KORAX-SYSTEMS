@@ -1,8 +1,24 @@
+/*
+ * Korax — BLE capture: raw advertisement -> 25-byte ODID payload.
+ *
+ * This is the live-radio side of the interchangeable source contract (see
+ * capture.h); its counterpart is capture_file.c for replay. Pure buffer
+ * parsing only — no sockets/BlueZ here, so it builds and tests on any OS
+ * even though live BLE capture itself is Linux-only.
+ */
 #include "korax/capture.h"
 #include <string.h>
 #include "korax/raven_decode.h"
 #include <stdbool.h>
 
+/*
+ * Walks the BLE AD (advertising data) structures looking for the
+ * Service Data (16-bit UUID) entry matching the ODID service UUID/app code,
+ * per ASTM F3411 BLE legacy advertising. Extracts the message counter and
+ * copies out the RID_MSG_SIZE payload. Returns 0 on success, BLE_ADV_ERR on
+ * a malformed frame or if no matching AD structure is present.
+ * `msg_counter` may be NULL if the caller doesn't need it.
+ */
 int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG_SIZE], uint8_t *msg_counter){
     if (ble_frame == NULL || rid_msg == NULL) {
         return BLE_ADV_ERR;
@@ -44,6 +60,9 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
     return BLE_ADV_ERR;
 }
 
+/* Wi-Fi counterpart to ble_rid_extraction(): scans vendor-specific
+ * information elements (element ID 0xDD) for the ODID payload, skipping the
+ * 3-byte OUI/type prefix. Returns 0 on success, WIFI_ERR otherwise. */
 int wifi_rid_extraction(const wifi_frame_t *wifi_frame, uint8_t rid_msg[RID_MSG_SIZE]){
     if (wifi_frame == NULL || rid_msg == NULL){
         return WIFI_ERR;
