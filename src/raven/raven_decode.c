@@ -45,7 +45,7 @@ int decode_message_pack(uint8_t *packet, int packet_len, time_t now, track_table
         int processed_decoded_msg = process_decoded_message(track_table, &msg, now, th, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
         if (processed_decoded_msg < 0) return processed_decoded_msg;
     }
-    return 0;
+    return DECODE_OK;
 }
 
 // Dispatches on the message-type nibble in byte 0 and fills the matching union
@@ -115,7 +115,7 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 	basicID->IDType = (DRONE_ID_idtype_t)((packet[1] >> 4) & 0x0F);
 	memcpy(basicID->UASID, &packet[2], DRONE_ID_SIZE);
 	basicID->UASID[DRONE_ID_SIZE] = '\0';
-	return 0;
+	return DECODE_OK;
 }
 
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data){
@@ -297,7 +297,7 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     } else {
         memcpy(auth_data->AuthData, &packet[2], 23);
     }
-    return 0;
+    return DECODE_OK;
 }
 
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
@@ -311,7 +311,7 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
     selfID->DescType = packet[1];
     memcpy(selfID->desc, &packet[2], 23);
     selfID->desc[23] = '\0';
-    return 0;
+    return DECODE_OK;
 }
 
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg){
@@ -334,7 +334,7 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
     system_msg->CategoryEU          = (packet[17] >> 4) & 0x0F;   // byte 17 high nibble
     system_msg->OperatorAltitudeGeo = rd_u16le(&packet[18]) * 0.5f - 1000.0f;
     system_msg->Timestamp           = rd_u32le(&packet[20]);
-    return 0;
+    return DECODE_OK;
 }
 
 int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id){
@@ -348,6 +348,6 @@ int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *o
     op_id->OperatorIdType = packet[1];
      memcpy(op_id->OperatorId, &packet[2], 20);
     op_id->OperatorId[20] = '\0';
-    return 0;
+    return DECODE_OK;
 }
 
