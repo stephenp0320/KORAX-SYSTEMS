@@ -72,7 +72,7 @@ int server_init(server_t *server, const char *socket_path){
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
     unlink(socket_path);
-
+    snprintf(server->socket_path, sizeof(server->socket_path), "%s", socket_path);
     if (bind(server->listen_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) == -1){
         close(server->listen_fd);
         return SOCKET_ERR;
