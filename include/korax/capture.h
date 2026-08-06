@@ -15,9 +15,11 @@
 #include <stddef.h>
 #include "korax/raven_decode.h"
 #define BLE_ADV_MAX_SIZE 31
+#define BLE_EXTRACTION_SUCCESS 0
 #define BLE_ADV_ERR 1
 #define BLE_AD_TYPE_SERVICE_DATA_16BIT 0x16
 #define WIFI_MAX_PACKET_SIZE 2048
+#define WIFI_EXTRACTION_SUCCESS 0
 #define WIFI_ERR 1
 #define ODID_SERVICE_UUID 0xFFFA
 #define ODID_APP_CODE 0x0D

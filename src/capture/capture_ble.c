@@ -53,7 +53,7 @@ int ble_rid_extraction(const ble_adv_frame_t *ble_frame, uint8_t rid_msg[RID_MSG
             }
 
             memcpy(rid_msg, &ble_frame->adv_data[payload_start], RID_MSG_SIZE);
-            return 0;
+            return BLE_EXTRACTION_SUCCESS;
         }
         pos += len + 1;
     }
@@ -79,7 +79,7 @@ int wifi_rid_extraction(const wifi_frame_t *wifi_frame, uint8_t rid_msg[RID_MSG_
                     return WIFI_ERR;
                 }
                 memcpy(rid_msg, &wifi_frame->wifi_packet[payload_start], RID_MSG_SIZE);
-                return 0;
+                return WIFI_EXTRACTION_SUCCESS;
             }
             return WIFI_ERR;
         }
