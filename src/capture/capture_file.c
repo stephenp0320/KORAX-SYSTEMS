@@ -1,10 +1,8 @@
 /*
- * Korax — file/replay capture source.
+ * File/replay -- capture source.
  *
  * Reads hex-encoded frames from a text file and feeds them through the same
- * wp_frame_cb_t callback contract as the live captures (see capture.h) —
- * this interchangeability is why the system develops and tests on macOS
- * despite BLE capture itself being Linux-only.
+ * wp_frame_cb_t callback contract as the live captures.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -13,8 +11,10 @@
 #include "korax/raven_decode.h"
 #include "korax/capture.h"
 
-/* Parses whitespace-separated hex byte pairs (e.g. "AA BB CC") from one
- * line, stopping at the first token that doesn't parse or at `max` bytes. */
+/*
+ * Parses whitespace-separated hex byte pairs from one
+ * line, stopping at the first token that doesn't parse or at `max` bytes.
+ */
 static int hexline_to_bytes(const char *line, uint8_t *out, int max){
 	int n = 0;
 	const char *pline = line;
@@ -28,6 +28,7 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
 	return n;
 }
 
+/* Takes a file and reads its contents */
 FILE *read_file(const char *filename){
     FILE *fp;
     fp = fopen(filename, "r");
@@ -36,10 +37,12 @@ FILE *read_file(const char *filename){
 }
 
 /*
- * Reads `fp` line by line (skipping comments/blank lines), decodes each hex
+ * Reads `fp` line by line and decodes each hex
  * line into a frame, and invokes `cb` once per frame with medium set to
- * WP_MEDIUM_REPLAY. `frame.payload` points at a stack buffer scoped to a
- * single iteration — `cb` must consume it synchronously and not retain the
+ * WP_MEDIUM_REPLAY.
+ *
+ * `frame.payload` points at a stack buffer scoped to a
+ * single iteration -- `cb` must consume it synchronously and not retain the
  * pointer past the call. Returns the number of frames delivered, or -1 on
  * a read error.
  */
@@ -68,9 +71,13 @@ int get_file_line(FILE *fp, wp_frame_cb_t cb, void *user_data){
     return frames;
 }
 
-/* Top-level replay driver: opens `path` and streams its frames through
- * get_file_line(). Returns the frame count, or -1 if the file can't be
- * opened or a read error occurs. */
+/*
+ * Top-level replay driver: opens `path` and streams its frames through
+ * get_file_line().
+ *
+ * Returns the frame count, or -1 if the file can't be
+ * opened or a read error occurs.
+ */
 int wp_replay_run(const char *path, wp_frame_cb_t cb, void *user_data){
     if (path == NULL || cb == NULL) return -1;
 

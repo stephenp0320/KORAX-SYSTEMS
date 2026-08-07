@@ -1,9 +1,13 @@
-/* JSON serialisation for the pipeline's output stage: tracks and Magpie
- * verdicts -> NDJSON lines consumed by server.c (and MQTT). This is the
- * public wire contract — field names, nesting, and rule/severity strings
- * are pinned byte-for-byte by test_golden_verdict. Any intentional change
- * to the shape emitted here must update that golden string in the same
- * commit; don't rename or restructure "for tidiness". */
+/*
+ * JSON serialisation for the pipeline's output stage: tracks and Magpie
+ * verdicts -> NDJSON lines consumed by server.c (and MQTT).
+ *
+ * This is the public wire contract -- field names, nesting, and rule/severity strings
+ * are pinned byte-for-byte by test_golden_verdict.
+ *
+ * Any intentional change to the shape emitted here must update that golden string in  * the same commit.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,14 +15,19 @@
 #include "korax/rook_track.h"
 #include "korax/output_json.h"
 #include "korax/magpie_validator.h"
-/* Scratch buffer for the rendered findings array; must comfortably outsize
+
+
+/*
+ * Scratch buffer for the rendered findings array must comfortably outsize
  * the largest findings[] a track can carry, or findings_to_json() fails and
- * track_to_json() returns -2, silently dropping the update (see daemon
- * line/track buffer sizing, which must stay >= this). */
+ * track_to_json() returns -2.
+ */
 #define FBUF_SIZE 1024
 
-/* Escapes src into dst for embedding in a JSON string. Truncates safely
- * (never overflows dst) rather than erroring if src doesn't fit. */
+/*
+ * Escapes src into dst for embedding in a JSON string.
+ * Truncates safely rather than erroring if src doesn't fit.
+ */
 static void json_escape(const char *src, char *dst, size_t dstlen){
     size_t j = 0;
     if (dstlen == 0){
@@ -48,9 +57,6 @@ static void json_escape(const char *src, char *dst, size_t dstlen){
     dst[j] = '\0';
 }
 
-/* LANDMINE: must stay in lockstep with the kx_rule_t enum in
- * magpie_types.h. A rule added there without a case here doesn't fail to
- * build — it silently falls through to "unknown" in the JSON output. */
 static const char *rule_name(kx_rule_t rule)
 {
     switch(rule){
@@ -110,9 +116,10 @@ static const char *sev_name(kx_severity_t severity){
     }
 }
 
-/* Renders the findings[] array as JSON; returns -1 if buf is too small
- * (snprintf truncation), else the written length. Callers treat -1 as
- * "buffer too small" and propagate their own -2 sentinel to callers. */
+/*
+ * Renders the findings[] array as JSON and returns -1 if buf is too small
+ * (snprintf truncation), else the written length.
+ */
 static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, size_t len){
     int n = snprintf(buf, len, "[");
     if (n < 0 || (size_t)n >= len) return -1;
@@ -136,12 +143,12 @@ static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, siz
     return n + m;
 }
 
-/* Contract: emits exactly the fields/nesting pinned by test_golden_verdict,
+/*
+ * Emits exactly the fields/nesting pinned by test_golden_verdict,
  * including the "validation":{compliant,ruleset_version,flags,findings}
  * block. -1 = bad args/encoding error; -2 = buffer too small (caller's
- * buffer must stay large enough for a full findings[] — see FBUF_SIZE and
- * the daemon's track/line buffer sizes) — a -2 here means the update was
- * silently dropped upstream. */
+ * buffer must stay large enough for a full findings[]
+ */
 int track_to_json(const track_t *track, char *buffer, size_t len){;
     if (track == NULL || buffer == NULL || len == 0) return -1;
 
@@ -190,12 +197,13 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
         fbuf);
 
     if (write_json < 0) return -1;
-    if (write_json >= (int)len) return -2; /* caller's buffer too small; update dropped */
+    if (write_json >= (int)len) return -2;
     return write_json;
 }
 
-/* Same -1/-2 convention as track_to_json, scoped to just the validation
- * block (used where callers already have the rest of the track envelope). */
+/*
+ * Same -1/-2 convention as track_to_json, scoped to just the validation block.
+ */
 int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
     char temp[KX_MAX_DETAILS];

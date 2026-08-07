@@ -1,5 +1,5 @@
 /*
- * Korax — pipeline glue.
+ * Pipeline.
  *
  * Wires the data-flow spine together: RAVEN decode output -> ROOK track
  * find/create/update -> MAGPIE validation -> verdict stored on the track.

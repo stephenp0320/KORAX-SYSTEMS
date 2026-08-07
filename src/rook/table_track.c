@@ -18,11 +18,6 @@ void track_table_init(track_table_t *table){
     memset(table, 0, sizeof(track_table_t));
 }
 
-// Removes tracks idle longer than expiry_seconds, compacting the array in place.
-// on_expired fires before the slot is overwritten, so it still sees a valid
-// track_t; do not retain that pointer past the callback. i is only advanced
-// on a non-removal — after a compaction the next track has shifted into slot i,
-// so re-checking the same index is deliberate, not a bug.
 int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, track_expired_cb on_expired, void *user_data){
     int removed = 0;
     int i = 0;
@@ -43,14 +38,7 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, tra
     return removed;
 }
 
-// MAC-keyed lookup, paired with track_table_create_by_source_mac. Used only for
-// live capture (process_decoded_message sees a non-NULL ble_adv_frame_t), because
-// a single physical drone can broadcast several message types from one MAC before
-// a Basic ID ever arrives to key by UAS-ID. File replay (frame == NULL) has no
-// MAC and must use find_track/track_table_create instead — do not mix the two
-// keying schemes for the same source.
-// Returns a track index (>= 0) or TRACK_NOT_FOUND (negative) — callers must
-// test `< 0`, never `!= 0`: index 0 is a valid track.
+
 int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
     int i = 0;
     int curr_track = 0;
@@ -65,10 +53,7 @@ int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
     return TRACK_NOT_FOUND;
 }
 
-// UAS-ID-keyed lookup, paired with track_table_create. This is the fallback path
-// for file replay (no source MAC available) — see find_track_by_mac for why the
-// two keying schemes are kept separate. Same return convention: negative means
-// not found/error, test `< 0` (index 0 is a valid track).
+
 int find_track(track_table_t *tracks, const char *uas_id){
     if (tracks == NULL || uas_id == NULL) return TRACK_NOT_FOUND;
 
@@ -81,9 +66,7 @@ int find_track(track_table_t *tracks, const char *uas_id){
     return TRACK_NOT_FOUND;
 }
 
-// Appends a new track keyed by UAS-ID (the file-replay path — see find_track).
-// Returns the new track's index (>= 0), or a negative TRACK_ERR/TRACK_TABLE_FULL
-// on failure; callers must check `< 0`, not `!= 0`, since index 0 is valid.
+
 int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     if (table == NULL || uas_id == NULL) return TRACK_ERR;
     if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
@@ -100,9 +83,7 @@ int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     return track_num;
 }
 
-// Appends a new track keyed by source MAC (the live-capture path — see
-// find_track_by_mac for why). Same index/error convention as track_table_create:
-// negative is failure, test `< 0` — 0 is a valid track index.
+
 int track_table_create_by_source_mac(track_table_t *table, time_t now, const uint8_t *source_mac){
     if (table == NULL || source_mac == NULL) return TRACK_ERR;
     if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
@@ -122,9 +103,7 @@ double to_radians(double degrees){
     return degrees * (PI / 180.0);
 }
 
-// Haversine great-circle distance (km) between the track's previous and current
-// location fixes. Must return double, not int: an int return truncates any
-// sub-km jump to 0, silently defeating the plausibility check that calls this.
+
 double jump_detection(const track_t *table){
     double phi1 = to_radians(table->prev_location.Latitude);
     double phi2 = to_radians(table->location.Latitude);
@@ -135,8 +114,7 @@ double jump_detection(const track_t *table){
     return EARTH_RADIUS_KM * c;
 }
 
-// Folds one decoded message into an existing track (create/lookup happens
-// upstream in the pipeline). Pure field update — no I/O, no allocation.
+
 int track_table_update(track_t *drone_track, time_t now, const decoded_message_t *msg){
     if (drone_track == NULL || msg == NULL) return TRACK_ERR;
 

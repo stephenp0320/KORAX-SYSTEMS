@@ -1,10 +1,10 @@
 /*
- * Korax — Magpie validation engine (implementation).
+ * Magpie validation engine.
  *
  * Each magpie_validate_<thing>() below is a pure check: track/message/
- * thresholds in, a single kx_result_t out, no allocation, no I/O. magpie_validate()
- * composes them into a rule-bit mask; magpie_evaluate() wraps that mask into a
- * kx_verdict_t with human-readable findings (via rule_meta) and the
+ * thresholds in, a single kx_result_t out, no allocation, no I/O.
+ *
+ * magpie_validate() composes them into a rule-bit mask; magpie_evaluate() wraps that m* ask into a kx_verdict_t with human-readable findings (via rule_meta) and the
  * compliance decision.
  */
 #include <stddef.h>
@@ -17,13 +17,10 @@
 
 /*
  * Maps each rule bit to the finding metadata reported on the wire (severity,
- * field, regulatory reference, human-readable detail). This switch and the
- * kx_rule_t enum in magpie_types.h must stay in lockstep: a rule with no case
- * here silently falls through to `default` and ships blank field/reg/detail
- * strings in its finding (see the step-4 recipe in CLAUDE.md). The severity
- * assigned here — not the severity a check function returns internally — is
- * what actually reaches the verdict; only bits in KX_RULE_ERROR_MASK affect
- * is_compliant regardless of what's set below.
+ * field, regulatory reference, human-readable detail).
+ * This switch and the kx_rule_t enum in magpie_types.h must stay in lockstep: a rule w* ith no case here silently falls through to `default` and ships blank field/reg/detai* l strings in its finding (see the step-4 recipe in CLAUDE.md).
+ *
+ * The severity assigned here -- not the severity a check function returns internally —* is what actually reaches the verdict; only bits in KX_RULE_ERROR_MASK affect is_comp* liant regardless of what's set below.
  */
 static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, const char **reg, const char **detail){
     switch (rule){
@@ -207,7 +204,7 @@ kx_result_t magpie_validate_location(const DRONE_ID_Location_data *location){
 
 /*
  * Compliance tier. Guards against a Basic ID message with an out-of-range
- * IDType enum or an empty UAS ID string — either means the operator hasn't
+ * IDType enum or an empty UAS ID string either means the operator hasn't
  * declared who/what this aircraft is, which EU 2019/945 requires.
  */
 kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
@@ -237,7 +234,7 @@ kx_result_t magpie_validate_basic_id(const droneID_basicID_data *basic_id){
 /*
  * Compliance tier. Guards against two things: (1) the track never having
  * received one of the four required message types, and (2) a location fix
- * that has gone stale — no update within th->grace_seconds (EN 4709-002 DRI
+ * that has gone stale, no update within th->grace_seconds (EN 4709-002 DRI
  * live-tracking requirement). Both are ERROR severity.
  */
 kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie_thresholds_t *th){
@@ -266,7 +263,7 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie
 /*
  * Plausibility tier (WARN). Guards against a position jump between two
  * consecutive location fixes that implies a groundspeed faster than
- * th->max_speed_kmh — physically impossible for the airframe, so likely a
+ * th->max_speed_kmh -- physically impossible for the airframe, so likely a
  * decode glitch or spoofed fix.
  */
 kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_t *th){
@@ -291,8 +288,7 @@ kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_
 
 /*
  * WARN severity (not compliance-breaking, despite sitting in the low enum
- * bits). Guards against reserved/spec bits observed set — a forward-
- * compatibility signal, not proof of a lie.
+ * bits). Guards against reserved/spec bits observed set.
  */
 kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
@@ -308,7 +304,7 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
 
 /*
  * Plausibility tier (WARN). Guards against the Location message's own
- * TimeStamp field moving backwards between two fixes — a clock rewind or
+ * TimeStamp field moving backwards between two fixes such as a clock rewind or
  * replayed/reordered frame. -1.0f is "no timestamp" and is skipped, not
  * treated as a rewind.
  */
@@ -334,7 +330,7 @@ kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresho
  * Plausibility tier. Guards against a track broadcasting slower than
  * th->min_broadcast_hz (EN 4709-002 DRI minimum rate), measured over the
  * KX_RATE_WINDOW most recent arrival timestamps. Note: rule_meta reports this
- * as WARN even though the check locally tags it ERROR — only bits in
+ * as WARN even though the check locally tags it ERROR, only bits in
  * KX_RULE_ERROR_MASK affect compliance.
  */
 kx_result_t magpie_validate_broadcast_rate(const track_t *track, const magpie_thresholds_t *th)
@@ -365,7 +361,8 @@ kx_result_t magpie_validate_broadcast_rate(const track_t *track, const magpie_th
 }
 
 /* Per-airframe-type speed ceilings (m/s) used by magpie_validate_speed_vs_type
- * below; UNDEFINED_MAX_SPEED means "no envelope known, don't flag". */
+ * below; UNDEFINED_MAX_SPEED means "no envelope known, don't flag".
+ */
 static double max_speed_ms_for_type(DRONE_ID_uatype_t t){
     switch (t){
         case DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR:
@@ -410,7 +407,7 @@ kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thr
 
 /*
  * Plausibility tier (WARN). Guards against a vertical speed magnitude beyond
- * th->max_climb_ms — faster climb/descent than any current sUAS airframe can
+ * th->max_climb_ms -- faster climb/descent than any current sUAS airframe can
  * plausibly sustain. INV_SPEED_V marks "vertical speed not reported".
  */
 kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresholds_t *th)
@@ -432,7 +429,7 @@ kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresh
 
 /*
  * Plausibility tier (WARN). Guards against a geodetic altitude outside
- * [th->altitude_floor_m, th->max_altitude_m] — below ground or above any
+ * [th->altitude_floor_m, th->max_altitude_m] -- below ground or above any
  * plausible sUAS operating ceiling. INV_ALT marks "altitude not reported".
  */
 kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie_thresholds_t *th)
@@ -451,9 +448,8 @@ kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie
     return r;
 }
 
-/* Great-circle distance in km. Must return double (not int — truncates
- * sub-km distances to 0); shared by jump/teleport detection and
- * operator-distance. */
+/* Great-circle distance in km. Must return double shared by jump/teleport detection an * d operator-distance.
+ */
 double haversine_km(double lat1, double lon1, double lat2, double lon2){
     double phi1        = to_radians(lat1);
     double phi2        = to_radians(lat2);
@@ -564,7 +560,7 @@ kx_result_t magpie_validate_counter_replay(const track_t *track, const uint8_t *
  * (KX_RSSI_AT_1M / KX_PATHLOSS_N), a signal stronger than expected-plus-
  * KX_RSSI_MARGIN_DB for the claimed distance implies the drone is actually
  * much closer than it says (possible spoofed GPS). Requires a configured
- * fixed sensor position (th->has_sensor_pos) — otherwise this is a no-op.
+ * fixed sensor position (th->has_sensor_pos), otherwise this is a no-op.
  */
 kx_result_t magpie_validate_rssi_position(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th)
 {

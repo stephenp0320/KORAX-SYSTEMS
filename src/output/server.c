@@ -1,8 +1,10 @@
-/* The output stage's transport: a Unix-domain socket serving NDJSON to any
+/*
+ * The output stage's transport: a Unix-domain socket serving NDJSON to any
  * number of subscribers (hello / track_update / track_expired events, one
  * JSON object per line). The line framing and per-track JSON shape are a
  * public contract shared with output_json.c/output_mqtt.c -- consumers
- * split on '\n' and expect a complete object each time. */
+ * split on '\n' and expect a complete object each time.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,10 +33,12 @@ int set_socket_nonblocking(int fd){
     return 0;
 }
 
-/* Blocking (retries on EINTR) full write of one already-framed line; the
+/*
+ * Blocking (retries on EINTR) full write of one already-framed line; the
  * fd itself may be non-blocking, so a would-block short write is reported
  * as failure (-1) rather than looped on, so callers can drop a stalled
- * client instead of hanging the whole broadcast. */
+ * client instead of hanging the whole broadcast.
+ */
 static int send_line(int fd, const char *buf, size_t len){
     size_t sent = 0;
     while (sent < len){
