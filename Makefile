@@ -11,7 +11,8 @@ LIB_SRC := \
     src/pipeline/pipeline.c \
     src/magpie/magpie_validator.c \
     src/output/output_json.c \
-    src/output/server.c
+    src/output/server.c \
+    src/scanner/scan.c
 
 MQTT ?= 0
 ifeq ($(MQTT),1)

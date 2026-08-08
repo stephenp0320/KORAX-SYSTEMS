@@ -1,4 +1,5 @@
 #ifndef SCANNER_H
+#define SCANNER_H
 #include <stdint.h>
 #define MAX_RESP 255
 // defined mac address here, needs further configs
@@ -9,16 +10,8 @@
 #define UNKNOWN "unknown"
 #define INQ_DURATION 8
 
-typedef struct {
-	uint8_t b[6];
-} __attribute__((packed)) bdaddr_t;
-
-typedef struct {
-    bdaddr_t    bdaddr;
-    uint8_t     pscan_rep_mode;
-    uint8_t     pscan_period_mode;
-    uint8_t     pscan_mode;
-    uint8_t     dev_class[3];
-    uint16_t    clock_offset;
-} __attribute__ ((packed)) inquiry_info;
+/* Classic BR/EDR inquiry scan smoke test. Linux-only (BlueZ); returns
+ * SCAN_ERR on any other platform. bdaddr_t/inquiry_info come from BlueZ's
+ * own headers on Linux -- not redeclared here to avoid conflicting with them. */
+int scan(void);
 #endif

@@ -18,6 +18,7 @@ add_library(korax STATIC
     src/magpie/magpie_validator.c
     src/output/output_json.c
     src/output/server.c
+    src/scanner/scan.c
 )
 add_library(korax::korax ALIAS korax)
 target_include_directories(korax
