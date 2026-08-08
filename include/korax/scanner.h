@@ -1,4 +1,5 @@
 #ifndef SCANNER_H
+#include <stdint.h>
 #define MAX_RESP 255
 // defined mac address here, needs further configs
 #define MAC_ADDR 19
