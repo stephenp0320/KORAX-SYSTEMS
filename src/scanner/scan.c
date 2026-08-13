@@ -27,11 +27,20 @@ int scan(void)
     flags = IREQ_CACHE_FLUSH;
     inq_info = (inquiry_info*)malloc(max_responces * sizeof(inquiry_info));
     num_responces = hci_inquiry(device_id, len, max_responces, NULL, &inq_info, flags);
-    if (num_responces < 0) {
-        free(inq_info);
+
+    int enable = hci_le_set_scan_enable(sock, 0x01 /* enable */, 0x00 /* filter dup: don't filter */,
+  10000);
+    if (enable < 0){
         close(sock);
-        return RESPONCE_ERR;
+        return SCSCAN_ERR;
     }
+    responce = hci_le_set_scan_parameters(sock, 0x00, htobs(0x0010), htobs(0x0010), LE_PUBLIC_ADDRESS, 0x00, 10000);
+    if (responce < 0){
+        close(sock);
+        return RERESPONCE_ERR;
+    }
+// where i left off
+
 
     int i;
     for (i = 0; i < num_responces; i++) {
