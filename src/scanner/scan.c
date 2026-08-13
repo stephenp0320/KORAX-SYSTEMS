@@ -1,6 +1,6 @@
 #include "korax/scanner.h"
 
-
+#ifdef __linux__
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
@@ -12,7 +12,7 @@
 #include <bluetooth/hci_lib.h>
 #include "korax/capture.h"
 
-int scanner(void)
+int scan(void)
 {
     int device_id, sock;
     struct hci_filter new_filter, old_filter;
@@ -86,4 +86,4 @@ int scanner(void)
     return SCAN_OK;
 }
 
-
+#endif
