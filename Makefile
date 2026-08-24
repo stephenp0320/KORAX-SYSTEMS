@@ -3,6 +3,10 @@ CFLAGS  ?= -Wall -Wextra -std=c11
 CFLAGS  += -Iinclude
 LDLIBS  += -lm
 
+ifeq ($(shell uname -s),Linux)
+    LDLIBS += -lbluetooth
+endif
+
 LIB_SRC := \
     src/raven/raven_decode.c \
     src/rook/table_track.c \

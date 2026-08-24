@@ -36,6 +36,11 @@ check_library_exists(m sin "" HAVE_LIBM)
 if(HAVE_LIBM)
     target_link_libraries(korax PUBLIC m)
 endif()
+# scan.c's BlueZ code is compiled on any Linux build (guarded by #ifdef __linux__).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_library(BLUETOOTH_LIBRARY bluetooth REQUIRED)
+    target_link_libraries(korax PUBLIC ${BLUETOOTH_LIBRARY})
+endif()
 # ---- Tools ---------------------------------------------------------------
 if(KORAX_BUILD_TOOLS)
     add_executable(korax_replay tools/replay/korax_replay.c)
