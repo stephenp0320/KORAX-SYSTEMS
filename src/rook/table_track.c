@@ -19,7 +19,8 @@ void track_table_init(track_table_t *table){
 }
 
 int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, track_expired_cb on_expired, void *user_data){
-    int removed = 0;
+    int curr_status = 0;
+    int expired = 1;
     int i = 0;
     while (i < table->num_tracks){
         if (now - table->tracks[i].last_seen > expiry_seconds){
@@ -30,12 +31,12 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, tra
                 table->tracks[j] = table->tracks[j + 1];
             }
             table->num_tracks--;
-            removed++;
+            curr_status = expired;
         } else {
             i++;
         }
     }
-    return removed;
+    return curr_status;
 }
 
 
