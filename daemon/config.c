@@ -41,6 +41,7 @@ int config_defaults(korax_config_t *cfg) {
     cfg->sensor_lat = KX_DEFAULT_SENSOR_LAT;
     cfg->sensor_lon = KX_DEFAULT_SENSOR_LON;
     cfg->has_sensor_pos = KX_DEFAULT_HAS_SENSOR_LOCATION;
+    cfg->id_churn_limit = KX_DEFAULT_ID_CHURN_LIMIT;
     if (cfg->expiry_seconds <= 0) return CONFIG_ERR;
     return CONFIG_OK;
 }

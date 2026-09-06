@@ -35,7 +35,7 @@
 #define KX_KINEMATIC_TELEPORT_DETECTED "position implausible for elapsed time relative to sensor"
 #define KX_CLIMB_EXCEEDS "vertical speed exceeds a plausible climb/descent rate"
 #define KX_DUPLICATION_DETECTED "duplicate UAS ID seen across multiple tracks (possible clone/spoof)"
-#define KX_ID_CHURN_DETECTED "source MAC broadcast multiple UAS IDs (identity churn / possible spoof)"
+#define KX_ID_CHURN_DETECTED "UAS ID changed repeatedly on the same track (identity churn / possible spoof)"
 #define KX_RSSI_POS "signal strength inconsistent with claimed position (possible spoof)"
 #define KX_CLIMB_RATE "vertical speed exceeds a plausible climb/descent rate"
 #define KX_UASID_FORMAT "UAS ID does not match the required format for its declared ID type"

@@ -788,6 +788,17 @@ static void test_golden_verdict(void){
         "\"field\":\"track\",\"reg\":\"EU 2019/945\","
         "\"detail\":\"a required message type is missing\"}]}";
     ASSERT_TRUE(strstr(buf, golden) != NULL, "golden: validation block byte-exact");
+
+    /* 6. ID churn -> one WARN finding, still compliant. */
+    track_t churn; memset(&churn, 0, sizeof churn);
+    churn.has_basic_id = 1; churn.has_location = 1; churn.has_system = 1; churn.has_operator_id = 1;
+    churn.last_location_seen = 5000; churn.msg_count_location = 1;
+    churn.id_change_count = 2;   /* >= KX_ID_CHURN_LIMIT */
+    kx_verdict_t v_churn = magpie_evaluate(&churn, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
+    ASSERT_EQ_INT(v_churn.flags, KX_RULE_ID_CHURN, "golden: id churn -> exactly ID_CHURN");
+    ASSERT_TRUE(v_churn.compliant, "golden: id churn (WARN) -> still compliant");
+    ASSERT_EQ_INT(v_churn.finding_count, 1, "golden: id churn -> one finding");
+    ASSERT_EQ_INT(v_churn.findings[0].severity, KX_SEVERITY_WARN, "golden: id churn severity WARN");
 }
 
 /* ---- BLE extraction / MAC keying / data-plumbing ---- */
@@ -905,21 +916,67 @@ static void test_id_clone(void){
                   "single unique UAS ID -> no clone");
 }
 
+static void test_id_change_count(void){
+    track_t t; memset(&t, 0, sizeof t);
+
+    decoded_message_t m; memset(&m, 0, sizeof m);
+    m.type = MESSAGETYPE_BASIC_ID;
+    strcpy(m.data.basic_id.UASID, "FIRSTID");
+
+    track_table_update(&t, 1000, &m);
+    ASSERT_EQ_INT(t.id_change_count, 0, "first basic id with no change counted");
+
+    track_table_update(&t, 1001, &m);   /* repeat of same id */
+    ASSERT_EQ_INT(t.id_change_count, 0, "repeat of same id with no change counted");
+
+    strcpy(m.data.basic_id.UASID, "SECONDID");
+    track_table_update(&t, 1002, &m);
+    ASSERT_EQ_INT(t.id_change_count, 1, "different id with change counted");
+    ASSERT_EQ_STR(t.uas_id, "SECONDID", "uas_id updated to new value");
+
+    track_table_update(&t, 1003, &m);   /* repeat of new id */
+    ASSERT_EQ_INT(t.id_change_count, 1, "repeat of new id with no additional change");
+
+    strcpy(m.data.basic_id.UASID, "THIRDID");
+    track_table_update(&t, 1004, &m);
+    ASSERT_EQ_INT(t.id_change_count, 2, "second distinct change counted");
+}
+
+static void test_id_churn(void){
+    track_t t; memset(&t, 0, sizeof t);
+    magpie_thresholds_t th = MAGPIE_DEFAULT_THRESHOLDS;   /* id_churn_limit = KX_ID_CHURN_LIMIT */
+
+    t.id_change_count = 0;
+    ASSERT_EQ_INT(magpie_validate_id_churn(&t, &th).rule, KX_RULE_NONE, "no id changes and not flagged");
+
+    t.id_change_count = 1;
+    ASSERT_EQ_INT(magpie_validate_id_churn(&t, &th).rule, KX_RULE_NONE, "one id change and is below limit, not flagged");
+
+    t.id_change_count = 2;
+    ASSERT_TRUE(magpie_validate_id_churn(&t, &th).rule & KX_RULE_ID_CHURN, "two id changes and is at limit, flagged");
+
+    t.id_change_count = 5;
+    ASSERT_TRUE(magpie_validate_id_churn(&t, &th).rule & KX_RULE_ID_CHURN, "many id changes and is still flagged");
+
+    ASSERT_EQ_INT(magpie_validate_id_churn(NULL, &th).rule, KX_RULE_NONE, "null track and safe no-op");
+    ASSERT_EQ_INT(magpie_validate_id_churn(&t, NULL).rule, KX_RULE_NONE, "null thresholds and safe no-op");
+}
+
 static void test_counter_replay(void){
     track_t t; memset(&t, 0, sizeof t);
     t.have_counter = true; t.last_msg_counter = 10;
 
     uint8_t repeat = 10, forward = 11, backward = 5, wrap = 1;
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &repeat).rule & KX_RULE_COUNTER_REPLAY,
-                "repeated counter -> replay");
+                "repeated counter - replay");
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &forward).rule, KX_RULE_NONE,
-                  "forward counter -> ok");
+                  "forward counter - ok");
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &backward).rule & KX_RULE_COUNTER_REPLAY,
-                "backward counter -> replay");
+                "backward counter - replay");
 
     t.last_msg_counter = 255;   /* wrap: 255 -> 1 is a forward step of 2 */
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &wrap).rule, KX_RULE_NONE,
-                  "counter wrap 255->1 -> ok (forward)");
+                  "counter wrap 255->1 - ok (forward)");
 }
 
 static void test_rssi_position(void){
@@ -932,19 +989,19 @@ static void test_rssi_position(void){
     far.has_location = 1; far.location.Latitude = 53.5; far.location.Longitude = -8.0;
     far.last_rssi_dbm = -45;
     ASSERT_TRUE(magpie_validate_rssi_position(&tbl, &far, &th).rule & KX_RULE_RSSI_POSITION,
-                "far claim + strong signal -> flagged");
+                "far claim + strong signal - flagged");
 
     /* consistent: ~100 m away with a weak signal */
     track_t near; memset(&near, 0, sizeof near);
     near.has_location = 1; near.location.Latitude = 53.0009; near.location.Longitude = -8.0;
     near.last_rssi_dbm = -95;
     ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &near, &th).rule, KX_RULE_NONE,
-                  "close + weak signal -> ok");
+                  "close + weak signal - ok");
 
     /* no sensor position configured -> rule disabled */
     magpie_thresholds_t off = th; off.has_sensor_pos = false;
     ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &far, &off).rule, KX_RULE_NONE,
-                  "no sensor position -> not judged");
+                  "no sensor position - not judged");
 }
 
 static void test_uasid_format(void){
@@ -952,50 +1009,50 @@ static void test_uasid_format(void){
     good.IDType = DRONE_ID_IDTYPE_SERIAL_NUMBER;
     strcpy(good.UASID, "1871C000000007000");   /* standard example: mfr 1871, len C=12, 12-char body */
     ASSERT_EQ_INT(magpie_validate_uasid_format(&good).rule, KX_RULE_NONE,
-                  "valid CTA-2063-A serial -> ok");
+                  "valid CTA-2063-A serial - ok");
 
     droneID_basicID_data shortbody = good;
     strcpy(shortbody.UASID, "1871C00007");      /* length code says 12, body is 5 */
     ASSERT_TRUE(magpie_validate_uasid_format(&shortbody).rule & KX_RULE_UASID_FORMAT,
-                "declared length != actual -> flagged");
+                "declared length != actual - flagged");
 
     droneID_basicID_data badchar = good;
     strcpy(badchar.UASID, "1871C00000000000I"); /* body contains 'I' (not allowed) */
     ASSERT_TRUE(magpie_validate_uasid_format(&badchar).rule & KX_RULE_UASID_FORMAT,
-                "excluded char (I) in body -> flagged");
+                "excluded char (I) in body - flagged");
 }
 
 static void test_operator_id_format(void){
     OperatorID_data good; memset(&good, 0, sizeof good);
     strcpy(good.OperatorId, "IRL87astrdge12k8");   /* 3-letter country prefix + alphanumeric */
     ASSERT_EQ_INT(magpie_validate_operator_id_format(&good).rule, KX_RULE_NONE,
-                  "valid operator id -> ok");
+                  "valid operator id - ok");
 
     OperatorID_data bad = good;
     strcpy(bad.OperatorId, "12387astrdge12k8");    /* prefix not letters */
     ASSERT_TRUE(magpie_validate_operator_id_format(&bad).rule & KX_RULE_OPERATOR_ID_FORMAT,
-                "non-letter country prefix -> flagged");
+                "non-letter country prefix - flagged");
 }
 
 static void test_eu_class_consistency(void){
     sys_data open_ok; memset(&open_ok, 0, sizeof open_ok);
     open_ok.CategoryEU = CATEGORY_EU_OPEN; open_ok.ClassEU = CLASS_EU_CLASS_1;
     ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&open_ok).rule, KX_RULE_NONE,
-                  "open + C1 -> consistent");
+                  "open + C1 - consistent");
 
     sys_data open_bad; memset(&open_bad, 0, sizeof open_bad);
     open_bad.CategoryEU = CATEGORY_EU_OPEN; open_bad.ClassEU = CLASS_EU_CLASS_5;
     ASSERT_TRUE(magpie_validate_eu_class_consistency(&open_bad).rule & KX_RULE_EU_CLASS_CONSISTENCY,
-                "open + C5 -> inconsistent (C5 is Specific-only)");
+                "open + C5 - inconsistent (C5 is Specific-only)");
 
     sys_data cert; memset(&cert, 0, sizeof cert);
     cert.CategoryEU = CATEGORY_EU_CERTIFIED; cert.ClassEU = CLASS_EU_CLASS_1;
     ASSERT_TRUE(magpie_validate_eu_class_consistency(&cert).rule & KX_RULE_EU_CLASS_CONSISTENCY,
-                "certified + class mark -> inconsistent");
+                "certified + class mark - inconsistent");
 
     sys_data undecl; memset(&undecl, 0, sizeof undecl);   /* both undeclared */
     ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&undecl).rule, KX_RULE_NONE,
-                  "undeclared category/class -> not judged");
+                  "undeclared category/class - not judged");
 }
 
 int main(void){
@@ -1037,6 +1094,8 @@ int main(void){
     test_magpie_config_thresholds();
     test_golden_verdict();
     test_id_clone();
+    test_id_change_count();
+    test_id_churn();
     test_counter_replay();
     test_rssi_position();
     test_uasid_format();

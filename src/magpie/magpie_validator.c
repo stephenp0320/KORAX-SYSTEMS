@@ -509,9 +509,11 @@ kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *
     return r;
 }
 /*
- * Integrity / anti-spoof tier (WARN). Guards against a single source MAC
- * appearing on more than one track — identity churn, i.e. one radio cycling
- * through multiple UAS IDs (possible spoof). Zero MAC (unset) is skipped.
+ * Integrity / anti-spoof tier (WARN). Guards against identity churn — a
+ * single track's UAS ID changing repeatedly, which a legitimate UA never
+ * does mid-session (possible spoof). id_change_count is incremented in
+ * track_table_update whenever an incoming Basic ID differs from the one
+ * already stored on the track; flagged once it reaches id_churn_limit.
  */
 kx_result_t magpie_validate_id_churn(const track_t *track, const magpie_thresholds_t *th)
 {
