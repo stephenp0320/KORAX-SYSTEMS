@@ -19,8 +19,7 @@ void track_table_init(track_table_t *table){
 }
 
 int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, track_expired_cb on_expired, void *user_data){
-    int curr_status = 0;
-    int expired = 1;
+    int removed = 0;
     int i = 0;
     while (i < table->num_tracks){
         if (now - table->tracks[i].last_seen > expiry_seconds){
@@ -31,12 +30,12 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, tra
                 table->tracks[j] = table->tracks[j + 1];
             }
             table->num_tracks--;
-            curr_status = expired;
+            removed++;
         } else {
             i++;
         }
     }
-    return curr_status;
+    return removed;
 }
 
 
@@ -121,7 +120,7 @@ int track_table_update(track_t *drone_track, time_t now, const decoded_message_t
 
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
-            if (drone_track->has_basic_id && strncpy(drone_track->uas_id, msg->data.basic_id.UASID, 20) != 0){
+            if (drone_track->has_basic_id && strncmp(drone_track->uas_id, msg->data.basic_id.UASID, 20) != 0){
                 drone_track->id_change_count++;
             }
             drone_track->basic_id = msg->data.basic_id;

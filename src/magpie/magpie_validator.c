@@ -765,7 +765,7 @@ uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, tim
     flags |= magpie_validate_operator_distance(track, th).rule;
     flags |= magpie_validate_broadcast_rate(track, th).rule;
     flags |= magpie_validate_id_clone(track, table).rule;
-    flags |= magpie_validate_id_churn(track, table).rule;
+    flags |= magpie_validate_id_churn(track, th).rule;
     flags |= magpie_validate_counter_replay(track, msg_counter).rule;
     flags |= magpie_validate_rssi_position(table, track, th).rule;
     flags |= magpie_validate_kinematic_teleport(table, track, th).rule;
