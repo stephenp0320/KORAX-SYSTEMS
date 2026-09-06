@@ -513,26 +513,15 @@ kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *
  * appearing on more than one track — identity churn, i.e. one radio cycling
  * through multiple UAS IDs (possible spoof). Zero MAC (unset) is skipped.
  */
-kx_result_t magpie_validate_id_churn(const track_t *track, const track_table_t *table)
+kx_result_t magpie_validate_id_churn(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL || table == NULL) return r;
+    if (track == NULL || th == NULL) return r;
 
-    static const char ZERO_MAC[6] = {0};
-
-    if (memcmp(track->source_mac, ZERO_MAC, sizeof(ZERO_MAC)) == 0) {
-        return r;
-    }
-    int count = 0;
-    for (int i = 0; i < table->num_tracks; i++){
-        if (memcmp(table->tracks[i].source_mac, track->source_mac, sizeof track->source_mac) == 0){
-            count++;
-        }
-    }
-    if (count > 1){
+    if (track->id_change_count >= th->id_churn_limit){
         r.rule = KX_RULE_ID_CHURN;
-        r.severity = KX_SEVERITY_WARN;
     }
+
     return r;
 }
 

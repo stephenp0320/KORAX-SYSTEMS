@@ -121,6 +121,9 @@ int track_table_update(track_t *drone_track, time_t now, const decoded_message_t
 
     switch (msg->type){
         case MESSAGETYPE_BASIC_ID:
+            if (drone_track->has_basic_id && strncpy(drone_track->uas_id, msg->data.basic_id.UASID, 20) != 0){
+                drone_track->id_change_count++;
+            }
             drone_track->basic_id = msg->data.basic_id;
             strncpy(drone_track->uas_id, msg->data.basic_id.UASID, 20);
             drone_track->uas_id[20] = '\0';
