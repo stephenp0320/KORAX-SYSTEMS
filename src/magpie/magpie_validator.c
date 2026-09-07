@@ -517,7 +517,7 @@ kx_result_t magpie_validate_id_clone(const track_t *track, const track_table_t *
  */
 kx_result_t magpie_validate_id_churn(const track_t *track, const magpie_thresholds_t *th)
 {
-    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
+    kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_WARN };
     if (track == NULL || th == NULL) return r;
 
     if (track->id_change_count >= th->id_churn_limit){
