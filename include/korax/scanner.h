@@ -1,6 +1,7 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 #include <stdint.h>
+#include "korax/rook_track.h"
 #define MAX_RESP 255
 // defined mac address here, needs further configs
 #define MAC_ADDR 19
@@ -13,5 +14,5 @@
 /* Classic BR/EDR inquiry scan smoke test. Linux-only (BlueZ); returns
  * SCAN_ERR on any other platform. bdaddr_t/inquiry_info come from BlueZ's
  * own headers on Linux -- not redeclared here to avoid conflicting with them. */
-int scan(void);
+int scan(track_table_t *track);
 #endif

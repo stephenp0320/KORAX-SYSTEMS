@@ -13,6 +13,7 @@
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
 #include "korax/pipeline.h"
+#include "korax/scanner.h"
 
 /*
  * Returns a track index (>= 0) on success, negative (TRACK_ERR /
