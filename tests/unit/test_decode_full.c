@@ -852,13 +852,13 @@ static void test_mac_multi_drone(void){
     /* two Basic IDs (same UAS ID) from two MACs must key to two tracks */
     ble_adv_frame_t ba = make_ble_frame(PKT_BASIC, macA, 1, -50);
     ble_adv_frame_t bb = make_ble_frame(PKT_BASIC, macB, 1, -60);
-    process_ble_frame(&ba, 5000, &table);
-    process_ble_frame(&bb, 5000, &table);
+    process_ble_frame(&ba, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
+    process_ble_frame(&bb, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_EQ_INT(table.num_tracks, 2, "two MACs -> two tracks (keyed by MAC, not UAS ID)");
 
     /* a Location from macA must attach to macA's track only, not blindly tracks[0] */
     ble_adv_frame_t la = make_ble_frame(PKT_LOCATION, macA, 2, -50);
-    process_ble_frame(&la, 5000, &table);
+    process_ble_frame(&la, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     int a = find_track_by_mac(&table, macA);
     int b = find_track_by_mac(&table, macB);
     ASSERT_TRUE(a >= 0 && b >= 0, "both MAC tracks present");
@@ -870,7 +870,7 @@ static void test_ble_frame_plumbing(void){
     track_table_t table; track_table_init(&table);
     uint8_t mac[6] = {0,0,0,0,0,0xCC};
     ble_adv_frame_t f = make_ble_frame(PKT_BASIC, mac, 0x2A, -73);
-    process_ble_frame(&f, 5000, &table);
+    process_ble_frame(&f, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     int idx = find_track_by_mac(&table, mac);
     ASSERT_TRUE(idx >= 0, "track created from BLE frame");
     ASSERT_EQ_INT(table.tracks[idx].last_rssi_dbm, -73, "RSSI carried onto the track");
@@ -883,20 +883,20 @@ static void test_ble_counter_replay_end_to_end(void){
     uint8_t mac[6] = {0,0,0,0,0,0xDD};
 
     ble_adv_frame_t f1 = make_ble_frame(PKT_BASIC, mac, 1, -50);
-    int idx = process_ble_frame(&f1, 5000, &table);
+    int idx = process_ble_frame(&f1, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE(idx >= 0, "first frame creates the track");
     ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
                 "first frame ever -> no replay flag (nothing to compare against)");
 
     /* second frame with an advanced counter -> still clean */
     ble_adv_frame_t f2 = make_ble_frame(PKT_BASIC, mac, 2, -50);
-    process_ble_frame(&f2, 5001, &table);
+    process_ble_frame(&f2, 5001, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
                 "normal increment over BLE -> no replay flag");
 
     /* replay the same counter value seen last time */
     ble_adv_frame_t f3 = make_ble_frame(PKT_BASIC, mac, 2, -50);
-    process_ble_frame(&f3, 5002, &table);
+    process_ble_frame(&f3, 5002, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE(table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY,
                 "repeated counter over BLE -> flagged end-to-end");
 }

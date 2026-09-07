@@ -85,7 +85,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
  * decode it, then hand off to process_decoded_message() with the frame
  * present (so it keys by MAC). Same return-index convention applies.
  */
-int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_t *table){
+int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_t *table, const magpie_thresholds_t *th, const magpie_profile_t *profile){
     uint8_t rid_msg[RID_MSG_SIZE];
     uint8_t msg_counter = 0;
     decoded_message_t msg;
@@ -93,7 +93,7 @@ int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_
     if (ble_rid_extraction(ble_frame, rid_msg, &msg_counter) != 0) return -1;
     if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return -1;
 
-    int idx = process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, ble_frame, &msg_counter, &MAGPIE_DEFAULT_PROFILE);
+    int idx = process_decoded_message(table, &msg, now, th, ble_frame, &msg_counter, profile);
     if (idx >= 0){
         table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
     }

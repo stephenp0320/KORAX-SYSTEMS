@@ -34,7 +34,7 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
 /* Live-BLE entry point: extracts + decodes the frame, then calls
  * process_decoded_message() with a non-NULL frame (MAC keying). Same
  * return-index convention as process_decoded_message(). */
-int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_t *table);
+int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_t *table, const magpie_thresholds_t *th, const magpie_profile_t *profile);
 
 /* Reserved entry point for a packed/batched replay message; not yet
  * implemented. Once added it must call process_decoded_message() with a

@@ -22,6 +22,7 @@
 #include "korax/pipeline.h"
 #include "korax/server.h"
 #include "korax/output_json.h"
+#include "korax/scanner.h"
 #include "daemon/config.h"
 #include "daemon/log.h"
 #include "korax/output_mqtt.h"
@@ -30,6 +31,10 @@
 typedef struct {
     FILE                 *source;      /* frame source (open file)            */
     int                   source_fd;   /* fileno(source), for poll            */
+    int                   hci_fd;      /* live BLE HCI socket, -1 if unavailable
+                                         * (non-Linux, no adapter, or opened but
+                                         * later failed) -- poll() ignores negative
+                                         * fds, so this degrades with no special-casing */
     server_t              server;      /* the KAN-45 socket feed              */
     track_table_t         table;       /* live tracks                         */
     time_t                last_sweep;  /* when expiry last ran                */
@@ -150,16 +155,34 @@ static void handle_source_frame(koraxd_t *daemon){
     }
 }
 
-/* Core loop: poll() on the listen socket, the replay source, and every
- * connected client. The 1000ms timeout isn't just a poll cap — it's what
- * guarantees the expiry sweep below still runs on schedule even when no
- * fd is ready. */
+/* Reads one live BLE advertisement off the HCI socket and broadcasts the
+ * track it touched, if any. A fatal read error disables live capture for
+ * the rest of the run rather than tearing down the daemon -- the replay/
+ * server fds are unaffected. */
+static void handle_hci_event(koraxd_t *daemon, time_t now){
+    int idx = -1;
+    if (hci_scan_read(daemon->hci_fd, &daemon->table, now, &daemon->thresholds, &MAGPIE_DEFAULT_PROFILE, &idx) != SCAN_OK){
+        log_msg(LOG_ERROR, "HCI socket read failed, disabling live capture");
+        hci_scan_close(daemon->hci_fd);
+        daemon->hci_fd = -1;
+        return;
+    }
+    if (idx >= 0){
+        broadcast_track_update(daemon, idx);
+    }
+}
+
+/* Core loop: poll() on the listen socket, the replay source, the live HCI
+ * socket, and every connected client. The 1000ms timeout isn't just a poll
+ * cap — it's what guarantees the expiry sweep below still runs on schedule
+ * even when no fd is ready. */
 static void run_event_loop(koraxd_t *daemon){
     while (daemon->running){
-        struct pollfd fds[2 + KX_MAX_CLIENTS];
+        struct pollfd fds[3 + KX_MAX_CLIENTS];
         int n = 0;
         fds[n].fd = daemon->server.listen_fd; fds[n].events = POLLIN; n++;
         fds[n].fd = daemon->source_fd;        fds[n].events = POLLIN; n++;
+        fds[n].fd = daemon->hci_fd;           fds[n].events = POLLIN; n++;
         for (size_t i = 0; i < daemon->server.client_count; i++){
             fds[n].fd = daemon->server.client_fds[i]; fds[n].events = POLLIN; n++;
         }
@@ -183,10 +206,13 @@ static void run_event_loop(koraxd_t *daemon){
         if (fds[1].revents & POLLIN){
             handle_source_frame(daemon);
         }
+        if (fds[2].revents & POLLIN){
+            handle_hci_event(daemon, now);
+        }
 
-        for (int i = n - 1; i >= 2; i--){
+        for (int i = n - 1; i >= 3; i--){
             if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL)){
-                server_drop_client(&daemon->server, (size_t)(i - 2));
+                server_drop_client(&daemon->server, (size_t)(i - 3));
             }
         }
     }
@@ -258,6 +284,13 @@ int main(int argc, char **argv){
     }
     daemon.source_fd = fileno(daemon.source);
 
+    daemon.hci_fd = hci_scan_open();
+    if (daemon.hci_fd >= 0){
+        log_msg(LOG_INFO, "live BLE capture enabled (HCI socket fd=%d)", daemon.hci_fd);
+    } else {
+        log_msg(LOG_INFO, "live BLE capture unavailable, replay-only");
+    }
+
     setup_signal_handling(&daemon);
     log_msg(LOG_INFO, "feed on %s, replaying %s", cfg.socket_path, cfg.source_path);
     run_event_loop(&daemon);
@@ -268,6 +301,9 @@ int main(int argc, char **argv){
         mqtt_destroy(daemon.mqtt);
     }
     #endif
+    if (daemon.hci_fd >= 0){
+        hci_scan_close(daemon.hci_fd);
+    }
     fclose(daemon.source);
     server_close(&daemon.server);
     log_msg(LOG_INFO, "stopped");
