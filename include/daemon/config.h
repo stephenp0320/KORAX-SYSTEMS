@@ -23,6 +23,7 @@
 #define KX_DEFAULT_SENSOR_LON 0.0
 #define KX_DEFAULT_HAS_SENSOR_LOCATION false
 #define KX_DEFAULT_ID_CHURN_LIMIT 2
+#define KX_DEFAULT_TELEPORT_THRESHOLD 5000.0
 
 /* Mirrors [output]/[capture]/[tracks]/[validator]/[log]/[mqtt] INI sections. */
 typedef struct {
@@ -45,6 +46,7 @@ typedef struct {
     double sensor_lon;
     bool   has_sensor_pos;
     int    id_churn_limit;
+    double teleport_threshold;
 } korax_config_t;
 
 int config_defaults(korax_config_t *cfg);

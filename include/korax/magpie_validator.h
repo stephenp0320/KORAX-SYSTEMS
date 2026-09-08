@@ -28,10 +28,11 @@
 #define KX_SENSOR_LON             0.0
 #define KX_SENSOR_POS             false
 #define KX_ID_CHURN_LIMIT 2
+#define KX_TELEPORT_THRESHOLD 5000.0
 #define KX_PROFILE_NAME "default"
 #define KX_DISABLED_RULES 0
 #define KX_ENABLED_RULES 0
-#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH, KX_MIN_BROADCAST_RATE, KX_MAX_CLIMB_MS, KX_ALT_FLOOR, KX_MAX_ALT, KX_MAX_OP_DIST , KX_SENSOR_LAT, KX_SENSOR_LON, KX_SENSOR_POS, KX_ID_CHURN_LIMIT })
+#define MAGPIE_DEFAULT_THRESHOLDS ((magpie_thresholds_t){ KX_LOCATION_GRACE_SECONDS, MAX_SPEED_KMH, KX_MIN_BROADCAST_RATE, KX_MAX_CLIMB_MS, KX_ALT_FLOOR, KX_MAX_ALT, KX_MAX_OP_DIST , KX_SENSOR_LAT, KX_SENSOR_LON, KX_SENSOR_POS, KX_ID_CHURN_LIMIT, KX_TELEPORT_THRESHOLD})
 #define MAGPIE_DEFAULT_PROFILE ((magpie_profile_t){ KX_PROFILE_NAME, KX_RULESET_VERSION, KX_ENABLED_RULES, MAGPIE_DEFAULT_THRESHOLDS, KX_DISABLED_RULES })
 
 /* NOTE: KX_RULE_ERROR_MASK, KX_MAX_DETAILS/FIELD_MAX/MAX_FINDINGS/RATE_WINDOW
@@ -59,6 +60,7 @@ typedef struct magpie_thresholds {
     double sensor_lon;
     bool   has_sensor_pos;
     int id_churn_limit;
+    double teleport_threshold;
 } magpie_thresholds_t;
 
 /* disabled_rules is applied as a mask in magpie_evaluate to suppress rule
