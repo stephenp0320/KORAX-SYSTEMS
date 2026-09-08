@@ -578,16 +578,10 @@ kx_result_t magpie_validate_rssi_position(const track_table_t *table, const trac
     return r;
 }
 
-/*
- * Integrity / anti-spoof tier (WARN). Guards against a position update that
- * implies faster-than-possible travel since the previous fix — a sharper,
- * sensor-relative variant of magpie_validate_jump. Also requires a configured
- * fixed sensor position (th->has_sensor_pos).
- */
 kx_result_t magpie_validate_kinematic_teleport(const track_table_t *table, const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (table == NULL || track->msg_count_location < 2) return r;
+    if (table == NULL || track == NULL || th == NULL || track->msg_count_location < 2) return r;
     int flag = 0;
     if (!track->has_location) return r;
     if (track->location.Latitude == 0.0 && track->location.Longitude == 0.0) return r;

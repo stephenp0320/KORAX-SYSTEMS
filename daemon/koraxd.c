@@ -263,6 +263,7 @@ int main(int argc, char **argv){
     daemon.thresholds.sensor_lon = cfg.sensor_lon;
     daemon.thresholds.has_sensor_pos = cfg.has_sensor_pos;
     daemon.thresholds.id_churn_limit = cfg.id_churn_limit;
+    daemon.thresholds.teleport_threshold = cfg.teleport_threshold;
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);

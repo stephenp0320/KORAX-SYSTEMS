@@ -962,6 +962,49 @@ static void test_id_churn(void){
     ASSERT_EQ_INT(magpie_validate_id_churn(&t, NULL).rule, KX_RULE_NONE, "null thresholds and safe no-op");
 }
 
+static void test_kinematic_teleport(void){
+    magpie_thresholds_t th = MAGPIE_DEFAULT_THRESHOLDS;   /* teleport_threshold = KX_TELEPORT_THRESHOLD (5000 km/h) */
+
+    /* positive: ~111 km in 1 s is far beyond even the teleport bar */
+    track_t fast; memset(&fast, 0, sizeof fast);
+    fast.has_location = 1; fast.msg_count_location = 2;
+    fast.prev_location.Latitude = 51.0; fast.prev_location.Longitude = 0.0;
+    fast.location.Latitude      = 52.0; fast.location.Longitude      = 0.0;
+    fast.prev_location_seen = 1000; fast.last_location_seen = 1001;
+    ASSERT_TRUE(magpie_validate_kinematic_teleport(NULL, &fast, &th).rule == KX_RULE_NONE,
+                "null table -- safe no-op");
+    /* (table arg is currently unused by the check beyond the NULL guard,
+       so any non-NULL table pointer works here) */
+    track_table_t dummy_table; track_table_init(&dummy_table);
+    ASSERT_TRUE(magpie_validate_kinematic_teleport(&dummy_table, &fast, &th).rule & KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT,
+                "impossible speed -- flagged");
+
+    /* negative: a small move over 10 s is nowhere near the teleport bar */
+    track_t slow; memset(&slow, 0, sizeof slow);
+    slow.has_location = 1; slow.msg_count_location = 2;
+    slow.prev_location.Latitude = 51.0000; slow.location.Latitude = 51.0001;
+    slow.prev_location_seen = 1000; slow.last_location_seen = 1010;
+    ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &slow, &th).rule, KX_RULE_NONE,
+                  "normal move -- not flagged");
+
+    /* the historical bug: a track's *first* location update leaves
+       prev_location zeroed at (0,0) ("null island") with prev_location_seen
+       == 0. Without the msg_count_location < 2 guard, distance from (0,0)
+       to any real position over a short synthetic clock delta reads as an
+       implausible teleport -- a false positive on every track's first fix. */
+    track_t first; memset(&first, 0, sizeof first);
+    first.has_location = 1; first.msg_count_location = 1;
+    first.location.Latitude = 51.4778; first.location.Longitude = -0.0014; /* London */
+    first.last_location_seen = 5000;   /* prev_location_seen stays 0 */
+    ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &first, &th).rule, KX_RULE_NONE,
+                  "first-ever location fix, no previous fix to compare, not flagged");
+
+    ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, NULL, &th).rule, KX_RULE_NONE,
+                  "null track -> safe no-op");
+    ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &fast, NULL).rule, KX_RULE_NONE,
+                  "null thresholds -- safe no-op");
+}
+
 static void test_counter_replay(void){
     track_t t; memset(&t, 0, sizeof t);
     t.have_counter = true; t.last_msg_counter = 10;
@@ -976,7 +1019,7 @@ static void test_counter_replay(void){
 
     t.last_msg_counter = 255;   /* wrap: 255 -> 1 is a forward step of 2 */
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &wrap).rule, KX_RULE_NONE,
-                  "counter wrap 255->1 - ok (forward)");
+                  "counter wrap 255--1 - ok (forward)");
 }
 
 static void test_rssi_position(void){
@@ -1096,6 +1139,7 @@ int main(void){
     test_id_clone();
     test_id_change_count();
     test_id_churn();
+    test_kinematic_teleport();
     test_counter_replay();
     test_rssi_position();
     test_uasid_format();
