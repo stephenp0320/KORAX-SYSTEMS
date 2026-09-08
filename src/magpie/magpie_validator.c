@@ -642,6 +642,15 @@ static bool is_valid_caa_registration(const char *id)
     return true;
 }
 
+static bool is_valid_utm_assigned_uuid(const char *id){
+    bool ok = false;
+    uint8_t version = ((uint8_t)id[6] >> 4) & 0x0F;
+    if (version >= 1 && version <= 5){
+        ok = true;
+    }
+    return ok;
+}
+
 /*
  * P4 rule pack (WARN). Guards against a UAS ID that doesn't match the format
  * required for its declared IDType — serial numbers must be CTA-2063-A,
@@ -657,7 +666,13 @@ kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data)
         case DRONE_ID_IDTYPE_SERIAL_NUMBER:
             ok = is_valid_cta2063a(data->UASID);
             break;
+        case DRONE_ID_IDTYPE_CAA_REGISTRATION_ID:
+            ok = is_valid_caa_registration(data->UASID);
+            break;
         case DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID:
+            ok = is_valid_utm_assigned_uuid(data->UASID);
+            break;
+        case DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID:
             ok = is_valid_caa_registration(data->UASID);
             break;
         default:
