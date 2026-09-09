@@ -643,12 +643,15 @@ static bool is_valid_caa_registration(const char *id)
 }
 
 static bool is_valid_utm_assigned_uuid(const char *id){
-    bool ok = false;
     uint8_t version = ((uint8_t)id[6] >> 4) & 0x0F;
-    if (version >= 1 && version <= 5){
-        ok = true;
+    if (version < 1 || version > 5){
+        return false;
     }
-    return ok;
+    uint8_t variant = ((uint8_t)id[8] & 0xC0);
+    if (variant != 0x80){
+        return false;
+    }
+    return true;
 }
 
 /*

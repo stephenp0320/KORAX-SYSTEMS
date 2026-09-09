@@ -149,6 +149,9 @@ static void handle_source_frame(koraxd_t *daemon){
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
             }
+            if (idx == TRACK_TABLE_FULL){
+                log_table_full(time(NULL));
+            }
         } else {
             log_decode_failure(time(NULL));
         }
@@ -169,6 +172,9 @@ static void handle_hci_event(koraxd_t *daemon, time_t now){
     }
     if (idx >= 0){
         broadcast_track_update(daemon, idx);
+    }
+    if (idx == TRACK_TABLE_FULL){
+        log_table_full(time(NULL));
     }
 }
 

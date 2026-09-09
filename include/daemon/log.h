@@ -19,4 +19,5 @@ void log_msg(log_level_t level, const char *fmt, ...)
  * DECODE_REPORT_INTERVAL-second window rather than logging every call. */
 int log_decode_failure(time_t now);
 int log_enabled(log_level_t level);
+int log_table_full(time_t now);
 #endif
