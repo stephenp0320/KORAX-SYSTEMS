@@ -106,11 +106,6 @@ static void rule_meta(kx_rule_t rule, kx_severity_t *sev, const char **field, co
             *reg=KX_PLAUSABILITY;
             *detail=KX_RSSI_POS;
             break;
-        case KX_RULE_CLIMB_RATE:
-            *sev=KX_SEVERITY_WARN;
-            *reg=KX_PLAUSABILITY;
-            *detail=KX_CLIMB_RATE;
-            break;
         case KX_RULE_UASID_FORMAT:
             *sev=KX_SEVERITY_WARN;
             *reg=KX_PLAUSABILITY;
@@ -269,7 +264,7 @@ kx_result_t magpie_validate_track(const track_t *track, time_t now, const magpie
 kx_result_t magpie_validate_jump(const track_t *track,  const magpie_thresholds_t *th){
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_INFO };
 
-    if (track == NULL || track->msg_count_location < 2){
+    if (track == NULL || track->msg_count_location < 2 || th == NULL){
         return r;
     }
 
@@ -311,7 +306,7 @@ kx_result_t magpie_validate_reserved_bitsets(const track_t *track){
 kx_result_t magpie_validate_timestamp(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL) return r;
+    if (track == NULL || th == NULL) return r;
     (void)th;
 
     if (track->msg_count_location < 2) return r;
@@ -388,7 +383,7 @@ static double max_speed_ms_for_type(DRONE_ID_uatype_t t){
 kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL) return r;
+    if (track == NULL || th == NULL) return r;
     (void)th;
 
     if (!track->has_basic_id || !track->has_location) return r;
@@ -413,7 +408,7 @@ kx_result_t magpie_validate_speed_vs_type(const track_t *track, const magpie_thr
 kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL) return r;
+    if (track == NULL || th == NULL) return r;
     (void)th;
     if (!track->has_location) return r;
 
@@ -435,7 +430,7 @@ kx_result_t magpie_validate_climb_rate(const track_t *track, const magpie_thresh
 kx_result_t magpie_validate_altitude_envelope(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL) return r;
+    if (track == NULL || th == NULL) return r;
     (void)th;
 
     if (!track->has_location) return r;
@@ -470,7 +465,7 @@ double haversine_km(double lat1, double lon1, double lat2, double lon2){
 kx_result_t magpie_validate_operator_distance(const track_t *track, const magpie_thresholds_t *th)
 {
     kx_result_t r = { .rule = KX_RULE_NONE, .severity = KX_SEVERITY_ERROR };
-    if (track == NULL) return r;
+    if (track == NULL || th == NULL) return r;
     (void)th;
     if (!track->has_location || !track->has_system) return r;
 
@@ -768,6 +763,11 @@ kx_result_t magpie_validate_eu_class_consistency(const sys_data *data)
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {
     uint32_t flags = KX_RULE_NONE;
+    if (track == NULL || th == NULL || table == NULL){
+        flags |= KX_VALIDATION_FAILURE;
+        return flags;
+    }
+
     flags |= magpie_validate_track(track, now, th).rule;
     flags |= magpie_validate_jump(track, th).rule;
     flags |= magpie_validate_reserved_bitsets(track).rule;
@@ -820,7 +820,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
         .ruleset_version = KX_RULESET_VERSION,
         .finding_count = 0
     };
-    if (track == NULL) return verdict;
+    if (track == NULL || msg == NULL || th == NULL || table == NULL || profile == NULL) return verdict;
 
     verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter) & ~profile->disabled_rules;
 
