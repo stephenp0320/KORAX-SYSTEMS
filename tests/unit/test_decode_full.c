@@ -556,8 +556,8 @@ static void test_config(void){
 
     ASSERT_EQ_INT(config_defaults(&cfg), 0, "config_defaults succeeds");
     ASSERT_EQ_INT(cfg.expiry_seconds, 10, "default expiry_seconds is 10");
-    ASSERT_EQ_INT(cfg.grace_seconds, 5, "default grace_seconds is 5");
-    ASSERT_TRUE(cfg.max_speed_kmh == 150.0, "default max_speed_kmh is 150");
+    ASSERT_EQ_INT(cfg.thresholds.grace_seconds, 5, "default grace_seconds is 5");
+    ASSERT_TRUE(cfg.thresholds.max_speed_kmh == 150.0, "default max_speed_kmh is 150");
     ASSERT_EQ_INT(cfg.log_level, 2, "default log_level is 2");
     ASSERT_TRUE(strcmp(cfg.socket_path, KX_DEFAULT_SOCKET) == 0, "default socket path");
 
