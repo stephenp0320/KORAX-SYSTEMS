@@ -26,6 +26,8 @@ int config_defaults(korax_config_t *cfg) {
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
 
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
+    cfg->expiry_seconds = EXPIRY_SECONDS;
+    cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
 
     snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
