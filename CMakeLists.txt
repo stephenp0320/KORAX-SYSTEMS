@@ -8,6 +8,7 @@ option(KORAX_BUILD_TESTS    "Build the unit tests"   ON)
 option(KORAX_BUILD_TOOLS    "Build the replay tool"  ON)
 option(KORAX_BUILD_EXAMPLES "Build the examples"     ON)
 option(KORAX_WERROR         "Treat warnings as errors" OFF)
+option(KORAX_BUILD_FUZZERS  "Build the fuzzing tests" OFF)
 # ---- Core library: libkorax ---------------------------------------------
 add_library(korax STATIC
     src/raven/raven_decode.c
@@ -64,11 +65,22 @@ if(KORAX_BUILD_TESTS)
     target_link_libraries(test_decode PRIVATE korax)
     add_test(NAME decode_suite COMMAND test_decode)
 endif()
+# ---- Fuzzers ---------------------------------------------------------------
+# libFuzzer is a Clang feature; on any other compiler this quietly skips
+# the fuzz targets rather than breaking the build.
+if(KORAX_BUILD_FUZZERS)
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+        message(WARNING "KORAX_BUILD_FUZZERS requires Clang (libFuzzer); skipping fuzz targets on ${CMAKE_C_COMPILER_ID}")
+    else()
+        add_executable(fuzz_decode_message tests/fuzz/fuzz_decode_message.c)
+        target_link_libraries(fuzz_decode_message PRIVATE korax)
+        target_compile_options(fuzz_decode_message PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_link_options(fuzz_decode_message PRIVATE -fsanitize=fuzzer,address,undefined)
+    endif()
+endif()
 # ---- Install -------------------------------------------------------------
 include(GNUInstallDirs)
 install(TARGETS korax
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/korax
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-
