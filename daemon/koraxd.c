@@ -174,7 +174,7 @@ static void handle_hci_event(koraxd_t *daemon, time_t now){
         broadcast_track_update(daemon, idx);
     }
     if (idx == TRACK_TABLE_FULL){
-        log_table_full(time(NULL));
+        log_table_full(now);
     }
 }
 
