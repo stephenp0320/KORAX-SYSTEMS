@@ -1027,6 +1027,45 @@ static void test_uasid_format(void){
     strcpy(badchar.UASID, "1871C00000000000I"); /* body contains 'I' (not allowed) */
     ASSERT_TRUE(magpie_validate_uasid_format(&badchar).rule & KX_RULE_UASID_FORMAT,
                 "excluded character in the serial body is flagged");
+
+    droneID_basicID_data caa_good; memset(&caa_good, 0, sizeof caa_good);
+    caa_good.IDType = DRONE_ID_IDTYPE_CAA_REGISTRATION_ID;
+    strcpy(caa_good.UASID, "GBR-CAA-123456");
+    ASSERT_EQ_INT(magpie_validate_uasid_format(&caa_good).rule, KX_RULE_NONE,
+                  "valid CAA registration id is compliant");
+
+    droneID_basicID_data caa_bad = caa_good;
+    strcpy(caa_bad.UASID, "GBR#CAA#123456");   /* '#' outside the alnum/-/. charset */
+    ASSERT_TRUE(magpie_validate_uasid_format(&caa_bad).rule & KX_RULE_UASID_FORMAT,
+                "CAA registration id with an invalid character is flagged");
+
+    droneID_basicID_data uuid_good; memset(&uuid_good, 0, sizeof uuid_good);
+    uuid_good.IDType = DRONE_ID_IDTYPE_UTM_ASSIGNED_UUID;
+    uuid_good.UASID[6] = (char)0x40;   /* version nibble 4 */
+    uuid_good.UASID[8] = (char)0x80;   /* variant bits 10 */
+    ASSERT_EQ_INT(magpie_validate_uasid_format(&uuid_good).rule, KX_RULE_NONE,
+                  "UUID with a valid version and variant is compliant");
+
+    droneID_basicID_data uuid_bad_version = uuid_good;
+    uuid_bad_version.UASID[6] = (char)0x00;   /* version 0 is not defined */
+    ASSERT_TRUE(magpie_validate_uasid_format(&uuid_bad_version).rule & KX_RULE_UASID_FORMAT,
+                "UUID with an invalid version nibble is flagged");
+
+    droneID_basicID_data uuid_bad_variant = uuid_good;
+    uuid_bad_variant.UASID[8] = (char)0x00;   /* variant bits must be 10, not 00 */
+    ASSERT_TRUE(magpie_validate_uasid_format(&uuid_bad_variant).rule & KX_RULE_UASID_FORMAT,
+                "UUID with invalid variant bits is flagged");
+
+    droneID_basicID_data session_good; memset(&session_good, 0, sizeof session_good);
+    session_good.IDType = DRONE_ID_IDTYPE_SPECIFIC_SESSION_ID;
+    strcpy(session_good.UASID, "SESSION-0001A2B3");
+    ASSERT_EQ_INT(magpie_validate_uasid_format(&session_good).rule, KX_RULE_NONE,
+                  "session id with sane characters is compliant");
+
+    droneID_basicID_data session_bad = session_good;
+    strcpy(session_bad.UASID, "SESSION#0001");   /* '#' outside the permitted charset */
+    ASSERT_TRUE(magpie_validate_uasid_format(&session_bad).rule & KX_RULE_UASID_FORMAT,
+                "session id with a garbled character is flagged");
 }
 
 static void test_operator_id_format(void){

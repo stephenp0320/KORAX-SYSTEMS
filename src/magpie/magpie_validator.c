@@ -651,9 +651,12 @@ static bool is_valid_utm_assigned_uuid(const char *id){
 
 /*
  * P4 rule pack (WARN). Guards against a UAS ID that doesn't match the format
- * required for its declared IDType — serial numbers must be CTA-2063-A,
- * UTM-assigned UUIDs must look like a CAA registration. Other ID types have
- * no defined format here and are not checked.
+ * required for its declared IDType: serial numbers must be CTA-2063-A, CAA
+ * registrations and specific session IDs must be alphanumeric (session IDs
+ * have no mandated structure, so this is a decode-sanity check rather than
+ * an enforced format), and UTM-assigned UUIDs must carry a valid RFC 4122
+ * version nibble and variant bits. IDType NONE and any out-of-range value
+ * have no defined format here and are not checked.
  */
 kx_result_t magpie_validate_uasid_format(const droneID_basicID_data *data)
 {
