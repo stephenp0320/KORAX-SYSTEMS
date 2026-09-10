@@ -763,7 +763,7 @@ kx_result_t magpie_validate_eu_class_consistency(const sys_data *data)
 uint32_t magpie_validate(const track_t *track, const decoded_message_t *msg, time_t now, const magpie_thresholds_t *th, const track_table_t *table, const uint8_t *msg_counter)
 {
     uint32_t flags = KX_RULE_NONE;
-    if (track == NULL || th == NULL || table == NULL){
+    if (track == NULL || th == NULL){
         flags |= KX_VALIDATION_FAILURE;
         return flags;
     }
@@ -820,7 +820,7 @@ kx_verdict_t magpie_evaluate(const track_t *track, const decoded_message_t *msg,
         .ruleset_version = KX_RULESET_VERSION,
         .finding_count = 0
     };
-    if (track == NULL || msg == NULL || th == NULL || table == NULL || profile == NULL) return verdict;
+    if (track == NULL || th == NULL || profile == NULL) return verdict;
 
     verdict.flags = magpie_validate(track, msg, now, th, table, msg_counter) & ~profile->disabled_rules;
 

@@ -92,8 +92,6 @@ static const char *rule_name(kx_rule_t rule)
             return "id_churn";
         case KX_RULE_RSSI_POSITION:
             return "rssi_position";
-        case KX_RULE_CLIMB_RATE:
-            return "climb_rate";
         case KX_RULE_UASID_FORMAT:
             return "uasid_format";
         case KX_RULE_OPERATOR_ID_FORMAT:
