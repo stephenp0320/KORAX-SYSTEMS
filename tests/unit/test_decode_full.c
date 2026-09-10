@@ -175,11 +175,11 @@ static void test_error_paths(void)
     uint8_t short_pkt[10] = { 0x12, 0x26, 0x23 };
     uint8_t bad_type[25]  = { 0xE0 };
 
-    ASSERT_EQ_INT(decode_message(NULL, 25, &m), DECODE_ERR_NULL, "null packet -> NULL");
-    ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, NULL), DECODE_ERR_NULL, "null out -> NULL");
-    ASSERT_EQ_INT(decode_message(short_pkt, 10, &m), DECODE_ERR_TOO_SHORT, "short -> TOO_SHORT");
-    ASSERT_EQ_INT(decode_message(bad_type, 25, &m), DECODE_ERR_BAD_TYPE, "bad type -> BAD_TYPE");
-    ASSERT_EQ_INT(decode_message(PKT_PACK, 25, &m), DECODE_ERR_BAD_TYPE, "pack as single -> BAD_TYPE");
+    ASSERT_EQ_INT(decode_message(NULL, 25, &m), DECODE_ERR_NULL, "null packet returns a null-argument error");
+    ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, NULL), DECODE_ERR_NULL, "null output buffer returns a null-argument error");
+    ASSERT_EQ_INT(decode_message(short_pkt, 10, &m), DECODE_ERR_TOO_SHORT, "short packet is rejected as too short");
+    ASSERT_EQ_INT(decode_message(bad_type, 25, &m), DECODE_ERR_BAD_TYPE, "invalid message type is rejected");
+    ASSERT_EQ_INT(decode_message(PKT_PACK, 25, &m), DECODE_ERR_BAD_TYPE, "message pack decoded as a single message is rejected");
 }
 
 static void test_message_pack_valid(void)
@@ -188,7 +188,7 @@ static void test_message_pack_valid(void)
     track_table_init(&table);
 
     ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_PACK, sizeof(PKT_PACK), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_OK, "pack decodes");
-    ASSERT_EQ_INT(table.num_tracks, 1, "pack -> one track");
+    ASSERT_EQ_INT(table.num_tracks, 1, "message pack produces exactly one track");
     ASSERT_EQ_INT(table.tracks[0].has_basic_id, 1, "pack track has basic id");
     ASSERT_EQ_INT(table.tracks[0].has_location, 1, "pack track has location");
     ASSERT_EQ_INT(table.tracks[0].has_system, 1, "pack track has system");
@@ -202,26 +202,26 @@ static void test_message_pack_errors(void)
 
     uint8_t zero_count[3] = { 0xF2, 0x19, 0x00 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 0 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(zero_count, sizeof(zero_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "zero sub-message count is rejected as out of range");
 
     uint8_t big_count[3] = { 0xF2, 0x19, 0xFF };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack count 255 -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(big_count, sizeof(big_count), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "sub-message count of 255 is rejected as out of range");
 
     uint8_t bad_size[3] = { 0xF2, 0x18, 0x03 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "pack bad single size -> RANGE");
+    ASSERT_EQ_INT(decode_message_pack(bad_size, sizeof(bad_size), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_RANGE, "invalid single-message size is rejected as out of range");
 
     uint8_t truncated[10] = { 0xF2, 0x19, 0x02, 0x02, 0x12, 0x31 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack truncated -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(truncated, sizeof(truncated), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "truncated pack is rejected as too short");
 
     uint8_t tiny[2] = { 0xF2, 0x19 };
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "pack tiny header -> TOO_SHORT");
+    ASSERT_EQ_INT(decode_message_pack(tiny, sizeof(tiny), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_TOO_SHORT, "undersized pack header is rejected as too short");
 
     track_table_init(&table);
-    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_BAD_TYPE, "non-pack -> BAD_TYPE");
+    ASSERT_EQ_INT(decode_message_pack((uint8_t *)PKT_LOCATION, sizeof(PKT_LOCATION), 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), DECODE_ERR_BAD_TYPE, "non-pack message is rejected");
 }
 
 static void test_jump_distance(void){
@@ -306,19 +306,17 @@ static void test_previous_location_rolls_forward(void){
 
 
 static void test_magpie_required_missing(void){
-    /* positive: a track missing Location is flagged */
     track_t t; memset(&t, 0, sizeof t);
     t.has_basic_id = 1; t.has_system = 1; t.has_operator_id = 1;   /* no location */
     kx_result_t r = magpie_validate_track(&t, 1000, &MAGPIE_DEFAULT_THRESHOLDS);
-    ASSERT_TRUE(r.rule & KX_RULE_MISSING_REQUIRED_MSG, "missing Location -> flagged");
-    ASSERT_EQ_INT(r.severity, KX_SEVERITY_ERROR, "missing required -> ERROR severity");
+    ASSERT_TRUE(r.rule & KX_RULE_MISSING_REQUIRED_MSG, "missing location is flagged");
+    ASSERT_EQ_INT(r.severity, KX_SEVERITY_ERROR, "missing required message reports error severity");
 
-    /* negative: a complete, fresh track is not flagged */
     track_t ok; memset(&ok, 0, sizeof ok);
     ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
     ok.last_location_seen = 1000;
     kx_result_t r2 = magpie_validate_track(&ok, 1000, &MAGPIE_DEFAULT_THRESHOLDS);
-    ASSERT_EQ_INT(r2.rule, KX_RULE_NONE, "complete fresh track -> compliant");
+    ASSERT_EQ_INT(r2.rule, KX_RULE_NONE, "complete fresh track is compliant");
 }
 
 static void test_magpie_grace_window(void){
@@ -327,10 +325,10 @@ static void test_magpie_grace_window(void){
     t.last_location_seen = 1000;
 
     kx_result_t stale = magpie_validate_track(&t, 1000 + 10, &MAGPIE_DEFAULT_THRESHOLDS);  /* 10s > 5s grace */
-    ASSERT_TRUE(stale.rule & KX_RULE_NO_LOCATION_IN_GRACE, "stale location -> flagged");
+    ASSERT_TRUE(stale.rule & KX_RULE_NO_LOCATION_IN_GRACE, "stale location is flagged");
 
     kx_result_t fresh = magpie_validate_track(&t, 1000 + 2, &MAGPIE_DEFAULT_THRESHOLDS);   /* within grace */
-    ASSERT_TRUE((fresh.rule & KX_RULE_NO_LOCATION_IN_GRACE) == 0, "fresh location -> not flagged");
+    ASSERT_TRUE((fresh.rule & KX_RULE_NO_LOCATION_IN_GRACE) == 0, "fresh location is not flagged");
 }
 
 static void test_magpie_location_range(void){
@@ -338,14 +336,14 @@ static void test_magpie_location_range(void){
     good.Latitude = 51.0; good.Longitude = 0.0;
     good.AltitudeGeo = 100.0; good.AltitudeBaro = 100.0;
     good.TimeStamp = 10.0; good.Status = DRONE_ID_STATUS_AIRBORNE;
-    ASSERT_EQ_INT(magpie_validate_location(&good).rule, KX_RULE_NONE, "valid location -> compliant");
+    ASSERT_EQ_INT(magpie_validate_location(&good).rule, KX_RULE_NONE, "valid location is compliant");
 
     DRONE_ID_Location_data bad = good; bad.Latitude = 200.0;   /* out of range */
-    ASSERT_TRUE(magpie_validate_location(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "bad latitude -> flagged");
+    ASSERT_TRUE(magpie_validate_location(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "invalid latitude is flagged");
 
     DRONE_ID_Location_data unknown = good; unknown.TimeStamp = -1.0f;  /* legal sentinel */
     ASSERT_TRUE((magpie_validate_location(&unknown).rule & KX_RULE_FIELD_OUT_OF_RANGE) == 0,
-                "unknown timestamp (-1) -> not flagged");
+                "unknown timestamp sentinel of negative one is not flagged");
 }
 
 static void test_magpie_basic_id(void){
@@ -353,98 +351,85 @@ static void test_magpie_basic_id(void){
     good.IDType = DRONE_ID_IDTYPE_SERIAL_NUMBER;
     good.UAType = DRONE_ID_UATYPE_HELICOPTER_OR_MULTIROTOR;
     strcpy(good.UASID, "1581F5BJD248Q00A8XVX");
-    ASSERT_EQ_INT(magpie_validate_basic_id(&good).rule, KX_RULE_NONE, "valid basic id -> compliant");
+    ASSERT_EQ_INT(magpie_validate_basic_id(&good).rule, KX_RULE_NONE, "valid basic id is compliant");
 
     droneID_basicID_data empty = good; empty.UASID[0] = '\0';
-    ASSERT_TRUE(magpie_validate_basic_id(&empty).rule & KX_RULE_MISSING_REQUIRED_MSG, "empty UAS ID -> flagged");
+    ASSERT_TRUE(magpie_validate_basic_id(&empty).rule & KX_RULE_MISSING_REQUIRED_MSG, "empty UAS ID is flagged");
 
     droneID_basicID_data bad = good; bad.IDType = (DRONE_ID_idtype_t)9;  /* reserved */
-    ASSERT_TRUE(magpie_validate_basic_id(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "reserved IDType -> flagged");
+    ASSERT_TRUE(magpie_validate_basic_id(&bad).rule & KX_RULE_FIELD_OUT_OF_RANGE, "reserved ID type is flagged");
 }
 
 static void test_magpie_jump(void){
-    /* positive: ~111 km in 1 s is impossible */
     track_t fast; memset(&fast, 0, sizeof fast);
     fast.msg_count_location = 2;
     fast.prev_location.Latitude = 51.0; fast.prev_location.Longitude = 0.0;
     fast.location.Latitude      = 52.0; fast.location.Longitude      = 0.0;
     fast.prev_location_seen = 1000; fast.last_location_seen = 1001;
-    ASSERT_TRUE(magpie_validate_jump(&fast, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP, "impossible speed -> flagged");
+    ASSERT_TRUE(magpie_validate_jump(&fast, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP, "impossible speed is flagged");
 
-    /* negative: a small move over 10 s is fine */
     track_t slow; memset(&slow, 0, sizeof slow);
     slow.msg_count_location = 2;
     slow.prev_location.Latitude = 51.0000; slow.location.Latitude = 51.0001;
     slow.prev_location_seen = 1000; slow.last_location_seen = 1010;
-    ASSERT_TRUE((magpie_validate_jump(&slow, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP) == 0, "normal move -> not flagged");
+    ASSERT_TRUE((magpie_validate_jump(&slow, &MAGPIE_DEFAULT_THRESHOLDS).rule & KX_RULE_IMPLAUSIBLE_JUMP) == 0, "normal move is not flagged");
 
-    /* only one fix: nothing to compare, not a violation */
     track_t single; memset(&single, 0, sizeof single);
     single.msg_count_location = 1;
-    ASSERT_EQ_INT(magpie_validate_jump(&single, &MAGPIE_DEFAULT_THRESHOLDS).rule, KX_RULE_NONE, "single fix -> no jump check");
+    ASSERT_EQ_INT(magpie_validate_jump(&single, &MAGPIE_DEFAULT_THRESHOLDS).rule, KX_RULE_NONE, "single location fix skips the jump check");
 }
 
 static void test_magpie_reserved_bits(void){
-    /* Decode side: a clean location has no reserved bits. */
     decoded_message_t clean; memset(&clean, 0, sizeof clean);
     ASSERT_EQ_INT(decode_message(PKT_LOCATION, 25, &clean), DECODE_OK, "clean location decodes OK");
-    ASSERT_EQ_INT(clean.reserved_bits, 0, "clean location -> reserved_bits 0");
+    ASSERT_EQ_INT(clean.reserved_bits, 0, "clean location reports zero reserved bits");
 
-    /* Set the Location flag-byte reserved bit (byte 1, bit 3) and re-decode.
-     * The message must still decode OK (not dropped) but be marked. */
+    /* Location flag byte, bit 3 is reserved; setting it must still decode OK. */
     uint8_t dirty[25]; memcpy(dirty, PKT_LOCATION, 25);
     dirty[1] |= 0x08;
     decoded_message_t marked; memset(&marked, 0, sizeof marked);
-    ASSERT_EQ_INT(decode_message(dirty, 25, &marked), DECODE_OK, "reserved bit -> still decodes OK");
-    ASSERT_EQ_INT(marked.reserved_bits, 1, "reserved bit -> reserved_bits 1");
+    ASSERT_EQ_INT(decode_message(dirty, 25, &marked), DECODE_OK, "message with a reserved bit still decodes successfully");
+    ASSERT_EQ_INT(marked.reserved_bits, 1, "reserved bit sets reserved_bits to one");
 
-    /* Rule side: a track that saw reserved bits is flagged WARN, not disqualified. */
     track_t t; memset(&t, 0, sizeof t);
     t.reserved_bits_seen = 1;
     kx_result_t r = magpie_validate_reserved_bitsets(&t);
-    ASSERT_TRUE(r.rule & KX_RULE_RESERVED_BITS_SET, "reserved bits seen -> flagged");
-    ASSERT_EQ_INT(r.severity, KX_SEVERITY_WARN, "reserved bits -> WARN severity");
-    ASSERT_TRUE((r.rule & KX_RULE_ERROR_MASK) == 0, "reserved bits -> still compliant (not an ERROR)");
+    ASSERT_TRUE(r.rule & KX_RULE_RESERVED_BITS_SET, "observed reserved bits are flagged");
+    ASSERT_EQ_INT(r.severity, KX_SEVERITY_WARN, "reserved bits report warning severity");
+    ASSERT_TRUE((r.rule & KX_RULE_ERROR_MASK) == 0, "reserved bits remain compliant and are not an error");
 
-    /* Negative: no reserved bits seen -> not flagged. */
     track_t clean_t; memset(&clean_t, 0, sizeof clean_t);
-    ASSERT_EQ_INT(magpie_validate_reserved_bitsets(&clean_t).rule, KX_RULE_NONE, "no reserved bits -> not flagged");
+    ASSERT_EQ_INT(magpie_validate_reserved_bitsets(&clean_t).rule, KX_RULE_NONE, "absence of reserved bits is not flagged");
 }
 
 static void test_magpie_counter_replay(void){
-    /* no prior counter recorded yet (first message ever) -> never flagged */
     track_t fresh; memset(&fresh, 0, sizeof fresh);
     uint8_t c = 5;
     ASSERT_EQ_INT(magpie_validate_counter_replay(&fresh, &c).rule, KX_RULE_NONE,
-                  "no prior counter -> not flagged");
+                  "absence of a prior counter is not flagged");
 
     track_t t; memset(&t, 0, sizeof t);
     t.have_counter = true;
     t.last_msg_counter = 10;
 
-    /* normal forward increment -> not flagged */
     uint8_t next = 11;
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &next).rule, KX_RULE_NONE,
-                  "normal increment -> not flagged");
+                  "normal counter increment is not flagged");
 
-    /* exact repeat of the last counter -> flagged (duplicate/replay) */
     uint8_t same = 10;
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &same).rule & KX_RULE_COUNTER_REPLAY,
-                "repeated counter -> flagged");
+                "repeated counter value is flagged");
 
-    /* large backward jump (wraps through 0 as an unsigned delta) -> flagged */
     uint8_t back = 5; /* delta = (5 - 10) mod 256 = 251, > REPLAY_BACKWARD_WINDOW */
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &back).rule & KX_RULE_COUNTER_REPLAY,
-                "counter moved far backwards -> flagged");
+                "large backward counter movement is flagged");
 
-    /* modest forward gap (e.g. a couple of dropped frames) -> not flagged */
     uint8_t skip = 20; /* delta = 10, within REPLAY_BACKWARD_WINDOW */
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &skip).rule, KX_RULE_NONE,
-                  "modest forward gap -> not flagged");
+                  "modest forward gap is not flagged");
 
-    /* no new counter supplied (e.g. file replay has no BLE counter) -> not flagged */
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, NULL).rule, KX_RULE_NONE,
-                  "no new counter supplied -> not flagged");
+                  "absence of a new counter is not flagged");
 }
 
 static void test_magpie_validate_composed(void){
@@ -457,13 +442,13 @@ static void test_magpie_validate_composed(void){
     msg.data.location.Latitude = 51.0; msg.data.location.AltitudeGeo = 100.0;
     msg.data.location.AltitudeBaro = 100.0; msg.data.location.TimeStamp = 10.0;
     msg.data.location.Status = DRONE_ID_STATUS_AIRBORNE;
-    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL), 0, "compliant track+msg -> 0 (compliant)");
+    ASSERT_EQ_INT(magpie_validate(&t, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL), 0, "compliant track and message yield zero flags");
 
     /* incomplete track -> at least the missing-required bit set */
     track_t bad; memset(&bad, 0, sizeof bad);
     bad.has_basic_id = 1;   /* missing location/system/operator */
     uint32_t flags = magpie_validate(&bad, NULL, 9999, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL);
-    ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track -> flagged by magpie_validate");
+    ASSERT_TRUE(flags & KX_RULE_MISSING_REQUIRED_MSG, "incomplete track is flagged by magpie_validate");
 }
 
 static void test_output_json(void){
@@ -487,7 +472,7 @@ static void test_output_json(void){
     /* Timestamp -1 sentinel -> JSON null, not -1.0 */
     t.location.TimeStamp = -1.0f;
     track_to_json(&t, buf, sizeof buf);
-    ASSERT_TRUE(strstr(buf, "\"timestamp_s\":null") != NULL, "unknown timestamp -> null");
+    ASSERT_TRUE(strstr(buf, "\"timestamp_s\":null") != NULL, "unknown timestamp serialises as null");
 
     /* Untrusted string with a quote must be escaped, not break the JSON */
     strcpy(t.uas_id, "bad\"id");
@@ -496,10 +481,10 @@ static void test_output_json(void){
 
     /* Buffer too small -> truncation reported as -2 */
     char tiny[16];
-    ASSERT_EQ_INT(track_to_json(&t, tiny, sizeof tiny), -2, "small buffer -> -2 (truncated)");
+    ASSERT_EQ_INT(track_to_json(&t, tiny, sizeof tiny), -2, "undersized buffer reports a truncation error");
 
     /* NULL args -> -1 */
-    ASSERT_EQ_INT(track_to_json(NULL, buf, sizeof buf), -1, "null track -> -1");
+    ASSERT_EQ_INT(track_to_json(NULL, buf, sizeof buf), -1, "null track returns an error code");
 }
 
 /* Connect a blocking client socket to the server's Unix socket path. */
@@ -569,7 +554,6 @@ static void test_server_feed(void){
 static void test_config(void){
     korax_config_t cfg;
 
-    /* 1. defaults produce the expected baseline */
     ASSERT_EQ_INT(config_defaults(&cfg), 0, "config_defaults succeeds");
     ASSERT_EQ_INT(cfg.expiry_seconds, 10, "default expiry_seconds is 10");
     ASSERT_EQ_INT(cfg.grace_seconds, 5, "default grace_seconds is 5");
@@ -577,7 +561,7 @@ static void test_config(void){
     ASSERT_EQ_INT(cfg.log_level, 2, "default log_level is 2");
     ASSERT_TRUE(strcmp(cfg.socket_path, KX_DEFAULT_SOCKET) == 0, "default socket path");
 
-    /* 2. precedence: file overrides default, then CLI overrides file */
+    /* precedence: file overrides default, then CLI overrides file */
     const char *path = "/tmp/korax_test.conf";
     FILE *f = fopen(path, "w");
     ASSERT_TRUE(f != NULL, "temp config opens for write");
@@ -591,45 +575,36 @@ static void test_config(void){
     ASSERT_EQ_INT(config_apply_cli(&cfg, 3, argv), 0, "config_apply_cli succeeds");
     ASSERT_EQ_INT(cfg.expiry_seconds, 30, "CLI overrides file (30)");
 
-    /* 3. missing file keeps current values (not an error) */
     ASSERT_EQ_INT(config_load_file(&cfg, "/tmp/korax_does_not_exist.conf"), 0,
-                  "missing config file -> ok, defaults kept");
+                  "missing config file is not an error and current defaults are retained");
 
-    /* 4. bad input: an unknown key is reported as an error, not ignored */
     f = fopen(path, "w");
     fputs("[tracks]\nnonsense_key = 5\n", f);
     fclose(f);
-    ASSERT_TRUE(config_load_file(&cfg, path) != 0, "unknown key -> error");
+    ASSERT_TRUE(config_load_file(&cfg, path) != 0, "unknown configuration key is rejected as an error");
 
     remove(path);
 }
 
 static void test_logging(void){
-    /* Level filtering: at threshold INFO, ERROR/WARN/INFO show, DEBUG is dropped. */
     log_set_level(LOG_INFO);
     ASSERT_TRUE(log_enabled(LOG_ERROR),  "ERROR enabled at INFO threshold");
     ASSERT_TRUE(log_enabled(LOG_WARN),   "WARN enabled at INFO threshold");
     ASSERT_TRUE(log_enabled(LOG_INFO),   "INFO enabled at INFO threshold");
     ASSERT_TRUE(!log_enabled(LOG_DEBUG), "DEBUG suppressed at INFO threshold");
 
-    /* Lower the threshold to ERROR: only ERROR shows. */
     log_set_level(LOG_ERROR);
     ASSERT_TRUE(log_enabled(LOG_ERROR),  "ERROR enabled at ERROR threshold");
     ASSERT_TRUE(!log_enabled(LOG_WARN),  "WARN suppressed at ERROR threshold");
     ASSERT_TRUE(!log_enabled(LOG_DEBUG), "DEBUG suppressed at ERROR threshold");
 
-    /* Bounded flood: many failures in one window produce at most one summary. */
     time_t t0 = 100000;
     int emitted = 0;
     for (int i = 0; i < 500; i++)
         emitted += log_decode_failure(t0);      /* all in the same instant */
-    ASSERT_EQ_INT(emitted, 0, "flood within one window -> no output");
-
-    /* Once the report interval has elapsed, exactly one summary is emitted. */
-    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 1, "after interval -> one summary line");
-
-    /* Counter reset: the next failure starts a fresh window (no immediate flush). */
-    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 0, "post-flush -> counting again, no output");
+    ASSERT_EQ_INT(emitted, 0, "flood within one window produces no output");
+    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 1, "after the interval elapses, exactly one summary line is emitted");
+    ASSERT_EQ_INT(log_decode_failure(t0 + 10), 0, "window following a flush resumes counting with no output");
 }
 
 static void test_pack_multi_drone(void){
@@ -656,7 +631,7 @@ static void test_pack_multi_drone(void){
     track_table_init(&table);
 
     ASSERT_EQ_INT(decode_message_pack(pack, sizeof pack, 3000, &table, &MAGPIE_DEFAULT_THRESHOLDS), 0, "multi-drone pack decodes");
-    ASSERT_EQ_INT(table.num_tracks, 2, "both sub-messages land -> 2 tracks (2nd not dropped)");
+    ASSERT_EQ_INT(table.num_tracks, 2, "both sub-messages produce two tracks, second message not dropped");
     ASSERT_TRUE(find_track(&table, "AAAAAAAAAAAAAAAAAAAA") >= 0, "drone A tracked");
     ASSERT_TRUE(find_track(&table, "BBBBBBBBBBBBBBBBBBBB") >= 0, "drone B tracked");
 }
@@ -707,7 +682,7 @@ static void test_expiry(void){
     track_table_init(&table);
     int d = track_table_create(&table, 3000, "BOUNDARY");
     table.tracks[d].last_seen = 1000;
-    ASSERT_EQ_INT(track_table_expire(&table, 1060, 60, NULL, NULL), 0, "exactly at timeout -> not removed");
+    ASSERT_EQ_INT(track_table_expire(&table, 1060, 60, NULL, NULL), 0, "track at the exact timeout boundary is not removed");
 }
 
 static void test_find_by_mac(void){
@@ -718,59 +693,54 @@ static void test_find_by_mac(void){
     uint8_t mac_b[6]    = {0x11, 0x22, 0x33, 0x44, 0x55, 0x67};  /* differs only in last byte */
     uint8_t mac_none[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
 
-    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), TRACK_NOT_FOUND, "empty table -> NOT_FOUND");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), TRACK_NOT_FOUND, "empty table returns not-found");
 
     int a = track_table_create(&table, 3000, "MACDRONE_A");
     int b = track_table_create(&table, 3000, "MACDRONE_B");
     memcpy(table.tracks[a].source_mac, mac_a, 6);
     memcpy(table.tracks[b].source_mac, mac_b, 6);
 
-    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), a, "mac_a -> track a");
-    ASSERT_EQ_INT(find_track_by_mac(&table, mac_b), b, "mac_b (last byte differs) -> track b");
-    ASSERT_EQ_INT(find_track_by_mac(&table, mac_none), TRACK_NOT_FOUND, "unknown mac -> NOT_FOUND");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_a), a, "mac_a resolves to track a");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_b), b, "mac_b, differing only in the last byte, resolves to track b");
+    ASSERT_EQ_INT(find_track_by_mac(&table, mac_none), TRACK_NOT_FOUND, "unknown MAC address returns not-found");
 }
 
 /* Golden-verdict regression: fixed inputs + fixed ruleset version must yield
  * byte-identical verdicts and serialisation. If any of these change, the
  * on-the-wire validation contract has changed and the break is intentional. */
 static void test_golden_verdict(void){
-    /* 1. Fully compliant track -> empty verdict. */
     track_t ok; memset(&ok, 0, sizeof ok);
     ok.has_basic_id = 1; ok.has_location = 1; ok.has_system = 1; ok.has_operator_id = 1;
     ok.last_location_seen = 5000; ok.msg_count_location = 1;
     kx_verdict_t v_ok = magpie_evaluate(&ok, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_EQ_INT(v_ok.flags, KX_RULE_NONE, "golden: compliant track -> flags 0");
-    ASSERT_TRUE(v_ok.compliant, "golden: compliant track -> compliant true");
-    ASSERT_EQ_INT(v_ok.finding_count, 0, "golden: compliant track -> no findings");
+    ASSERT_EQ_INT(v_ok.flags, KX_RULE_NONE, "golden: compliant track reports zero flags");
+    ASSERT_TRUE(v_ok.compliant, "golden: compliant track reports compliant true");
+    ASSERT_EQ_INT(v_ok.finding_count, 0, "golden: compliant track reports no findings");
     ASSERT_EQ_INT(v_ok.ruleset_version, KX_RULESET_VERSION, "golden: ruleset version stamped");
 
-    /* 2. Missing required messages -> exactly one ERROR finding. */
     track_t miss; memset(&miss, 0, sizeof miss);
     miss.has_basic_id = 1;   /* no location / system / operator */
     kx_verdict_t v_miss = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_EQ_INT(v_miss.flags, KX_RULE_MISSING_REQUIRED_MSG, "golden: incomplete -> exactly MISSING_REQUIRED_MSG");
-    ASSERT_TRUE(!v_miss.compliant, "golden: incomplete -> not compliant");
-    ASSERT_EQ_INT(v_miss.finding_count, 1, "golden: incomplete -> one finding");
+    ASSERT_EQ_INT(v_miss.flags, KX_RULE_MISSING_REQUIRED_MSG, "golden: incomplete track reports exactly the missing-required-message flag");
+    ASSERT_TRUE(!v_miss.compliant, "golden: incomplete track is not compliant");
+    ASSERT_EQ_INT(v_miss.finding_count, 1, "golden: incomplete track reports exactly one finding");
     ASSERT_EQ_INT(v_miss.findings[0].rule, KX_RULE_MISSING_REQUIRED_MSG, "golden: finding rule id");
     ASSERT_EQ_INT(v_miss.findings[0].severity, KX_SEVERITY_ERROR, "golden: finding severity ERROR");
 
-    /* 3. Reserved bits -> one WARN finding, still compliant. */
     track_t res; memset(&res, 0, sizeof res);
     res.has_basic_id = 1; res.has_location = 1; res.has_system = 1; res.has_operator_id = 1;
     res.last_location_seen = 5000; res.msg_count_location = 1; res.reserved_bits_seen = 1;
     kx_verdict_t v_res = magpie_evaluate(&res, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_EQ_INT(v_res.flags, KX_RULE_RESERVED_BITS_SET, "golden: reserved -> exactly RESERVED_BITS_SET");
-    ASSERT_TRUE(v_res.compliant, "golden: reserved (WARN) -> still compliant");
-    ASSERT_EQ_INT(v_res.finding_count, 1, "golden: reserved -> one finding");
+    ASSERT_EQ_INT(v_res.flags, KX_RULE_RESERVED_BITS_SET, "golden: reserved bits report exactly the reserved-bits flag");
+    ASSERT_TRUE(v_res.compliant, "golden: reserved-bits warning remains compliant");
+    ASSERT_EQ_INT(v_res.finding_count, 1, "golden: reserved bits report exactly one finding");
     ASSERT_EQ_INT(v_res.findings[0].severity, KX_SEVERITY_WARN, "golden: reserved severity WARN");
 
-    /* 4. Determinism: same input + same ruleset -> identical verdict. */
     kx_verdict_t again = magpie_evaluate(&miss, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_EQ_INT(again.flags, v_miss.flags, "golden: deterministic flags");
     ASSERT_EQ_INT(again.finding_count, v_miss.finding_count, "golden: deterministic finding_count");
     ASSERT_TRUE(again.compliant == v_miss.compliant, "golden: deterministic compliant");
 
-    /* 5. Golden serialisation: the validation block is byte-exact. */
     track_t jt; memset(&jt, 0, sizeof jt);
     jt.has_basic_id = 1;   /* incomplete -> MISSING_REQUIRED_MSG */
     strcpy(jt.uas_id, "GOLDEN-0001");
@@ -789,15 +759,14 @@ static void test_golden_verdict(void){
         "\"detail\":\"a required message type is missing\"}]}";
     ASSERT_TRUE(strstr(buf, golden) != NULL, "golden: validation block byte-exact");
 
-    /* 6. ID churn -> one WARN finding, still compliant. */
     track_t churn; memset(&churn, 0, sizeof churn);
     churn.has_basic_id = 1; churn.has_location = 1; churn.has_system = 1; churn.has_operator_id = 1;
     churn.last_location_seen = 5000; churn.msg_count_location = 1;
     churn.id_change_count = 2;   /* >= KX_ID_CHURN_LIMIT */
     kx_verdict_t v_churn = magpie_evaluate(&churn, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_EQ_INT(v_churn.flags, KX_RULE_ID_CHURN, "golden: id churn -> exactly ID_CHURN");
-    ASSERT_TRUE(v_churn.compliant, "golden: id churn (WARN) -> still compliant");
-    ASSERT_EQ_INT(v_churn.finding_count, 1, "golden: id churn -> one finding");
+    ASSERT_EQ_INT(v_churn.flags, KX_RULE_ID_CHURN, "golden: id churn reports exactly the id-churn flag");
+    ASSERT_TRUE(v_churn.compliant, "golden: id churn warning remains compliant");
+    ASSERT_EQ_INT(v_churn.finding_count, 1, "golden: id churn reports exactly one finding");
     ASSERT_EQ_INT(v_churn.findings[0].severity, KX_SEVERITY_WARN, "golden: id churn severity WARN");
 }
 
@@ -854,7 +823,7 @@ static void test_mac_multi_drone(void){
     ble_adv_frame_t bb = make_ble_frame(PKT_BASIC, macB, 1, -60);
     process_ble_frame(&ba, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     process_ble_frame(&bb, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_EQ_INT(table.num_tracks, 2, "two MACs -> two tracks (keyed by MAC, not UAS ID)");
+    ASSERT_EQ_INT(table.num_tracks, 2, "two distinct MAC addresses produce two tracks, keyed by MAC rather than UAS ID");
 
     /* a Location from macA must attach to macA's track only, not blindly tracks[0] */
     ble_adv_frame_t la = make_ble_frame(PKT_LOCATION, macA, 2, -50);
@@ -886,19 +855,19 @@ static void test_ble_counter_replay_end_to_end(void){
     int idx = process_ble_frame(&f1, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE(idx >= 0, "first frame creates the track");
     ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
-                "first frame ever -> no replay flag (nothing to compare against)");
+                "first frame received reports no replay flag, since there is nothing to compare against");
 
     /* second frame with an advanced counter -> still clean */
     ble_adv_frame_t f2 = make_ble_frame(PKT_BASIC, mac, 2, -50);
     process_ble_frame(&f2, 5001, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
-                "normal increment over BLE -> no replay flag");
+                "normal counter increment over BLE reports no replay flag");
 
     /* replay the same counter value seen last time */
     ble_adv_frame_t f3 = make_ble_frame(PKT_BASIC, mac, 2, -50);
     process_ble_frame(&f3, 5002, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE(table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY,
-                "repeated counter over BLE -> flagged end-to-end");
+                "repeated counter over BLE is flagged end to end");
 }
 
 /* ---- Magpie P3 (integrity) + P4 (ID-format) rule tests ---- */
@@ -908,12 +877,12 @@ static void test_id_clone(void){
     int a = track_table_create(&t, 1000, "SAMEID");
     (void)track_table_create(&t, 1000, "SAMEID");   /* same UAS ID, second track */
     ASSERT_TRUE(magpie_validate_id_clone(&t.tracks[a], &t).rule & KX_RULE_DUPLICATION_DETECTED,
-                "same UAS ID on two tracks -> clone flagged");
+                "same UAS ID on two tracks is flagged as a clone");
 
     track_table_t s; track_table_init(&s);
     int c = track_table_create(&s, 1000, "UNIQUE");
     ASSERT_EQ_INT(magpie_validate_id_clone(&s.tracks[c], &s).rule, KX_RULE_NONE,
-                  "single unique UAS ID -> no clone");
+                  "single unique UAS ID is not flagged as a clone");
 }
 
 static void test_id_change_count(void){
@@ -972,9 +941,7 @@ static void test_kinematic_teleport(void){
     fast.location.Latitude      = 52.0; fast.location.Longitude      = 0.0;
     fast.prev_location_seen = 1000; fast.last_location_seen = 1001;
     ASSERT_TRUE(magpie_validate_kinematic_teleport(NULL, &fast, &th).rule == KX_RULE_NONE,
-                "null table -- safe no-op");
-    /* (table arg is currently unused by the check beyond the NULL guard,
-       so any non-NULL table pointer works here) */
+                "null table argument is handled safely");
     track_table_t dummy_table; track_table_init(&dummy_table);
     ASSERT_TRUE(magpie_validate_kinematic_teleport(&dummy_table, &fast, &th).rule & KX_RULE_IMPLAUSIBLE_KINEMATIC_TELEPORT,
                 "impossible speed -- flagged");
@@ -987,20 +954,17 @@ static void test_kinematic_teleport(void){
     ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &slow, &th).rule, KX_RULE_NONE,
                   "normal move -- not flagged");
 
-    /* the historical bug: a track's *first* location update leaves
-       prev_location zeroed at (0,0) ("null island") with prev_location_seen
-       == 0. Without the msg_count_location < 2 guard, distance from (0,0)
-       to any real position over a short synthetic clock delta reads as an
-       implausible teleport -- a false positive on every track's first fix. */
+    /* first fix on a track: prev_location is still zeroed at (0,0), which
+       must not be compared against as if it were a real prior position. */
     track_t first; memset(&first, 0, sizeof first);
     first.has_location = 1; first.msg_count_location = 1;
-    first.location.Latitude = 51.4778; first.location.Longitude = -0.0014; /* London */
-    first.last_location_seen = 5000;   /* prev_location_seen stays 0 */
+    first.location.Latitude = 51.4778; first.location.Longitude = -0.0014;
+    first.last_location_seen = 5000;
     ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &first, &th).rule, KX_RULE_NONE,
-                  "first-ever location fix, no previous fix to compare, not flagged");
+                  "first location fix is not flagged");
 
     ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, NULL, &th).rule, KX_RULE_NONE,
-                  "null track -> safe no-op");
+                  "null track argument is handled safely");
     ASSERT_EQ_INT(magpie_validate_kinematic_teleport(&dummy_table, &fast, NULL).rule, KX_RULE_NONE,
                   "null thresholds -- safe no-op");
 }
@@ -1011,15 +975,15 @@ static void test_counter_replay(void){
 
     uint8_t repeat = 10, forward = 11, backward = 5, wrap = 1;
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &repeat).rule & KX_RULE_COUNTER_REPLAY,
-                "repeated counter - replay");
+                "repeated counter is flagged as a replay");
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &forward).rule, KX_RULE_NONE,
-                  "forward counter - ok");
+                  "forward counter is not flagged");
     ASSERT_TRUE(magpie_validate_counter_replay(&t, &backward).rule & KX_RULE_COUNTER_REPLAY,
-                "backward counter - replay");
+                "backward counter is flagged as a replay");
 
     t.last_msg_counter = 255;   /* wrap: 255 -> 1 is a forward step of 2 */
     ASSERT_EQ_INT(magpie_validate_counter_replay(&t, &wrap).rule, KX_RULE_NONE,
-                  "counter wrap 255--1 - ok (forward)");
+                  "counter wrap from 255 to 1 is treated as forward progress");
 }
 
 static void test_rssi_position(void){
@@ -1032,19 +996,19 @@ static void test_rssi_position(void){
     far.has_location = 1; far.location.Latitude = 53.5; far.location.Longitude = -8.0;
     far.last_rssi_dbm = -45;
     ASSERT_TRUE(magpie_validate_rssi_position(&tbl, &far, &th).rule & KX_RULE_RSSI_POSITION,
-                "far claim + strong signal - flagged");
+                "distant position claim with a strong signal is flagged");
 
     /* consistent: ~100 m away with a weak signal */
     track_t near; memset(&near, 0, sizeof near);
     near.has_location = 1; near.location.Latitude = 53.0009; near.location.Longitude = -8.0;
     near.last_rssi_dbm = -95;
     ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &near, &th).rule, KX_RULE_NONE,
-                  "close + weak signal - ok");
+                  "nearby position claim with a weak signal is not flagged");
 
     /* no sensor position configured -> rule disabled */
     magpie_thresholds_t off = th; off.has_sensor_pos = false;
     ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &far, &off).rule, KX_RULE_NONE,
-                  "no sensor position - not judged");
+                  "absence of a configured sensor position is not judged");
 }
 
 static void test_uasid_format(void){
@@ -1052,50 +1016,50 @@ static void test_uasid_format(void){
     good.IDType = DRONE_ID_IDTYPE_SERIAL_NUMBER;
     strcpy(good.UASID, "1871C000000007000");   /* standard example: mfr 1871, len C=12, 12-char body */
     ASSERT_EQ_INT(magpie_validate_uasid_format(&good).rule, KX_RULE_NONE,
-                  "valid CTA-2063-A serial - ok");
+                  "valid CTA-2063-A serial number is compliant");
 
     droneID_basicID_data shortbody = good;
     strcpy(shortbody.UASID, "1871C00007");      /* length code says 12, body is 5 */
     ASSERT_TRUE(magpie_validate_uasid_format(&shortbody).rule & KX_RULE_UASID_FORMAT,
-                "declared length != actual - flagged");
+                "mismatch between declared and actual length is flagged");
 
     droneID_basicID_data badchar = good;
     strcpy(badchar.UASID, "1871C00000000000I"); /* body contains 'I' (not allowed) */
     ASSERT_TRUE(magpie_validate_uasid_format(&badchar).rule & KX_RULE_UASID_FORMAT,
-                "excluded char (I) in body - flagged");
+                "excluded character in the serial body is flagged");
 }
 
 static void test_operator_id_format(void){
     OperatorID_data good; memset(&good, 0, sizeof good);
     strcpy(good.OperatorId, "IRL87astrdge12k8");   /* 3-letter country prefix + alphanumeric */
     ASSERT_EQ_INT(magpie_validate_operator_id_format(&good).rule, KX_RULE_NONE,
-                  "valid operator id - ok");
+                  "valid operator id is compliant");
 
     OperatorID_data bad = good;
     strcpy(bad.OperatorId, "12387astrdge12k8");    /* prefix not letters */
     ASSERT_TRUE(magpie_validate_operator_id_format(&bad).rule & KX_RULE_OPERATOR_ID_FORMAT,
-                "non-letter country prefix - flagged");
+                "non-letter country prefix is flagged");
 }
 
 static void test_eu_class_consistency(void){
     sys_data open_ok; memset(&open_ok, 0, sizeof open_ok);
     open_ok.CategoryEU = CATEGORY_EU_OPEN; open_ok.ClassEU = CLASS_EU_CLASS_1;
     ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&open_ok).rule, KX_RULE_NONE,
-                  "open + C1 - consistent");
+                  "open category with class 1 is consistent");
 
     sys_data open_bad; memset(&open_bad, 0, sizeof open_bad);
     open_bad.CategoryEU = CATEGORY_EU_OPEN; open_bad.ClassEU = CLASS_EU_CLASS_5;
     ASSERT_TRUE(magpie_validate_eu_class_consistency(&open_bad).rule & KX_RULE_EU_CLASS_CONSISTENCY,
-                "open + C5 - inconsistent (C5 is Specific-only)");
+                "open category with class 5 is inconsistent, since class 5 is specific-only");
 
     sys_data cert; memset(&cert, 0, sizeof cert);
     cert.CategoryEU = CATEGORY_EU_CERTIFIED; cert.ClassEU = CLASS_EU_CLASS_1;
     ASSERT_TRUE(magpie_validate_eu_class_consistency(&cert).rule & KX_RULE_EU_CLASS_CONSISTENCY,
-                "certified + class mark - inconsistent");
+                "certified category with a class marking is inconsistent");
 
     sys_data undecl; memset(&undecl, 0, sizeof undecl);   /* both undeclared */
     ASSERT_EQ_INT(magpie_validate_eu_class_consistency(&undecl).rule, KX_RULE_NONE,
-                  "undeclared category/class - not judged");
+                  "undeclared category and class are not judged");
 }
 
 int main(void){
