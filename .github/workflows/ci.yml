@@ -43,3 +43,32 @@ jobs:
         run: cmake -S . -B build -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure
+
+  fuzz:
+    name: libFuzzer smoke run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install BlueZ dev headers
+        run: sudo apt-get update && sudo apt-get install -y libbluetooth-dev
+
+      - name: Configure (Clang, fuzzers on)
+        env:
+          CC: clang
+        run: cmake -S . -B build -DKORAX_BUILD_FUZZERS=ON
+
+      - name: Build fuzz_decode_message
+        run: cmake --build build --target fuzz_decode_message
+
+      # Bounded smoke run, not a full campaign -- catches regressions on
+      # every push without stalling CI. Deeper/longer runs belong in a
+      # separate scheduled job, not here.
+      - name: Run fuzz_decode_message for 60s
+        run: ./build/fuzz_decode_message -max_total_time=60 -max_len=4096
+
+      - name: Upload crash reproducer
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-decode-message-crash
+          path: crash-*
