@@ -5,7 +5,7 @@
  */
 #include <stdio.h>
 #include <stdbool.h>
-
+#include "korax/magpie_validator.h"
 #define EXPIRY_SECONDS       10
 #define KX_DEFAULT_GRACE     5
 #define KX_DEFAULT_MAX_SPEED 150.0
@@ -30,23 +30,12 @@ typedef struct {
     char   socket_path[108];
     char   source_path[256];
     int    expiry_seconds;
-    int    grace_seconds;
-    double max_speed_kmh;
-    double min_broadcast_hz;
-    float max_climb_ms;
-    float altitude_floor_m;
-    float max_altitude_m;
-    double max_operator_distance_km;
     int    log_level;
     bool   mqtt_enabled;
     char   mqtt_host[256];
     int    mqtt_port;
     char   mqtt_topic[128];
-    double sensor_lat;
-    double sensor_lon;
-    bool   has_sensor_pos;
-    int    id_churn_limit;
-    double teleport_threshold;
+    magpie_thresholds_t thresholds;
 } korax_config_t;
 
 int config_defaults(korax_config_t *cfg);

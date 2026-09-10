@@ -24,26 +24,18 @@ int config_defaults(korax_config_t *cfg) {
     if (cfg == NULL) return CONFIG_ERR;
 
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
+
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
-    cfg->expiry_seconds = EXPIRY_SECONDS;
-    cfg->grace_seconds = KX_DEFAULT_GRACE;
-    cfg->max_speed_kmh = KX_DEFAULT_MAX_SPEED;
-    cfg->log_level = KX_DEFAULT_LOG_LEVEL;
-    cfg->mqtt_enabled = KX_DEFAULT_MQTT_ENABLED;
-    cfg->min_broadcast_hz = KX_DEFAULT_MIN_BROADCAST_HZ;
-    cfg->altitude_floor_m = KX_DEFAULT_ALT_FLOOR;
-    cfg->max_altitude_m = KX_DEFAULT_MAX_ALT;
-    cfg->max_climb_ms = KX_DEFAULT_MAX_CLIMB;
-    cfg->max_operator_distance_km = KX_DEFAULT_MAX_OP_DIST;
+    cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
+
     snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
+
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
-    cfg->sensor_lat = KX_DEFAULT_SENSOR_LAT;
-    cfg->sensor_lon = KX_DEFAULT_SENSOR_LON;
-    cfg->has_sensor_pos = KX_DEFAULT_HAS_SENSOR_LOCATION;
-    cfg->id_churn_limit = KX_DEFAULT_ID_CHURN_LIMIT;
-    cfg->teleport_threshold = KX_DEFAULT_TELEPORT_THRESHOLD;
-    if (cfg->expiry_seconds <= 0) return CONFIG_ERR;
+
+    if (cfg->expiry_seconds <= 0){
+        return CONFIG_ERR;
+    }
     return CONFIG_OK;
 }
 
@@ -126,12 +118,12 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "grace_seconds") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
-                cfg->grace_seconds = (int)res;
+                cfg->thresholds.grace_seconds = (int)res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
-                cfg->max_speed_kmh = res;
+                cfg->thresholds.max_speed_kmh = res;
 
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
                 long res = strtol(value, &endptr, 10);
@@ -184,10 +176,10 @@ int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
                 cfg->expiry_seconds = (int)strtol(optarg, NULL, 10);
                 break;
             case 'g':
-                cfg->grace_seconds = (int)strtol(optarg, NULL, 10);
+                cfg->thresholds.grace_seconds = (int)strtol(optarg, NULL, 10);
                 break;
             case 'm':
-                cfg->max_speed_kmh = strtod(optarg, NULL);
+                cfg->thresholds.max_speed_kmh = strtod(optarg, NULL);
                 break;
             case 'l':
                 cfg->log_level = (int)strtol(optarg, NULL, 10);

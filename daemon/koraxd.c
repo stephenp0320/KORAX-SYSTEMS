@@ -255,21 +255,10 @@ int main(int argc, char **argv){
 
     koraxd_t daemon;
     memset(&daemon, 0, sizeof daemon);
-    daemon.thresholds.grace_seconds = cfg.grace_seconds;
-    daemon.thresholds.max_speed_kmh = cfg.max_speed_kmh;
-    daemon.thresholds.max_altitude_m = cfg.max_altitude_m;
-    daemon.thresholds.min_broadcast_hz = cfg.min_broadcast_hz;
-    daemon.thresholds.altitude_floor_m = cfg.altitude_floor_m;
-    daemon.thresholds.max_operator_distance_km = cfg.max_operator_distance_km;
-    daemon.thresholds.max_climb_ms = cfg.max_climb_ms;
+    daemon.thresholds = cfg.thresholds;
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
-    daemon.thresholds.sensor_lat = cfg.sensor_lat;
-    daemon.thresholds.sensor_lon = cfg.sensor_lon;
-    daemon.thresholds.has_sensor_pos = cfg.has_sensor_pos;
-    daemon.thresholds.id_churn_limit = cfg.id_churn_limit;
-    daemon.thresholds.teleport_threshold = cfg.teleport_threshold;
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
