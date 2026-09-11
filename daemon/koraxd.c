@@ -1,12 +1,3 @@
-/*
- * koraxd — the Korax daemon.
- *
- * A poll() event loop that wires together capture (file replay here),
- * the decode/track pipeline, and output (Unix-domain socket feed, plus
- * an optional MQTT publish). See CLAUDE.md for the full data-flow spine.
- */
-/* sigaction/fileno are POSIX and hidden under strict -std=c11 on glibc;
- * this compiles fine on macOS regardless but fails on Linux/CI without it. */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,16 +20,13 @@
 #define MQTT_TOPIC_SIZE 128
 
 typedef struct {
-    FILE                 *source;      /* frame source (open file)            */
-    int                   source_fd;   /* fileno(source), for poll            */
-    int                   hci_fd;      /* live BLE HCI socket, -1 if unavailable
-                                         * (non-Linux, no adapter, or opened but
-                                         * later failed) -- poll() ignores negative
-                                         * fds, so this degrades with no special-casing */
-    server_t              server;      /* the KAN-45 socket feed              */
-    track_table_t         table;       /* live tracks                         */
-    time_t                last_sweep;  /* when expiry last ran                */
-    volatile sig_atomic_t running;     /* cleared by SIGINT/SIGTERM           */
+    FILE *source;
+    int source_fd;
+    int hci_fd;
+    server_t server;      
+    track_table_t table;      
+    time_t last_sweep;  
+    volatile sig_atomic_t running;
     int expiry_seconds;
     magpie_thresholds_t thresholds;
     struct mosquitto *mqtt;
@@ -50,8 +38,6 @@ typedef struct {
 
 static koraxd_t *g_daemon = NULL;
 
-/* Signal handlers may only touch async-signal-safe state; this just flips
- * a sig_atomic_t that run_event_loop() polls each iteration. */
 static void handle_stop_signal(int sig){
     (void)sig;
     if (g_daemon != NULL)
@@ -68,10 +54,6 @@ static void setup_signal_handling(koraxd_t *daemon){
     sigaction(SIGINT,  &sa, NULL);
 }
 
-/* Parses one text line of whitespace-separated hex byte pairs (the
- * frames.txt replay format) into raw bytes. Stops silently at the first
- * token that isn't a valid hex byte, so trailing comments/garbage are
- * tolerated rather than rejected. */
 static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     int n = 0;
     const char *p = line;
@@ -86,8 +68,6 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     return n;
 }
 
-/* track_table_expire() callback — fired once per track that ages out.
- * user_data is the koraxd_t passed in from run_event_loop(). */
 static void on_track_expired(const track_t *track, void *user_data){
     if (track == NULL || user_data == NULL) return;
     koraxd_t *daemon = (koraxd_t *)user_data;
@@ -97,9 +77,6 @@ static void on_track_expired(const track_t *track, void *user_data){
     server_broadcast(&daemon->server, line, (size_t)len);
 }
 
-/* jbuf/line sizes are part of the wire contract's practical limits: too
- * small and track_to_json() returns -2 (buffer too small for findings),
- * which we treat as "skip this update" rather than truncate the JSON. */
 static void broadcast_track_update(koraxd_t *daemon, int idx){
     if (idx < 0 || idx >= daemon->table.num_tracks) return;
     char jbuf[1024], line[1280];
@@ -142,9 +119,6 @@ static void handle_source_frame(koraxd_t *daemon){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
-            /* frame == NULL: this daemon's only source is file replay, so
-             * tracks are keyed by UAS-ID, not by source MAC (see
-             * process_decoded_message's MAC-vs-replay keying rule). */
             int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
             if (idx >= 0){
                 broadcast_track_update(daemon, idx);
@@ -158,10 +132,6 @@ static void handle_source_frame(koraxd_t *daemon){
     }
 }
 
-/* Reads one live BLE advertisement off the HCI socket and broadcasts the
- * track it touched, if any. A fatal read error disables live capture for
- * the rest of the run rather than tearing down the daemon -- the replay/
- * server fds are unaffected. */
 static void handle_hci_event(koraxd_t *daemon, time_t now){
     int idx = -1;
     if (hci_scan_read(daemon->hci_fd, &daemon->table, now, &daemon->thresholds, &MAGPIE_DEFAULT_PROFILE, &idx) != SCAN_OK){
@@ -178,10 +148,6 @@ static void handle_hci_event(koraxd_t *daemon, time_t now){
     }
 }
 
-/* Core loop: poll() on the listen socket, the replay source, the live HCI
- * socket, and every connected client. The 1000ms timeout isn't just a poll
- * cap — it's what guarantees the expiry sweep below still runs on schedule
- * even when no fd is ready. */
 static void run_event_loop(koraxd_t *daemon){
     while (daemon->running){
         struct pollfd fds[3 + KX_MAX_CLIENTS];
@@ -204,17 +170,11 @@ static void run_event_loop(koraxd_t *daemon){
             track_table_expire(&daemon->table, now, daemon->expiry_seconds, on_track_expired, daemon);
             daemon->last_sweep = now;
         }
-        if (ready == 0) continue;
 
-        if (fds[0].revents & POLLIN){
-            server_accept(&daemon->server, &daemon->table);
-        }
-        if (fds[1].revents & POLLIN){
-            handle_source_frame(daemon);
-        }
-        if (fds[2].revents & POLLIN){
-            handle_hci_event(daemon, now);
-        }
+        if (ready == 0) continue;
+        if (fds[0].revents & POLLIN) server_accept(&daemon->server, &daemon->table);
+        if (fds[1].revents & POLLIN) handle_source_frame(daemon);
+        if (fds[2].revents & POLLIN) handle_hci_event(daemon, now);
 
         for (int i = n - 1; i >= 3; i--){
             if (fds[i].revents & (POLLHUP | POLLERR | POLLNVAL)){
@@ -230,19 +190,13 @@ int main(int argc, char **argv){
     log_set_level(cfg.log_level);
 
     const char *config_path = "/etc/korax/korax.conf";
-
-    /* --config must be known before config_load_file() runs, so it's
-     * scanned out of argv here rather than left to getopt_long/config_apply_cli
-     * (which sees --config too, but only to avoid an "unknown option" error). */
     for (int i = 1; i < argc - 1; i++){
         if (strcmp(argv[i], "--config") == 0){
             config_path = argv[i + 1];
             break;
         }
     }
-
-    /* Precedence: config_defaults() above, then the file, then CLI flags
-     * below — each stage may override the previous one. */
+    
     if (config_load_file(&cfg, config_path) != 0){
         log_msg(LOG_ERROR, "failed to load config %s", config_path);
         return 1;

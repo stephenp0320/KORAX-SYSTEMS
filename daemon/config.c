@@ -1,9 +1,3 @@
-/*
- * koraxd configuration: INI file + CLI flags, layered over compiled-in
- * defaults. Sections: [output], [capture], [tracks], [validator], [log],
- * [mqtt]. Precedence is config_defaults() -> config_load_file() ->
- * config_apply_cli(), applied in that order by the daemon's main().
- */
 #include <stdio.h>
 #include "daemon/config.h"
 #include <string.h>
@@ -15,38 +9,22 @@
 #define CONFIG_ERR -1
 #define CONFIG_OK 0
 
-/* Every new numeric config value needs three things kept in lockstep:
- * a default here, a parse branch in config_load_file() (strtol/strtod +
- * endptr validation), and usually a matching field in magpie_thresholds_t
- * wired up by the daemon. Missing any one of these is easy to miss since
- * nothing fails loudly at compile time. */
 int config_defaults(korax_config_t *cfg) {
     if (cfg == NULL) return CONFIG_ERR;
 
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
-
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
     cfg->expiry_seconds = EXPIRY_SECONDS;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
-
     snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
-
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
-
-    if (cfg->expiry_seconds <= 0){
-        return CONFIG_ERR;
-    }
+    
+    if (cfg->expiry_seconds <= 0)return CONFIG_ERR;
     return CONFIG_OK;
 }
 
-/* Minimal INI parser. Note this is intentionally strict: an unknown
- * key/section or a malformed line is a hard error (CONFIG_ERR), not a
- * warning — a typo in the config file fails the daemon at startup
- * instead of silently running with defaults. A missing file, though,
- * is not an error (ENOENT falls through to CONFIG_OK) so a fresh install
- * with no config file just runs on compiled-in defaults. */
 int config_load_file(korax_config_t *cfg, const char *path) {
     if (cfg == NULL || path == NULL) return CONFIG_ERR;
 
@@ -66,18 +44,13 @@ int config_load_file(korax_config_t *cfg, const char *path) {
         char *p = line;
         while (*p == ' ' || *p == '\t') p++;
 
-        if (*p == '#' || *p == ';' || *p == '\n' || *p == '\r' || *p == '\0') {
-            continue;
-        }
-
+        if (*p == '#' || *p == ';' || *p == '\n' || *p == '\r' || *p == '\0') continue;
         if (*p == '[') {
             p++;
             size_t current_size = 0;
-            while (*p != ']' && *p != '\0' && *p != '\n' && *p != '\r' && current_size < sizeof(section) - 1) {
-                section[current_size++] = *p++;
-            }
+            while (*p != ']' && *p != '\0' && *p != '\n' && *p != '\r' && current_size < sizeof(section) - 1) section[current_size++] = *p++;
+    
             section[current_size] = '\0';
-
             if (*p != ']') {
                 log_msg(LOG_ERROR, "syntax error on line %d: Malformed section header", line_counter);
                 fclose(fp);
@@ -93,16 +66,13 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             char *key = p;
             char *value = eq + 1;
             char *kend = eq - 1;
-            while (kend >= key && (*kend == ' ' || *kend == '\t')) {
-                *kend-- = '\0';
-            }
 
+            while (kend >= key && (*kend == ' ' || *kend == '\t')) *kend-- = '\0';
             while (*value == ' ' || *value == '\t') value++;
-
+            
             char *vend = value + strlen(value) - 1;
-            while (vend >= value && (*vend == ' ' || *vend == '\t' || *vend == '\n' || *vend == '\r')) {
-                *vend-- = '\0';
-            }
+            while (vend >= value && (*vend == ' ' || *vend == '\t' || *vend == '\n' || *vend == '\r')) *vend-- = '\0';
+            
             char *endptr;
             if (strcmp(section, "output") == 0 && strcmp(key, "socket_path") == 0) {
                 strncpy(cfg->socket_path, value, sizeof(cfg->socket_path) - 1);
@@ -147,11 +117,6 @@ int config_load_file(korax_config_t *cfg, const char *path) {
     return CONFIG_OK;
 }
 
-/* Applied after config_load_file(), so CLI flags win over the file.
- * "config" is accepted here only so getopt_long doesn't reject it as
- * unknown — the actual --config path was already consumed by main()'s
- * pre-scan of argv, before config_load_file() ran, since the path has
- * to be known before the file it names can be loaded. */
 int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
     static struct option opts[] = {
         {"socket",    required_argument, 0, 's'},
@@ -187,7 +152,7 @@ int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
                 cfg->log_level = (int)strtol(optarg, NULL, 10);
                 break;
             case 'c':
-                break; /* no-op: value already consumed by main()'s argv pre-scan */
+                break;
             default:
                 return -1;
         }
