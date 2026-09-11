@@ -1,8 +1,3 @@
-/*
- * Rook — the track table (ROOK stage: PIPELINE -> ROOK -> MAGPIE). Owns the
- * fixed-size track_t array: create/find/update/expire and the haversine-based
- * jump check. No heap allocation, no I/O — buffers are caller-provided.
- */
 #include <stdio.h>
 #include "korax/rook_track.h"
 #include <string.h>
@@ -38,7 +33,6 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, tra
     return removed;
 }
 
-
 int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
     int i = 0;
     int curr_track = 0;
@@ -53,7 +47,6 @@ int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
     return TRACK_NOT_FOUND;
 }
 
-
 int find_track(track_table_t *tracks, const char *uas_id){
     if (tracks == NULL || uas_id == NULL) return TRACK_NOT_FOUND;
 
@@ -65,7 +58,6 @@ int find_track(track_table_t *tracks, const char *uas_id){
     }
     return TRACK_NOT_FOUND;
 }
-
 
 int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     if (table == NULL || uas_id == NULL) return TRACK_ERR;
@@ -79,10 +71,8 @@ int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     table->tracks[track_num].first_seen = now;
     table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
     table->num_tracks++;
-
     return track_num;
 }
-
 
 int track_table_create_by_source_mac(track_table_t *table, time_t now, const uint8_t *source_mac){
     if (table == NULL || source_mac == NULL) return TRACK_ERR;
@@ -95,14 +85,12 @@ int track_table_create_by_source_mac(track_table_t *table, time_t now, const uin
     table->tracks[track_num].first_seen = now;
     table->tracks[track_num].last_seen = table->tracks[track_num].first_seen;
     table->num_tracks++;
-
     return track_num;
 }
 
 double to_radians(double degrees){
     return degrees * (PI / 180.0);
 }
-
 
 double jump_detection(const track_t *table){
     double phi1 = to_radians(table->prev_location.Latitude);
@@ -113,7 +101,6 @@ double jump_detection(const track_t *table){
     double c = 2.0 * asin(sqrt(a));
     return EARTH_RADIUS_KM * c;
 }
-
 
 int track_table_update(track_t *drone_track, time_t now, const decoded_message_t *msg){
     if (drone_track == NULL || msg == NULL) return TRACK_ERR;
@@ -130,8 +117,6 @@ int track_table_update(track_t *drone_track, time_t now, const decoded_message_t
             drone_track->msg_count_basic_id++;
             break;
         case MESSAGETYPE_LOCATION:
-            // Save the outgoing fix before overwriting it — jump_detection and
-            // the timestamp-rewind check both need the previous/current pair.
             drone_track->prev_location = drone_track->location;
             drone_track->prev_location_seen = drone_track->last_location_seen;
             drone_track->location = msg->data.location;
@@ -162,8 +147,6 @@ int track_table_update(track_t *drone_track, time_t now, const decoded_message_t
         default:
             return TRACK_ERR;
     }
-    // Ring buffer of recent arrival times (any message type) for Magpie's
-    // broadcast-rate check; head wraps modulo KX_RATE_WINDOW.
     drone_track->arrival_ms[drone_track->head] = (uint64_t)now * 1000;
     drone_track->head = (drone_track->head + 1) % KX_RATE_WINDOW;
     drone_track->last_seen = now;
