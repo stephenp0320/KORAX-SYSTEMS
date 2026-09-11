@@ -1,9 +1,3 @@
-/*
- * korax_replay — standalone CLI that replays recorded frames through the
- * same decode/track pipeline entry point live BLE capture uses, printing
- * a summary of tracks seen. Demonstrates that the pipeline is agnostic
- * to its source. By convention it reads tools/replay/frames.txt.
- */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,16 +15,11 @@ static void handle_frame(const uint8_t *buf, int len, track_table_t *table){
     } else {
         decoded_message_t msg;
         if (decode_message(buf, len, &msg) == DECODE_OK){
-            /* frame == NULL here: this is the file-replay path, so tracks
-             * are keyed by UAS-ID rather than by source MAC (MAC keying
-             * is reserved for live capture, which passes a real frame). */
             process_decoded_message(table, &msg, now, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
         }
     }
 }
 
-/* Adapts wp_replay_run()'s per-frame callback to handle_frame(); user_data
- * is the track_table_t threaded through from main(). */
 static void replay_frame_callback(const wp_frame_t *frame, void *user_data){
     track_table_t *table = (track_table_t *)user_data;
     handle_frame(frame->payload, (int)frame->payload_len,table);
@@ -40,10 +29,10 @@ int main(int argc, char **argv){
     const char *filename = (argc > 1) ? argv[1] : "frames.txt";
     track_table_t table;
     track_table_init(&table);
+    
     int frames = wp_replay_run(filename, replay_frame_callback, &table);
-    if (frames < 0){
-        return EXIT_FAILURE;
-    }
+    if (frames < 0)return EXIT_FAILURE;
+    
     printf("Replayed %d frame(s) from %s\n", frames, filename);
     printf("Tracks seen: %d\n\n", table.num_tracks);
     for (int i = 0; i < table.num_tracks; i++){
