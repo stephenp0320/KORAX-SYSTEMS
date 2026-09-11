@@ -1,8 +1,3 @@
-/*
- * Raven -- the decoder stage of the pipeline (SOURCE -> RAVEN -> PIPELINE -> ROOK -> MAGPIE -> OUTPUT).
- * Turns raw ODID/Remote-ID message bytes into typed decoded_message_t values.
- * Pure and allocation-free: no heap, no I/O — callers own all buffers.
- */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -45,12 +40,9 @@ int decode_message_pack(uint8_t *packet, int packet_len, time_t now, track_table
 }
 
 int decode_message(const uint8_t *packet, int packet_len, decoded_message_t *decoded_output){
-    if (packet == NULL || decoded_output == NULL){
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < RID_MESSAGE_SIZE){
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet == NULL || decoded_output == NULL) return DECODE_ERR_NULL;
+    if (packet_len < RID_MESSAGE_SIZE)return DECODE_ERR_TOO_SHORT;
+    
     decoded_output->reserved_bits = 0;
     uint8_t msg_type = (packet[0] >> 4) & 0x0F;
     int res;
@@ -110,20 +102,12 @@ int decode_basic_id(const uint8_t *packet, int packet_len, droneID_basicID_data 
 }
 
 int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Location_data *location_data){
-    if (packet == NULL || location_data == NULL){
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < 25){
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet == NULL || location_data == NULL) return DECODE_ERR_NULL;
+    if (packet_len < 25) return DECODE_ERR_TOO_SHORT;
+
     location_data->Status = (packet[1] >> 4) & 0x0F;
     location_data->HeightType = (packet[1] >> 2) & 0x01;
-    // packet[2] only covers 0-179 deg (multiplier flag = 0); when the multiplier
-    // bit is set, +180 shifts it to cover 180-359 deg — an ODID-spec encoding trick.
     location_data->Direction = packet[2] + ((packet[1] >> 1) & 0x01) * 180;
-    // Two-range speed encoding: below the bit's threshold, packet[3] is a direct
-    // 0.25 m/s step; above it, the same byte restarts at 63.75 m/s with a coarser
-    // 0.75 m/s step (extends range without a wider field). Per ODID spec.
     location_data->SpeedHorizontal = (packet[1] & 0x01) ? (packet[3] * 0.75 + 63.75) : (packet[3] * 0.25);
     int8_t speed_vertical_raw = (int8_t)packet[4];
     location_data->SpeedVertical = speed_vertical_raw * 0.5;
@@ -136,20 +120,20 @@ int decode_location_vector(const uint8_t *packet, int packet_len, DRONE_ID_Locat
     location_data->VertAccuracy = (packet[19] >> 4) & 0x0F;
     location_data->SpeedAccuracy = packet[20] & 0x0F;
     location_data->BaroAccuracy = (packet[20] >> 4) & 0x0F;
+
     uint16_t timestamp_raw =  rd_u16le(&packet[21]);
     if (timestamp_raw != INV_TIMESTAMP){
         location_data->TimeStamp = timestamp_raw / 10.f;
     } else {
         location_data->TimeStamp = -1.0f;
     }
+
     location_data->TSAccuracy = packet[23] & 0x0F;
     int reserved_set = 0;
     reserved_set |= (packet[1]  & 0x08);
     reserved_set |= (packet[23] & 0xF0);
     reserved_set |= (packet[24]);
-    if (reserved_set){
-        return DECODE_ERR_RESERVED_BITS;
-    }
+    if (reserved_set) return DECODE_ERR_RESERVED_BITS;
     return DECODE_OK;
 }
 
@@ -264,19 +248,16 @@ const char *auth_type_to_str(auth_type_t auth_type){
 }
 
 int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth_data){
-    if (packet == NULL || auth_data == NULL){
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < AUTH_PACK_SIZE){
-        return DECODE_ERR_TOO_SHORT;
-    }
-
+    if (packet == NULL || auth_data == NULL) return DECODE_ERR_NULL;
+    if (packet_len < AUTH_PACK_SIZE) return DECODE_ERR_TOO_SHORT;
+    
     auth_data->last_page_idx = 0;
     auth_data->timestamp = 0;
     auth_data->length = 0;
     auth_data->msg_type = (packet[0] >> 4) & 0x0F;
     auth_data->auth_type = (packet[1] >> 4) & 0x0F;
     auth_data->data_page = packet[1] & 0x0F;
+    
     if (auth_data->data_page == 0){
         auth_data->last_page_idx = packet[2];
         auth_data->length = packet[3];
@@ -285,16 +266,14 @@ int decode_auth(const uint8_t *packet, int packet_len, authentication_data *auth
     } else {
         memcpy(auth_data->AuthData, &packet[2], 23);
     }
+    
     return DECODE_OK;
 }
 
 int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
-    if (packet == NULL || selfID == NULL){
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < SELFID_PACK_SIZE){
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet == NULL || selfID == NULL) return DECODE_ERR_NULL;
+    if (packet_len < SELFID_PACK_SIZE) return DECODE_ERR_TOO_SHORT;
+    
     selfID->msg_type = (packet[0] >> 4) & 0x0F;
     selfID->DescType = packet[1];
     memcpy(selfID->desc, &packet[2], 23);
@@ -303,12 +282,9 @@ int decode_selfID(const uint8_t *packet, int packet_len, selfID_data *selfID){
 }
 
 int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_msg){
-    if (packet == NULL || system_msg == NULL) {
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < SYSMSG_PACK_SIZE) {
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet == NULL || system_msg == NULL) return DECODE_ERR_NULL;
+    if (packet_len < SYSMSG_PACK_SIZE) return DECODE_ERR_TOO_SHORT;
+    
     system_msg->msg_type            = (packet[0] >> 4) & 0x0F;
     system_msg->OperatorLocType     =  packet[1] & 0x03;          // byte 1, bits 0-1
     system_msg->ClassificationType  = (packet[1] >> 2) & 0x07;    // byte 1, bits 2-4
@@ -326,12 +302,9 @@ int decode_system_msg(const uint8_t *packet, int packet_len, sys_data *system_ms
 }
 
 int decode_operator_id(const uint8_t *packet, int packet_len, OperatorID_data *op_id){
-    if (packet == NULL || op_id == NULL){
-        return DECODE_ERR_NULL;
-    }
-    if (packet_len < OPID_PACK_SIZE){
-        return DECODE_ERR_TOO_SHORT;
-    }
+    if (packet == NULL || op_id == NULL) return DECODE_ERR_NULL;
+    if (packet_len < OPID_PACK_SIZE) return DECODE_ERR_TOO_SHORT;
+    
     op_id->msg_type = (packet[0] >> 4) & 0x0F;
     op_id->OperatorIdType = packet[1];
      memcpy(op_id->OperatorId, &packet[2], 20);
