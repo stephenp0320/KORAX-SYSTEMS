@@ -17,8 +17,8 @@ int config_defaults(korax_config_t *cfg) {
     cfg->expiry_seconds = EXPIRY_SECONDS;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
-    snprintf(cfg->mqtt_host,  sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
-    cfg->mqtt_port    = KX_DEFAULT_MQTT_PORT;
+    snprintf(cfg->mqtt_host, sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
+    cfg->mqtt_port = KX_DEFAULT_MQTT_PORT;
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
     
     if (cfg->expiry_seconds <= 0)return CONFIG_ERR;
@@ -102,6 +102,61 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 cfg->log_level = res;
 
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "id_churn_limit") == 0){
+                long res = strtol(value, &endptr, 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.id_churn_limit = (int)res;
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "teleport_threshold") == 0){
+                double res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.teleport_threshold = res;
+
+            } else if (strcmp(section, "validator") == 0 &&  strcmp(key, "min_broadcast_hz") == 0){
+                double res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.min_broadcast_hz = res;
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_climb_ms") == 0){
+                float res = strtof(value, &endptr);
+                if  (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.max_climb_ms = res;
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_altitude_m") == 0){
+                float res = strtof(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.max_altitude_m = res;
+                
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "altitude_floor_m") == 0){
+                float res = strtof(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.altitude_floor_m = res;
+
+            } else if (strcmp(section,  "validator") == 0 && strcmp(key, "max_operator_distance_km") == 0){
+                double res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.max_operator_distance_km = res;
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "has_sensor_pos") == 0){
+                if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
+                    cfg->thresholds.has_sensor_pos = true;
+                } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
+                    cfg->thresholds.has_sensor_pos = false;
+                } else {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid boolean value '%s' for key '%s' in section '[%s]'", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lat") == 0){
+                double res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.sensor_lat = res;
+
+            } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lon") == 0){
+                double res = strtod(value, &endptr);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->thresholds.sensor_lon = res;
             } else {
                 log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);
                 fclose(fp);
@@ -119,42 +174,82 @@ int config_load_file(korax_config_t *cfg, const char *path) {
 
 int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
     static struct option opts[] = {
-        {"socket",    required_argument, 0, 's'},
-        {"source",    required_argument, 0, 'f'},
-        {"expiry",    required_argument, 0, 'e'},
-        {"grace",     required_argument, 0, 'g'},
-        {"max-speed", required_argument, 0, 'm'},
-        {"log-level", required_argument, 0, 'l'},
-        {"config",    required_argument, 0, 'c'},
+        {"socket",                  required_argument, 0, 's'},
+        {"source",                  required_argument, 0, 'f'},
+        {"expiry",                  required_argument, 0, 'e'},
+        {"grace",                   required_argument, 0, 'g'},
+        {"max-speed",               required_argument, 0, 'm'},
+        {"log-level",               required_argument, 0, 'l'},
+        {"config",                  required_argument, 0, 'c'},
+        {"max-operator-distance",   required_argument, 0, 'o'},
+        {"teleport-threshold",      required_argument, 0, 't'},
+        {"id-churn-limit",          required_argument, 0, 'k'},
+        {"min-broadcast-hz",        required_argument, 0, 'v'},
+        {"max-climb-ms",            required_argument, 0, 'j'},
+        {"altitude-floor-m",        required_argument, 0, 'a'},
+        {"max-altitude-m",          required_argument, 0, 'z'},
+        {"has-sensor-pos",          required_argument, 0, 'x'},
+        {"sensor-lat",              required_argument, 0, 'y'},
+        {"sensor-lon",              required_argument, 0, 'w'},
         {0, 0, 0, 0}
     };
     int c;
     while ((c = getopt_long(argc, argv, "s:f:e:g:m:l:c:", opts, NULL)) != -1){
         switch (c){
             case 's':
-                strncpy(cfg->socket_path, optarg, sizeof cfg->socket_path - 1);
-                cfg->socket_path[sizeof cfg->socket_path - 1] = '\0';
+                strncpy(cfg->socket_path, optarg, sizeof(cfg->socket_path) - 1);
+                cfg->socket_path[sizeof(cfg->socket_path) - 1] = '\0';
                 break;
             case 'f':
-                strncpy(cfg->source_path, optarg, sizeof cfg->source_path - 1);
-                cfg->source_path[sizeof cfg->source_path - 1] = '\0';
+                strncpy(cfg->source_path, optarg, sizeof(cfg->source_path) - 1);
+                cfg->source_path[sizeof(cfg->source_path) - 1] = '\0';
                 break;
             case 'e':
-                cfg->expiry_seconds = (int)strtol(optarg, NULL, 10);
+                cfg->expiry_seconds = atoi(optarg);
                 break;
             case 'g':
-                cfg->thresholds.grace_seconds = (int)strtol(optarg, NULL, 10);
+                cfg->thresholds.grace_seconds = atoi(optarg);
                 break;
             case 'm':
-                cfg->thresholds.max_speed_kmh = strtod(optarg, NULL);
+                cfg->thresholds.max_speed_kmh = atof(optarg);
                 break;
             case 'l':
-                cfg->log_level = (int)strtol(optarg, NULL, 10);
+                cfg->log_level = atoi(optarg);
                 break;
             case 'c':
                 break;
+            case 'o':
+                cfg->thresholds.max_operator_distance_km = atof(optarg);
+                break;
+            case 't':
+                cfg->thresholds.teleport_threshold = atof(optarg);
+                break;
+            case 'k':
+                cfg->thresholds.id_churn_limit = atoi(optarg);
+                break;
+            case 'v':
+                cfg->thresholds.min_broadcast_hz = atof(optarg);
+                break;
+            case 'j':
+                cfg->thresholds.max_climb_ms = atof(optarg);
+                break;
+            case 'a':
+                cfg->thresholds.altitude_floor_m = atof(optarg);
+                break;
+            case 'z':
+                cfg->thresholds.max_altitude_m = atof(optarg);
+                break;
+            case 'x':
+                cfg->thresholds.has_sensor_pos = (strcmp(optarg, "true") == 0 || strcmp(optarg, "1") == 0);
+                break;
+            case 'y':
+                cfg->thresholds.sensor_lat = atof(optarg);
+                break;
+            case 'w':
+                cfg->thresholds.sensor_lon = atof(optarg);
+                break;
             default:
-                return -1;
+                return CONFIG_ERR;
         }
     }
     return 0;
