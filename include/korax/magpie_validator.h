@@ -40,6 +40,12 @@
 #define KX_FIELD_MAX 128
 #define KX_MAX_FINDINGS 8
 #define KX_RATE_WINDOW 16
+
+#define MIN_SENSOR_LAT -90.0
+#define MAX_SENSOR_LAT 90.0
+
+#define MIN_SENSOR_LON -180.0
+#define MAX_SENSOR_LON 180.0
 /* Rule severities. A track is compliant when no ERROR-severity rule is set. */
 
 /* sensor_lat/sensor_lon/has_sensor_pos gate the two sensor-relative checks

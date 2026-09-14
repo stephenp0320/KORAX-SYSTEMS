@@ -85,56 +85,122 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             } else if (strcmp(section, "tracks") == 0 && strcmp(key, "expiry_seconds") == 0) {
                 long res = strtol(value, &endptr , 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > 10){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 10.", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->expiry_seconds = (int)res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "grace_seconds") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res < 0 || res >= EXPIRY_SECONDS) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 60.", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.grace_seconds = (int)res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > MAX_SPEED_KMH){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %.2f.", line_counter, value, key, section, MAX_SPEED_KMH);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.max_speed_kmh = res;
 
             } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res < MIN_LOG_LEVEL || res > MAX_LOG_LEVEL) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between %d and %d.", line_counter, value, key, section, MIN_LOG_LEVEL, MAX_LOG_LEVEL);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->log_level = res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "id_churn_limit") == 0){
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > KX_ID_CHURN_LIMIT){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %d.", line_counter, value, key, section, KX_ID_CHURN_LIMIT);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.id_churn_limit = (int)res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "teleport_threshold") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > KX_TELEPORT_THRESHOLD){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %.2f.", line_counter, value, key, section, KX_TELEPORT_THRESHOLD);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.teleport_threshold = res;
 
             } else if (strcmp(section, "validator") == 0 &&  strcmp(key, "min_broadcast_hz") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res < KX_MIN_BROADCAST_RATE){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be >= %.2f.", line_counter, value, key, section, KX_MIN_BROADCAST_RATE);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.min_broadcast_hz = res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_climb_ms") == 0){
                 float res = strtof(value, &endptr);
                 if  (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > KX_MAX_CLIMB_MS){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %.2f.", line_counter, value, key, section, KX_MAX_CLIMB_MS);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.max_climb_ms = res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_altitude_m") == 0){
                 float res = strtof(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > KX_MAX_ALT){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %.2f.", line_counter, value, key, section, KX_MAX_ALT);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.max_altitude_m = res;
                 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "altitude_floor_m") == 0){
                 float res = strtof(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res <= (float)INV_ALT || res >= KX_MAX_ALT){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between %.2f and %.2f.", line_counter, value, key, section, (float)INV_ALT, KX_MAX_ALT);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.altitude_floor_m = res;
 
             } else if (strcmp(section,  "validator") == 0 && strcmp(key, "max_operator_distance_km") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res > KX_MAX_OP_DIST){
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %.2f.", line_counter, value, key, section, KX_MAX_OP_DIST);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.max_operator_distance_km = res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "has_sensor_pos") == 0){
@@ -151,11 +217,33 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lat") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res < MIN_SENSOR_LAT || res > MAX_SENSOR_LAT) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between %.2f and %.2f.", line_counter, value, key, section, MIN_SENSOR_LAT, MAX_SENSOR_LAT);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+                if (res == 0.0 && cfg->thresholds.has_sensor_pos) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Sensor latitude cannot be zero when has_sensor_pos is true.", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.sensor_lat = res;
 
             } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lon") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                // range validation
+                if (res < MIN_SENSOR_LON || res > MAX_SENSOR_LON) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between %.2f and %.2f.", line_counter, value, key, section, MIN_SENSOR_LON, MAX_SENSOR_LON);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+                if (res == 0.0 && cfg->thresholds.has_sensor_pos) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Sensor longitude cannot be zero when has_sensor_pos is true.", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
                 cfg->thresholds.sensor_lon = res;
             } else {
                 log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);

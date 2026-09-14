@@ -1,7 +1,8 @@
 #ifndef KORAX_LOG_H
 #include <time.h>
 #define KORAX_LOG_H
-
+#define MIN_LOG_LEVEL 0
+#define MAX_LOG_LEVEL 3
 /* Higher numeric value = more verbose; log_set_level() gates by <=. */
 typedef enum {
     LOG_ERROR = 0,
