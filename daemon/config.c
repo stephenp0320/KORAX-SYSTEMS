@@ -86,8 +86,8 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 long res = strtol(value, &endptr , 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
-                if (res > KX_MAX_EXPIRY_SECONDS|| res < 0) {
-                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 10.", line_counter, value, key, section);
+                if (res < 0 || res > KX_MAX_EXPIRY_SECONDS) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 300.", line_counter, value, key, section);
                     fclose(fp);
                     return CONFIG_ERR;
                 }
@@ -97,8 +97,8 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
-                if (res < 0 || res >= KX_MAX_EXPIRY_SECONDS) {
-                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 60.", line_counter, value, key, section);
+                if (res < 0 || res > KX_MAX_GRACE_SECONDS) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and %d.", line_counter, value, key, section, KX_MAX_GRACE_SECONDS);
                     fclose(fp);
                     return CONFIG_ERR;
                 }

@@ -25,6 +25,7 @@
 #define KX_DEFAULT_ID_CHURN_LIMIT 2
 #define KX_DEFAULT_TELEPORT_THRESHOLD 5000.0
 #define KX_MAX_EXPIRY_SECONDS 300
+#define KX_MAX_GRACE_SECONDS 60
 
 /* Mirrors [output]/[capture]/[tracks]/[validator]/[log]/[mqtt] INI sections. */
 typedef struct {
