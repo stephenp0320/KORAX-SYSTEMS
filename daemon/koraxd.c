@@ -40,8 +40,7 @@ static koraxd_t *g_daemon = NULL;
 
 static void handle_stop_signal(int sig){
     (void)sig;
-    if (g_daemon != NULL)
-        g_daemon->running = 0;
+    if (g_daemon != NULL) g_daemon->running = 0;
 }
 
 static void setup_signal_handling(koraxd_t *daemon){
@@ -83,15 +82,12 @@ static void broadcast_track_update(koraxd_t *daemon, int idx){
     if (track_to_json(&daemon->table.tracks[idx], jbuf, sizeof jbuf) < 0) return;
 
     int len = snprintf(line, sizeof line, "{\"event\":\"track_update\",\"track\":%s}\n", jbuf);
-    if (len > 0 && (size_t)len < sizeof line){
-        server_broadcast(&daemon->server, line, (size_t)len);
-    }
+    if (len > 0 && (size_t)len < sizeof line) server_broadcast(&daemon->server, line, (size_t)len);
+
 #ifdef KORAX_WITH_MQTT
-    if (daemon->mqtt){
-        mqtt_publish(daemon->mqtt, NULL, daemon->mqtt_topic,
-                     (int)strlen(jbuf), jbuf, 0, false);
-    }
+    if (daemon->mqtt) mqtt_publish(daemon->mqtt, NULL, daemon->mqtt_topic, (int)strlen(jbuf), jbuf, 0, false);
 #endif
+
 }
 
 static void handle_source_frame(koraxd_t *daemon){
@@ -103,9 +99,8 @@ static void handle_source_frame(koraxd_t *daemon){
     }
     char *p = linebuf;
     while (*p == ' ' || *p == '\t') p++;
-    if (*p == '#' || *p == '\n' || *p == '\r' || *p == '\0'){
-        return;
-    }
+    if (*p == '#' || *p == '\n' || *p == '\r' || *p == '\0') return;
+    
     uint8_t buf[256];
     int count = hexline_to_bytes(p, buf, sizeof buf);
     if (count <= 0) return;
@@ -120,12 +115,8 @@ static void handle_source_frame(koraxd_t *daemon){
         decoded_message_t msg;
         if (decode_message(buf, count, &msg) == DECODE_OK){
             int idx = process_decoded_message(&daemon->table, &msg, now, &daemon->thresholds, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-            if (idx >= 0){
-                broadcast_track_update(daemon, idx);
-            }
-            if (idx == TRACK_TABLE_FULL){
-                log_table_full(time(NULL));
-            }
+            if (idx >= 0)broadcast_track_update(daemon, idx);
+            if (idx == TRACK_TABLE_FULL) log_table_full(time(NULL));
         } else {
             log_decode_failure(time(NULL));
         }
@@ -140,12 +131,9 @@ static void handle_hci_event(koraxd_t *daemon, time_t now){
         daemon->hci_fd = -1;
         return;
     }
-    if (idx >= 0){
-        broadcast_track_update(daemon, idx);
-    }
-    if (idx == TRACK_TABLE_FULL){
-        log_table_full(now);
-    }
+
+    if (idx >= 0) broadcast_track_update(daemon, idx);
+    if (idx == TRACK_TABLE_FULL) log_table_full(now);
 }
 
 static void run_event_loop(koraxd_t *daemon){
@@ -264,9 +252,8 @@ int main(int argc, char **argv){
         mqtt_destroy(daemon.mqtt);
     }
     #endif
-    if (daemon.hci_fd >= 0){
-        hci_scan_close(daemon.hci_fd);
-    }
+
+    if (daemon.hci_fd >= 0) hci_scan_close(daemon.hci_fd);
     fclose(daemon.source);
     server_close(&daemon.server);
     log_msg(LOG_INFO, "stopped");

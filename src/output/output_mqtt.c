@@ -40,8 +40,7 @@ int read_creds(char *file, korax_config_t *cfg) {
 }
 
 struct mosquitto *mqtt_init(bool optional_mqtt) {
-    if (!optional_mqtt)
-        return NULL;
+    if (!optional_mqtt) return NULL;
     mosquitto_lib_init();
     struct mosquitto *mosq = mosquitto_new(NULL, true, NULL);
     if (mosq == NULL) {
@@ -52,8 +51,7 @@ struct mosquitto *mqtt_init(bool optional_mqtt) {
 }
 
 int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg) {
-    if (mosq == NULL || cfg == NULL)
-        return MOSQ_ERR_INVAL;
+    if (mosq == NULL || cfg == NULL) return MOSQ_ERR_INVAL;
 
     int tls_connect = mosquitto_tls_set(mosq, cfg->mqtt_tls_ca_path, NULL, cfg->mqtt_tls_cert_path,
                                         cfg->mqtt_tls_key_path, NULL);
@@ -66,8 +64,7 @@ int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg) {
 
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive,
                  korax_config_t *cfg) {
-    if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5 || cfg == NULL)
-        return MOSQ_ERR_INVAL;
+    if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5 || cfg == NULL) return MOSQ_ERR_INVAL;
 
     int read_creds_result = read_creds(cfg->mqtt_creds_path, cfg);
     if (read_creds_result == KX_CREDS_NOT_FOUND) {
@@ -131,8 +128,7 @@ int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloa
 }
 
 int mqtt_disconnect(struct mosquitto *mosq) {
-    if (mosq == NULL)
-        return MOSQ_ERR_INVAL;
+    if (mosq == NULL) return MOSQ_ERR_INVAL;
 
     int disconnect = mosquitto_disconnect(mosq);
     switch (disconnect) {
@@ -148,25 +144,20 @@ int mqtt_disconnect(struct mosquitto *mosq) {
 }
 
 void mqtt_destroy(struct mosquitto *mosq) {
-    if (mosq == NULL)
-        return;
+    if (mosq == NULL) return;
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();
 }
 
 int mqtt_loop_start(struct mosquitto *mosq) {
-    if (mosq == NULL)
-        return MOSQ_ERR_INVAL;
-
+    if (mosq == NULL) return MOSQ_ERR_INVAL;
     int result = mosquitto_loop_start(mosq);
-    if (result != MOSQ_ERR_SUCCESS) {
-        log_msg(LOG_ERROR, "mosquitto_loop_start failed: %s", mosquitto_strerror(result));
-    }
+    if (result != MOSQ_ERR_SUCCESS) log_msg(LOG_ERROR, "mosquitto_loop_start failed: %s", mosquitto_strerror(result));
+    
     return result;
 }
 
 int mqtt_loop_stop(struct mosquitto *mosq, bool force) {
-    if (mosq == NULL)
-        return MOSQ_ERR_INVAL;
+    if (mosq == NULL) return MOSQ_ERR_INVAL;
     return mosquitto_loop_stop(mosq, force);
 }
