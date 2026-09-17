@@ -20,6 +20,12 @@ int  mqtt_disconnect(struct mosquitto *mosq);
 
 void mqtt_destroy(struct mosquitto *mosq);
 
+/* Starts/stops the background thread that pumps mosquitto's network loop
+ * (keepalive pings, QoS ack handling). Return 0 on success, nonzero on
+ * failure, matching the other mqtt_* wrappers. */
+int  mqtt_loop_start(struct mosquitto *mosq);
+int  mqtt_loop_stop(struct mosquitto *mosq, bool force);
+
 int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg);
 
 #endif

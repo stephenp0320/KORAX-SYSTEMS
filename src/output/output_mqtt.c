@@ -79,8 +79,6 @@ int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_al
         int username_pw = mosquitto_username_pw_set(mosq, cfg->mqtt_username, cfg->mqtt_password);
         if (username_pw != MOSQ_ERR_SUCCESS) {
             log_msg(LOG_ERROR, "mosquitto_username_pw_set failed: %s", strerror(errno));
-            mosquitto_destroy(mosq);
-            mosquitto_lib_cleanup();
             return MOSQ_ERR_INVAL;
         }
     }
@@ -154,4 +152,21 @@ void mqtt_destroy(struct mosquitto *mosq) {
         return;
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();
+}
+
+int mqtt_loop_start(struct mosquitto *mosq) {
+    if (mosq == NULL)
+        return MOSQ_ERR_INVAL;
+
+    int result = mosquitto_loop_start(mosq);
+    if (result != MOSQ_ERR_SUCCESS) {
+        log_msg(LOG_ERROR, "mosquitto_loop_start failed: %s", mosquitto_strerror(result));
+    }
+    return result;
+}
+
+int mqtt_loop_stop(struct mosquitto *mosq, bool force) {
+    if (mosq == NULL)
+        return MOSQ_ERR_INVAL;
+    return mosquitto_loop_stop(mosq, force);
 }

@@ -218,7 +218,18 @@ int main(int argc, char **argv){
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
         if (daemon.mqtt){
             if (cfg.mqtt_tls_ca_path[0] != '\0') mossquito_tls_connect(daemon.mqtt, &cfg);
-            mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30, &cfg);
+            if (mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 60, &cfg) != 0){
+                log_msg(LOG_ERROR, "mqtt_connect failed to %s:%d", cfg.mqtt_host, cfg.mqtt_port);
+                mqtt_destroy(daemon.mqtt);
+                daemon.mqtt = NULL;
+            } else {
+                log_msg(LOG_INFO, "mqtt connected to %s:%d", cfg.mqtt_host, cfg.mqtt_port);
+                if (mqtt_loop_start(daemon.mqtt) != 0){
+                    mqtt_disconnect(daemon.mqtt);
+                    mqtt_destroy(daemon.mqtt);
+                    daemon.mqtt = NULL;
+                }
+            }
             snprintf(daemon.mqtt_topic, sizeof daemon.mqtt_topic, "%s", cfg.mqtt_topic);
         }
     #endif
@@ -248,6 +259,7 @@ int main(int argc, char **argv){
 
     #ifdef KORAX_WITH_MQTT
     if (daemon.mqtt){
+        mqtt_loop_stop(daemon.mqtt, true);
         mqtt_disconnect(daemon.mqtt);
         mqtt_destroy(daemon.mqtt);
     }
