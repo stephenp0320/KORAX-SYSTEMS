@@ -218,7 +218,7 @@ int main(int argc, char **argv){
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
         if (daemon.mqtt){
             if (cfg.mqtt_tls_ca_path[0] != '\0') mossquito_tls_connect(daemon.mqtt, &cfg);
-            mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30);
+            mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 30, &cfg);
             snprintf(daemon.mqtt_topic, sizeof daemon.mqtt_topic, "%s", cfg.mqtt_topic);
         }
     #endif

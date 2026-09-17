@@ -42,6 +42,8 @@ typedef struct {
     char   mqtt_tls_ca_path[256];
     char   mqtt_tls_cert_path[256]; 
     char   mqtt_tls_key_path[256];
+    char   mqtt_username[128];
+    char   mqtt_password[128];
     magpie_thresholds_t thresholds;
 } korax_config_t;
 
