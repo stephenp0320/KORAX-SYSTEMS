@@ -3,6 +3,8 @@
  * for the load order (defaults -> INI file -> CLI) and the rule that
  * every new numeric knob needs a default here plus a parse branch there.
  */
+#ifndef KORAX_DAEMON_CONFIG_H
+#define KORAX_DAEMON_CONFIG_H
 #include <stdio.h>
 #include <stdbool.h>
 #include "korax/magpie_validator.h"
@@ -37,9 +39,13 @@ typedef struct {
     char   mqtt_host[256];
     int    mqtt_port;
     char   mqtt_topic[128];
+    char   mqtt_tls_ca_path[256];
+    char   mqtt_tls_cert_path[256]; 
+    char   mqtt_tls_key_path[256];
     magpie_thresholds_t thresholds;
 } korax_config_t;
 
 int config_defaults(korax_config_t *cfg);
 int config_load_file(korax_config_t *cfg, const char *path);
 int config_apply_cli(korax_config_t *cfg, int argc, char **argv);
+#endif

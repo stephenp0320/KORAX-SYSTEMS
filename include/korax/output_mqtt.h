@@ -6,6 +6,7 @@
 #define KORAX_OUTPUT_MQTT_H
 #include <stdio.h>
 #include <stdbool.h>
+#include "daemon/config.h"
 
 /* Returns NULL if optional_mqtt is false (MQTT disabled by config) or on
  * mosquitto init failure -- callers must treat NULL as "no MQTT" and skip
@@ -20,4 +21,5 @@ int  mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int paylo
 int  mqtt_disconnect(struct mosquitto *mosq);
 /* No-op if mosq is NULL; always pairs with mqtt_init's lib_init. */
 void mqtt_destroy(struct mosquitto *mosq);
+int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg);
 #endif

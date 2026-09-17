@@ -4,6 +4,7 @@
 #include "daemon/log.h"
 #include <errno.h>
 #include "korax/output_mqtt.h"
+#include "daemon/config.h"
 
 struct mosquitto *mqtt_init(bool optional_mqtt){
     if (!optional_mqtt) return NULL;
@@ -14,6 +15,17 @@ struct mosquitto *mqtt_init(bool optional_mqtt){
         mosquitto_lib_cleanup();
     }
     return mosq;
+}
+
+int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg){
+    if (mosq == NULL || cfg == NULL) return MOSQ_ERR_INVAL;    
+    
+    int tls_connect = mosquitto_tls_set(mosq, cfg->mqtt_tls_ca_path, NULL, cfg->mqtt_tls_cert_path, cfg->mqtt_tls_key_path, NULL);
+    if (tls_connect != MOSQ_ERR_SUCCESS){
+        log_msg(LOG_ERROR, "mosquitto_tls_set failed: %s", strerror(errno));
+        return tls_connect;
+    }
+    return MOSQ_ERR_SUCCESS;
 }
 
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive){
