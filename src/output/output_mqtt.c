@@ -27,10 +27,10 @@ int read_creds(char *file, korax_config_t *cfg) {
         char *key = line;
         char *val = eq + 1;
         
-        if (strcmp(key, "username") == 0) {
+        if (strcmp(key, KX_USR) == 0) {
             strncpy(cfg->mqtt_username, val, sizeof cfg->mqtt_username - 1);
             cfg->mqtt_username[sizeof cfg->mqtt_username - 1] = '\0';
-        } else if (strcmp(key, "password") == 0) {
+        } else if (strcmp(key, KX_PWD) == 0) {
             strncpy(cfg->mqtt_password, val, sizeof cfg->mqtt_password - 1);
             cfg->mqtt_password[sizeof cfg->mqtt_password - 1] = '\0';
         }
@@ -66,10 +66,10 @@ int mossquito_tls_connect(struct mosquitto *mosq, korax_config_t *cfg) {
 
 int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_alive,
                  korax_config_t *cfg) {
-    if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5)
+    if (mosq == NULL || host == NULL || port < 0 || keep_alive < 5 || cfg == NULL)
         return MOSQ_ERR_INVAL;
 
-    int read_creds_result = read_creds("private/credentials.txt", cfg);
+    int read_creds_result = read_creds(cfg->mqtt_creds_path, cfg);
     if (read_creds_result == KX_CREDS_NOT_FOUND) {
         log_msg(LOG_INFO, "No MQTT credentials file found; connecting without authentication");
     } else if (read_creds_result != 0) {

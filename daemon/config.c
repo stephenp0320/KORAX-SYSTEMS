@@ -17,10 +17,16 @@ int config_defaults(korax_config_t *cfg) {
     cfg->expiry_seconds = EXPIRY_SECONDS;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
+    cfg->mqtt_enabled = KX_DEFAULT_MQTT_ENABLED;
     snprintf(cfg->mqtt_host, sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port = KX_DEFAULT_MQTT_PORT;
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
-    
+    cfg->mqtt_tls_ca_path[0] = '\0';
+    cfg->mqtt_tls_cert_path[0] = '\0';
+    cfg->mqtt_tls_key_path[0] = '\0';
+    cfg->mqtt_username[0] = '\0';
+    cfg->mqtt_password[0] = '\0';
+    snprintf(cfg->mqtt_creds_path, sizeof cfg->mqtt_creds_path, "%s", KX_DEFAULT_MQTT_CREDS_PATH);
     if (cfg->expiry_seconds <= 0)return CONFIG_ERR;
     return CONFIG_OK;
 }
@@ -245,6 +251,34 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     return CONFIG_ERR;
                 }
                 cfg->thresholds.sensor_lon = res;
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_host") == 0){
+                strncpy(cfg->mqtt_host, value, sizeof(cfg->mqtt_host) - 1);
+                cfg->mqtt_host[sizeof(cfg->mqtt_host) - 1] = '\0';
+
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_port") == 0){
+                long res = strtol(value, &endptr, 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                cfg->mqtt_port = (int)res;
+
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_topic") == 0){
+                strncpy(cfg->mqtt_topic, value, sizeof(cfg->mqtt_topic) - 1);
+                cfg->mqtt_topic[sizeof(cfg->mqtt_topic) - 1] = '\0';
+            
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_enabled") == 0){
+                if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
+                    cfg->mqtt_enabled = true;
+                } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
+                    cfg->mqtt_enabled = false;
+                } else {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid boolean value '%s' for key '%s' in section '[%s]'", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_creds_path") == 0){
+                strncpy(cfg->mqtt_creds_path, value, sizeof(cfg->mqtt_creds_path) - 1);
+                cfg->mqtt_creds_path[sizeof(cfg->mqtt_creds_path) - 1] = '\0';
+
             } else {
                 log_msg(LOG_ERROR, "Error line %d: Unknown key '%s' in section '[%s]'", line_counter, key, section);
                 fclose(fp);

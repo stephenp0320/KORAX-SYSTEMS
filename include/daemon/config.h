@@ -21,6 +21,7 @@
 #define KX_DEFAULT_MQTT_HOST    "localhost"
 #define KX_DEFAULT_MQTT_PORT    1883
 #define KX_DEFAULT_MQTT_TOPIC   "korax/tracks"
+#define KX_DEFAULT_MQTT_CREDS_PATH "private/credentials.txt"
 #define KX_DEFAULT_SENSOR_LAT 0.0
 #define KX_DEFAULT_SENSOR_LON 0.0
 #define KX_DEFAULT_HAS_SENSOR_LOCATION false
@@ -44,6 +45,7 @@ typedef struct {
     char   mqtt_tls_key_path[256];
     char   mqtt_username[128];
     char   mqtt_password[128];
+    char   mqtt_creds_path[256];
     magpie_thresholds_t thresholds;
 } korax_config_t;
 
