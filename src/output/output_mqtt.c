@@ -6,10 +6,12 @@
 #include "korax/output_mqtt.h"
 #include "daemon/config.h"
 #include <stdlib.h>
+#define KX_CREDS_NOT_FOUND 1
 
 int read_creds(char *file, korax_config_t *cfg) {
     FILE *fp = fopen(file, "r");
     if (fp == NULL) {
+        if (errno == ENOENT) return KX_CREDS_NOT_FOUND;
         log_msg(LOG_ERROR, "Failed to open credentials file: %s", strerror(errno));
         return -1;
     }
@@ -68,17 +70,19 @@ int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_al
         return MOSQ_ERR_INVAL;
 
     int read_creds_result = read_creds("private/credentials.txt", cfg);
-    if (read_creds_result != 0) {
+    if (read_creds_result == KX_CREDS_NOT_FOUND) {
+        log_msg(LOG_INFO, "No MQTT credentials file found; connecting without authentication");
+    } else if (read_creds_result != 0) {
         log_msg(LOG_ERROR, "Failed to read credentials: %s", strerror(errno));
         return read_creds_result;
-    }
-
-    int username_pw = mosquitto_username_pw_set(mosq, cfg->mqtt_username, cfg->mqtt_password);
-    if (username_pw != MOSQ_ERR_SUCCESS) {
-        log_msg(LOG_ERROR, "mosquitto_username_pw_set failed: %s", strerror(errno));
-        mosquitto_destroy(mosq);
-        mosquitto_lib_cleanup();
-        return MOSQ_ERR_INVAL;
+    } else if (cfg->mqtt_username[0] != '\0') {
+        int username_pw = mosquitto_username_pw_set(mosq, cfg->mqtt_username, cfg->mqtt_password);
+        if (username_pw != MOSQ_ERR_SUCCESS) {
+            log_msg(LOG_ERROR, "mosquitto_username_pw_set failed: %s", strerror(errno));
+            mosquitto_destroy(mosq);
+            mosquitto_lib_cleanup();
+            return MOSQ_ERR_INVAL;
+        }
     }
 
     int broker_connection = mosquitto_connect(mosq, host, port, keep_alive);
