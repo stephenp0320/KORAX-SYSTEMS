@@ -13,6 +13,8 @@
 #include "korax/rook_track.h"
 #include "korax/magpie_validator.h"
 #define PIPELINE_ERR -1
+#define PROCESS_BLE_FRAME_ERR -1
+#define PROCESS_BLE_FRAME_OK 0
 
 /* Reserved entry point for an already-extracted RID message (no capture
  * frame); not yet implemented. */
