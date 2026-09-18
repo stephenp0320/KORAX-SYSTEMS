@@ -14,6 +14,10 @@
 #define TRACK_ERR -1
 #define TRACK_NOT_FOUND -2
 #define TRACK_TABLE_FULL -3
+#define PI 3.14159265358979323846
+#define EARTH_RADIUS_KM 6371.0
+#define MAX_DIST_KM   0.10
+#define MIN_LOCATION_MESSAGES_FOR_JUMP_CHECK 2
 
 struct magpie_thresholds;
 typedef struct {

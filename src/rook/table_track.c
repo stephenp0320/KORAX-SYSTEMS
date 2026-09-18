@@ -3,10 +3,6 @@
 #include <string.h>
 #include "korax/capture.h"
 #include <math.h>
-#define PI 3.14159265358979323846
-#define EARTH_RADIUS_KM 6371.0
-#define MAX_DIST_KM   0.10
-#define MIN_LOCATION_MESSAGES_FOR_JUMP_CHECK 2
 
 void track_table_init(track_table_t *table){
     if (table == NULL) return;
@@ -60,13 +56,13 @@ int find_track(track_table_t *tracks, const char *uas_id){
 }
 
 static void track_table_evict_oldest(track_table_t *table){
-    int oldest = 0;
-    for (int i = 1; i < table->num_tracks; i++){
-        if (table->tracks[i].last_seen < table->tracks[oldest].last_seen){
-            oldest = i;
+    int oldest_track = 0;
+    for (int curr_track = 1; curr_track < table->num_tracks; curr_track++){
+        if (table->tracks[curr_track].last_seen < table->tracks[oldest_track].last_seen){
+            oldest_track = curr_track;
         }
     }
-    for (int j = oldest; j < table->num_tracks - 1; j++){
+    for (int j = oldest_track; j < table->num_tracks - 1; j++){
         table->tracks[j] = table->tracks[j + 1];
     }
     table->num_tracks--;
