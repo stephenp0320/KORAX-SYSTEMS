@@ -195,6 +195,9 @@ int main(int argc, char **argv){
     log_set_level(cfg.log_level);
 
     const char *config_path = CONFIG_PATH;
+    const char *env_path = getenv("KORAX_CONFIG_PATH");
+    if (config_path == NULL && env_path != NULL) config_path = env_path;
+    
     for (int i = 1; i < argc - 1; i++){
         if (strcmp(argv[i], "--config") == 0){
             config_path = argv[i + 1];
