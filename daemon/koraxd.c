@@ -205,6 +205,7 @@ int main(int argc, char **argv){
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);
         if (daemon.mqtt){
+            mqtt_reconnect(daemon.mqtt);
             if (cfg.mqtt_tls_ca_path[0] != '\0') mossquito_tls_connect(daemon.mqtt, &cfg);
             if (mqtt_connect(daemon.mqtt, cfg.mqtt_host, cfg.mqtt_port, 60, &cfg) != 0){
                 log_msg(LOG_ERROR, "mqtt_connect failed to %s:%d", cfg.mqtt_host, cfg.mqtt_port);

@@ -88,6 +88,16 @@ int mqtt_connect(struct mosquitto *mosq, const char *host, int port, int keep_al
     return MOSQ_ERR_SUCCESS;
 }
 
+int mqtt_reconnect(struct mosquitto *mosq){
+    if (mosq == NULL) return MOSQ_ERR_INVAL;
+
+    int res = mosquitto_reconnect_delay_set(mosq, KX_MQTT_RECONNECT_DELAY_S, KX_MQTT_RECONNECT_DELAY_MAX_S, true);
+    if (res != MOSQ_ERR_SUCCESS) {
+        log_msg(LOG_ERROR, "mosquitto_reconnect_delay_set failed: %s", mosquitto_strerror(res));
+    }
+    return res;
+}
+
 int mqtt_publish(struct mosquitto *mosq, int *mid, const char *topic, int payloadlen,
                  const void *payload, int qos, bool retain) {
     if (mosq == NULL || topic == NULL || payloadlen < 0 || (payloadlen > 0 && payload == NULL) ||
