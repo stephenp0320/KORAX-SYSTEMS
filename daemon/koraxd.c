@@ -18,6 +18,9 @@
 #include "daemon/log.h"
 #include "korax/output_mqtt.h"
 #include "korax/koraxd.h"
+#define BUF_SIZE 1024
+#define EXPORT_SUCCESS 0
+#define EXPORT_ERR -1
 
 static koraxd_t *g_daemon = NULL;
 
@@ -50,6 +53,36 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     return n;
 }
 
+int export_track_to_json(const track_t *track){
+    if (track == NULL) return EXPORT_ERR;
+    
+    size_t fbuf_size = BUF_SIZE;
+    char *fbuf = malloc(fbuf_size);
+    if (fbuf == NULL) return EXPORT_ERR;
+
+    int json_content = track_to_json(track, fbuf, fbuf_size);
+    if (json_content < 0) {
+        log_msg(LOG_ERROR, "Failed to convert track to JSON");
+        free(fbuf);
+        return EXPORT_ERR;
+    }
+
+    FILE *fp = fopen(g_daemon->export_path, "a");
+    if (fp == NULL){
+        log_msg(LOG_ERROR, "Failed to open %s for writing: %s", g_daemon->export_path, strerror(errno));        
+        free(fbuf);
+        return EXPORT_ERR;
+    }
+    
+    size_t written = fwrite(fbuf, 1, (size_t)json_content, fp);
+    if (written == (size_t)json_content){
+        fputc('\n', fp);
+    }
+    fclose(fp);
+    free(fbuf);
+    return (written == (size_t)json_content) ? EXPORT_SUCCESS : EXPORT_ERR;
+}
+
 static void on_track_expired(const track_t *track, void *user_data){
     if (track == NULL || user_data == NULL) return;
     koraxd_t *daemon = (koraxd_t *)user_data;
@@ -57,6 +90,7 @@ static void on_track_expired(const track_t *track, void *user_data){
     int len = snprintf(line, sizeof line, "{\"event\":\"track_expired\",\"uas_id\":\"%s\"}\n", track->uas_id);
     if (len < 0 || (size_t)len >= sizeof line) return;
     server_broadcast(&daemon->server, line, (size_t)len);
+    export_track_to_json(track);
 }
 
 static void broadcast_track_update(koraxd_t *daemon, int idx){
@@ -184,6 +218,7 @@ int main(int argc, char **argv){
     daemon.running = 1;
     daemon.last_sweep = time(NULL);
     daemon.expiry_seconds = cfg.expiry_seconds;
+    snprintf(daemon.export_path, sizeof daemon.export_path, "%s", cfg.export_path);
     track_table_init(&daemon.table);
     #ifdef KORAX_WITH_MQTT
         daemon.mqtt = mqtt_init(cfg.mqtt_enabled);

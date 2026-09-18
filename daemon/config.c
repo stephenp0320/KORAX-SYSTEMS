@@ -14,6 +14,7 @@ int config_defaults(korax_config_t *cfg) {
 
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
+    snprintf(cfg->export_path, sizeof(cfg->export_path), "%s", KX_DEFAULT_EXPORT_PATH);
     cfg->expiry_seconds = EXPIRY_SECONDS;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
@@ -82,15 +83,15 @@ int config_load_file(korax_config_t *cfg, const char *path) {
             while (vend >= value && (*vend == ' ' || *vend == '\t' || *vend == '\n' || *vend == '\r')) *vend-- = '\0';
             
             char *endptr;
-            if (strcmp(section, "output") == 0 && strcmp(key, "socket_path") == 0) {
+            if (strcmp(section, OUTPUT_SECTION) == 0 && strcmp(key, "socket_path") == 0) {
                 strncpy(cfg->socket_path, value, sizeof(cfg->socket_path) - 1);
                 cfg->socket_path[sizeof(cfg->socket_path) - 1] = '\0';
 
-            } else if (strcmp(section, "capture") == 0 && strcmp(key, "source") == 0) {
+            } else if (strcmp(section, CAPTURE_SECTION) == 0 && strcmp(key, "source") == 0) {
                 strncpy(cfg->source_path, value, sizeof(cfg->source_path) - 1);
                 cfg->source_path[sizeof(cfg->source_path) - 1] = '\0';
 
-            } else if (strcmp(section, "tracks") == 0 && strcmp(key, "expiry_seconds") == 0) {
+            } else if (strcmp(section, TRACKS_SECTION) == 0 && strcmp(key, "expiry_seconds") == 0) {
                 long res = strtol(value, &endptr , 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -101,7 +102,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->expiry_seconds = (int)res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "grace_seconds") == 0) {
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "grace_seconds") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -112,7 +113,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.grace_seconds = (int)res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_speed_kmh") == 0) {
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "max_speed_kmh") == 0) {
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -123,7 +124,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.max_speed_kmh = res;
 
-            } else if (strcmp(section, "log") == 0 && strcmp(key, "level") == 0) {
+            } else if (strcmp(section, LOG_SECTION) == 0 && strcmp(key, "level") == 0) {
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -134,7 +135,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->log_level = res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "id_churn_limit") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "id_churn_limit") == 0){
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -145,7 +146,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.id_churn_limit = (int)res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "teleport_threshold") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "teleport_threshold") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -156,7 +157,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.teleport_threshold = res;
 
-            } else if (strcmp(section, "validator") == 0 &&  strcmp(key, "min_broadcast_hz") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 &&  strcmp(key, "min_broadcast_hz") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -167,7 +168,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.min_broadcast_hz = res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_climb_ms") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "max_climb_ms") == 0){
                 float res = strtof(value, &endptr);
                 if  (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -178,7 +179,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.max_climb_ms = res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "max_altitude_m") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "max_altitude_m") == 0){
                 float res = strtof(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -189,7 +190,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.max_altitude_m = res;
                 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "altitude_floor_m") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "altitude_floor_m") == 0){
                 float res = strtof(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -200,7 +201,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.altitude_floor_m = res;
 
-            } else if (strcmp(section,  "validator") == 0 && strcmp(key, "max_operator_distance_km") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "max_operator_distance_km") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -211,7 +212,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.max_operator_distance_km = res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "has_sensor_pos") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "has_sensor_pos") == 0){
                 if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
                     cfg->thresholds.has_sensor_pos = true;
                 } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
@@ -222,7 +223,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     return CONFIG_ERR;
                 }
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lat") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "sensor_lat") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -238,7 +239,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 }
                 cfg->thresholds.sensor_lat = res;
 
-            } else if (strcmp(section, "validator") == 0 && strcmp(key, "sensor_lon") == 0){
+            } else if (strcmp(section, VALIDATOR_SECTION) == 0 && strcmp(key, "sensor_lon") == 0){
                 double res = strtod(value, &endptr);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 // range validation
@@ -253,20 +254,20 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     return CONFIG_ERR;
                 }
                 cfg->thresholds.sensor_lon = res;
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_host") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_host") == 0){
                 strncpy(cfg->mqtt_host, value, sizeof(cfg->mqtt_host) - 1);
                 cfg->mqtt_host[sizeof(cfg->mqtt_host) - 1] = '\0';
 
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_port") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_port") == 0){
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 cfg->mqtt_port = (int)res;
 
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_topic") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_topic") == 0){
                 strncpy(cfg->mqtt_topic, value, sizeof(cfg->mqtt_topic) - 1);
                 cfg->mqtt_topic[sizeof(cfg->mqtt_topic) - 1] = '\0';
             
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_qos") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_qos") == 0){
                 long res = strtol(value, &endptr, 10);
                 if (endptr == value || *endptr != '\0') return CONFIG_ERR;
                 if (res < KX_MIN_MQTT_QOS || res > KX_MAX_MQTT_QOS) {
@@ -274,7 +275,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     fclose(fp);
                     return CONFIG_ERR;
                 }
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_retain") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_retain") == 0){
                 if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
                     cfg->mqtt_retain = true;
                 } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
@@ -285,7 +286,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     return CONFIG_ERR;
                 }
 
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_enabled") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_enabled") == 0){
                 if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
                     cfg->mqtt_enabled = true;
                 } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
@@ -296,7 +297,7 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                     return CONFIG_ERR;
                 }
 
-            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_creds_path") == 0){
+            } else if (strcmp(section, MQTT_SECTION) == 0 && strcmp(key, "mqtt_creds_path") == 0){
                 strncpy(cfg->mqtt_creds_path, value, sizeof(cfg->mqtt_creds_path) - 1);
                 cfg->mqtt_creds_path[sizeof(cfg->mqtt_creds_path) - 1] = '\0';
 

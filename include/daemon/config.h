@@ -33,6 +33,13 @@
 #define KX_MAX_MQTT_QOS 2
 #define KX_DEFAULT_MQTT_QOS 0
 #define KX_DEFAULT_MQTT_RETAIN false
+#define KX_DEFAULT_EXPORT_PATH "/var/lib/korax/track_export.json"
+#define OUTPUT_SECTION "output"
+#define CAPTURE_SECTION "capture"
+#define TRACKS_SECTION "tracks"
+#define VALIDATOR_SECTION "validator"
+#define LOG_SECTION "log"
+#define MQTT_SECTION "mqtt"
 
 /* Mirrors [output]/[capture]/[tracks]/[validator]/[log]/[mqtt] INI sections. */
 typedef struct {
@@ -52,6 +59,7 @@ typedef struct {
     char   mqtt_creds_path[256];
     int   mqtt_qos;
     bool  mqtt_retain;
+    char  export_path[256];
     magpie_thresholds_t thresholds;
 } korax_config_t;
 

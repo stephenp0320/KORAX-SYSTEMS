@@ -18,4 +18,5 @@ typedef struct {
     bool   has_sensor_pos;
     int mqtt_qos;
     bool mqtt_retain;
+    char export_path[256];
 } koraxd_t;
