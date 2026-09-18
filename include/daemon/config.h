@@ -29,6 +29,10 @@
 #define KX_DEFAULT_TELEPORT_THRESHOLD 5000.0
 #define KX_MAX_EXPIRY_SECONDS 300
 #define KX_MAX_GRACE_SECONDS 60
+#define KX_MIN_MQTT_QOS 0
+#define KX_MAX_MQTT_QOS 2
+#define KX_DEFAULT_MQTT_QOS 0
+#define KX_DEFAULT_MQTT_RETAIN false
 
 /* Mirrors [output]/[capture]/[tracks]/[validator]/[log]/[mqtt] INI sections. */
 typedef struct {
@@ -46,6 +50,8 @@ typedef struct {
     char   mqtt_username[128];
     char   mqtt_password[128];
     char   mqtt_creds_path[256];
+    int   mqtt_qos;
+    bool  mqtt_retain;
     magpie_thresholds_t thresholds;
 } korax_config_t;
 

@@ -20,6 +20,8 @@ int config_defaults(korax_config_t *cfg) {
     cfg->mqtt_enabled = KX_DEFAULT_MQTT_ENABLED;
     snprintf(cfg->mqtt_host, sizeof cfg->mqtt_host,  "%s", KX_DEFAULT_MQTT_HOST);
     cfg->mqtt_port = KX_DEFAULT_MQTT_PORT;
+    cfg->mqtt_qos = KX_DEFAULT_MQTT_QOS;
+    cfg->mqtt_retain = KX_DEFAULT_MQTT_RETAIN;
     snprintf(cfg->mqtt_topic, sizeof cfg->mqtt_topic, "%s", KX_DEFAULT_MQTT_TOPIC);
     cfg->mqtt_tls_ca_path[0] = '\0';
     cfg->mqtt_tls_cert_path[0] = '\0';
@@ -264,6 +266,25 @@ int config_load_file(korax_config_t *cfg, const char *path) {
                 strncpy(cfg->mqtt_topic, value, sizeof(cfg->mqtt_topic) - 1);
                 cfg->mqtt_topic[sizeof(cfg->mqtt_topic) - 1] = '\0';
             
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_qos") == 0){
+                long res = strtol(value, &endptr, 10);
+                if (endptr == value || *endptr != '\0') return CONFIG_ERR;
+                if (res < KX_MIN_MQTT_QOS || res > KX_MAX_MQTT_QOS) {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid value '%s' for key '%s' in section '[%s]'. Must be between 0 and 2.", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+            } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_retain") == 0){
+                if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
+                    cfg->mqtt_retain = true;
+                } else if (strcmp(value, "false") == 0 || strcmp(value, "0") == 0) {
+                    cfg->mqtt_retain = false;
+                } else {
+                    log_msg(LOG_ERROR, "Error line %d: Invalid boolean value '%s' for key '%s' in section '[%s]'", line_counter, value, key, section);
+                    fclose(fp);
+                    return CONFIG_ERR;
+                }
+
             } else if (strcmp(section, "mqtt") == 0 && strcmp(key, "mqtt_enabled") == 0){
                 if (strcmp(value, "true") == 0 || strcmp(value, "1") == 0) {
                     cfg->mqtt_enabled = true;

@@ -17,24 +17,7 @@
 #include "daemon/config.h"
 #include "daemon/log.h"
 #include "korax/output_mqtt.h"
-#define MQTT_TOPIC_SIZE 128
-
-typedef struct {
-    FILE *source;
-    int source_fd;
-    int hci_fd;
-    server_t server;      
-    track_table_t table;      
-    time_t last_sweep;  
-    volatile sig_atomic_t running;
-    int expiry_seconds;
-    magpie_thresholds_t thresholds;
-    struct mosquitto *mqtt;
-    char mqtt_topic[MQTT_TOPIC_SIZE];
-    double sensor_lat;
-    double sensor_lon;
-    bool   has_sensor_pos;
-} koraxd_t;
+#include "korax/koraxd.h"
 
 static koraxd_t *g_daemon = NULL;
 
@@ -85,7 +68,7 @@ static void broadcast_track_update(koraxd_t *daemon, int idx){
     if (len > 0 && (size_t)len < sizeof line) server_broadcast(&daemon->server, line, (size_t)len);
 
 #ifdef KORAX_WITH_MQTT
-    if (daemon->mqtt) mqtt_publish(daemon->mqtt, NULL, daemon->mqtt_topic, (int)strlen(jbuf), jbuf, 0, false);
+    if (daemon->mqtt) mqtt_publish(daemon->mqtt, NULL, daemon->mqtt_topic, (int)strlen(jbuf), jbuf, daemon->mqtt_qos, daemon->mqtt_retain);
 #endif
 
 }
@@ -177,7 +160,7 @@ int main(int argc, char **argv){
     config_defaults(&cfg);
     log_set_level(cfg.log_level);
 
-    const char *config_path = "/etc/korax/korax.conf";
+    const char *config_path = CONFIG_PATH;
     for (int i = 1; i < argc - 1; i++){
         if (strcmp(argv[i], "--config") == 0){
             config_path = argv[i + 1];
