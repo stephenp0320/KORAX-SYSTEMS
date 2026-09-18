@@ -59,9 +59,25 @@ int find_track(track_table_t *tracks, const char *uas_id){
     return TRACK_NOT_FOUND;
 }
 
+static void track_table_evict_oldest(track_table_t *table){
+    int oldest = 0;
+    for (int i = 1; i < table->num_tracks; i++){
+        if (table->tracks[i].last_seen < table->tracks[oldest].last_seen){
+            oldest = i;
+        }
+    }
+    for (int j = oldest; j < table->num_tracks - 1; j++){
+        table->tracks[j] = table->tracks[j + 1];
+    }
+    table->num_tracks--;
+}
+
 int track_table_create(track_table_t *table, time_t now, const char *uas_id){
     if (table == NULL || uas_id == NULL) return TRACK_ERR;
-    if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+    if (table->num_tracks >= MAX_TRACKS){
+        track_table_evict_oldest(table);
+        if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+    }
 
     int track_num = table->num_tracks;
     memset(&table->tracks[track_num], 0, sizeof(track_t));
@@ -76,7 +92,10 @@ int track_table_create(track_table_t *table, time_t now, const char *uas_id){
 
 int track_table_create_by_source_mac(track_table_t *table, time_t now, const uint8_t *source_mac){
     if (table == NULL || source_mac == NULL) return TRACK_ERR;
-    if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+    if (table->num_tracks >= MAX_TRACKS){
+        track_table_evict_oldest(table);
+        if (table->num_tracks >= MAX_TRACKS) return TRACK_TABLE_FULL;
+    }
 
     int track_num = table->num_tracks;
     memset(&table->tracks[track_num], 0, sizeof(track_t));
