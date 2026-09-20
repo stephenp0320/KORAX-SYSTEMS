@@ -10,10 +10,12 @@
 #include <stdbool.h>
 #include "korax/magpie_types.h"
 #define MAX_TRACKS 100
+#define EMPTY_TRACK 0
 #define TRACK_OK 0
 #define TRACK_ERR -1
 #define TRACK_NOT_FOUND -2
 #define TRACK_TABLE_FULL -3
+#define TRACK_TABLE_EMPTY -4
 #define PI 3.14159265358979323846
 #define EARTH_RADIUS_KM 6371.0
 #define MAX_DIST_KM   0.10

@@ -10,6 +10,7 @@ void track_table_init(track_table_t *table){
 }
 
 int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, track_expired_cb on_expired, void *user_data){
+    if (table == NULL) return TRACK_NOT_FOUND;
     int removed = 0;
     int i = 0;
     while (i < table->num_tracks){
@@ -30,6 +31,8 @@ int track_table_expire(track_table_t *table, time_t now, int expiry_seconds, tra
 }
 
 int find_track_by_mac(track_table_t *table, const uint8_t mac[6]){
+    if (table == NULL || mac == NULL) return TRACK_NOT_FOUND;
+
     int i = 0;
     int curr_track = 0;
     while (i < table->num_tracks){
@@ -56,6 +59,8 @@ int find_track(track_table_t *tracks, const char *uas_id){
 }
 
 static void track_table_evict_oldest(track_table_t *table){
+    if (table == NULL || table->num_tracks == EMPTY_TRACK) return;
+
     int oldest_track = 0;
     for (int curr_track = 1; curr_track < table->num_tracks; curr_track++){
         if (table->tracks[curr_track].last_seen < table->tracks[oldest_track].last_seen){
@@ -108,6 +113,8 @@ double to_radians(double degrees){
 }
 
 double jump_detection(const track_t *table){
+    if (table == NULL) return 0.0;
+
     double phi1 = to_radians(table->prev_location.Latitude);
     double phi2 = to_radians(table->location.Latitude);
     double delta_phi = to_radians(table->location.Latitude - table->prev_location.Latitude);
