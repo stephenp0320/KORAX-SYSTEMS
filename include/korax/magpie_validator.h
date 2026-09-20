@@ -52,18 +52,18 @@
  * (magpie_validate_rssi_position, magpie_validate_kinematic_teleport) — both
  * are no-ops until a fixed sensor location is configured. */
 typedef struct magpie_thresholds {
-    int    grace_seconds;
-    double max_speed_kmh;
-    double min_broadcast_hz;
-    float max_climb_ms;
-    float altitude_floor_m;
-    float max_altitude_m;
-    double max_operator_distance_km;
-    double sensor_lat;
-    double sensor_lon;
-    bool   has_sensor_pos;
-    int id_churn_limit;
-    double teleport_threshold;
+    int      grace_seconds;
+    double   max_speed_kmh;
+    double   min_broadcast_hz;
+    float    max_climb_ms;
+    float    altitude_floor_m;
+    float    max_altitude_m;
+    double   max_operator_distance_km;
+    double   sensor_lat;
+    double   sensor_lon;
+    bool     has_sensor_pos;
+    int      id_churn_limit;
+    double   teleport_threshold;
 } magpie_thresholds_t;
 
 /* disabled_rules is applied as a mask in magpie_evaluate to suppress rule

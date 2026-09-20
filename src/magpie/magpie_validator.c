@@ -470,7 +470,7 @@ kx_result_t magpie_validate_rssi_position(const track_table_t *table, const trac
     if (!th->has_sensor_pos) return r;
     if (!track->has_location) return r;
     if (track->location.Latitude == 0.0 && track->location.Longitude == 0.0) return r;
-    if (track->last_rssi_dbm == 0) return r;
+    if (!track->has_rssi) return r;
     double claimed_dist_km = haversine_km(track->location.Latitude,
                                               track->location.Longitude,
                                               th->sensor_lat,

@@ -994,14 +994,14 @@ static void test_rssi_position(void){
     /* spoof: claims ~55 km away but the signal is strong */
     track_t far; memset(&far, 0, sizeof far);
     far.has_location = 1; far.location.Latitude = 53.5; far.location.Longitude = -8.0;
-    far.last_rssi_dbm = -45;
+    far.last_rssi_dbm = -45; far.has_rssi = true;
     ASSERT_TRUE(magpie_validate_rssi_position(&tbl, &far, &th).rule & KX_RULE_RSSI_POSITION,
                 "distant position claim with a strong signal is flagged");
 
     /* consistent: ~100 m away with a weak signal */
     track_t near; memset(&near, 0, sizeof near);
     near.has_location = 1; near.location.Latitude = 53.0009; near.location.Longitude = -8.0;
-    near.last_rssi_dbm = -95;
+    near.last_rssi_dbm = -95; near.has_rssi = true;
     ASSERT_EQ_INT(magpie_validate_rssi_position(&tbl, &near, &th).rule, KX_RULE_NONE,
                   "nearby position claim with a weak signal is not flagged");
 

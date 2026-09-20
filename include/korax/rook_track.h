@@ -56,6 +56,7 @@ typedef struct {
     uint8_t last_msg_counter;
     bool have_counter;
     int8_t last_rssi_dbm;
+    bool   has_rssi;
     uint8_t id_change_count;
 } track_t;
 

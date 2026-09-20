@@ -58,7 +58,10 @@ int process_ble_frame(const ble_adv_frame_t *ble_frame, time_t now, track_table_
     if (decode_message(rid_msg, RID_MSG_SIZE, &msg) != 0) return PROCESS_BLE_FRAME_ERR;
 
     int idx = process_decoded_message(table, &msg, now, th, ble_frame, &msg_counter, profile);
-    if (idx >= 0) table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
+    if (idx >= 0) {
+        table->tracks[idx].last_rssi_dbm = ble_frame->rssi_dbm;
+        table->tracks[idx].has_rssi = true;
+    }
     return idx;
 }
 
