@@ -166,11 +166,10 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
 
 int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t len){;
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
-    char temp[KX_MAX_DETAILS];
-    char fbuf[512];
+    char fbuf[FBUF_SIZE];
     if (findings_to_json(verdict->findings, count, fbuf, sizeof fbuf) < 0) return -1;
 
-    int write_json = snprintf(temp, sizeof(temp),
+    int write_json = snprintf(buffer, len,
           "{"
               "\"validation\":{"
                   "\"compliant\":%s,"
@@ -183,8 +182,7 @@ int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t l
         (unsigned)verdict->ruleset_version,
         (unsigned)verdict->flags, fbuf);
 
-    if (write_json < 0 || (size_t)write_json >= sizeof(temp)) return -1;
+    if (write_json < 0) return -1;
     if ((size_t)write_json >= len) return -2;
-    memcpy(buffer, temp, (size_t)write_json + 1);
     return write_json;
 }

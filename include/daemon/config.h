@@ -59,7 +59,7 @@ typedef struct {
     char   mqtt_creds_path[256];
     int   mqtt_qos;
     bool  mqtt_retain;
-    char  export_path[256];
+    char  track_export_path[256];
     magpie_thresholds_t thresholds;
 } korax_config_t;
 

@@ -8,13 +8,14 @@
 #include "daemon/log.h"
 #define CONFIG_ERR -1
 #define CONFIG_OK 0
+#define APPLY_CONFIG_CLI_COMPLETE 0
 
 int config_defaults(korax_config_t *cfg) {
     if (cfg == NULL) return CONFIG_ERR;
 
     snprintf(cfg->socket_path, sizeof(cfg->socket_path), "%s", KX_DEFAULT_SOCKET);
     snprintf(cfg->source_path, sizeof(cfg->source_path), "%s", KX_DEFAULT_SOURCE_PATH);
-    snprintf(cfg->export_path, sizeof(cfg->export_path), "%s", KX_DEFAULT_EXPORT_PATH);
+    snprintf(cfg->track_export_path, sizeof(cfg->track_export_path), "%s", KX_DEFAULT_EXPORT_PATH);
     cfg->expiry_seconds = EXPIRY_SECONDS;
     cfg->log_level = KX_DEFAULT_LOG_LEVEL;
     cfg->thresholds = MAGPIE_DEFAULT_THRESHOLDS;
@@ -338,7 +339,7 @@ int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
         {0, 0, 0, 0}
     };
     int c;
-    while ((c = getopt_long(argc, argv, "s:f:e:g:m:l:c:", opts, NULL)) != -1){
+    while ((c = getopt_long(argc, argv, "s:f:e:g:m:l:c:o:t:k:v:j:a:z:x:y:w:", opts, NULL)) != -1){
         switch (c){
             case 's':
                 strncpy(cfg->socket_path, optarg, sizeof(cfg->socket_path) - 1);
@@ -396,5 +397,5 @@ int config_apply_cli(korax_config_t *cfg, int argc, char **argv){
                 return CONFIG_ERR;
         }
     }
-    return 0;
+    return APPLY_CONFIG_CLI_COMPLETE;
 }
