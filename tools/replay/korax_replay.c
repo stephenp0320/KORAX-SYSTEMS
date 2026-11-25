@@ -44,7 +44,7 @@ int main(int argc, char **argv){
         printf("  Altitude   : %.1f m (geodetic)\n", t->location.AltitudeGeo);
         printf("  Speed/Head : %.1f m/s @ %.0f deg\n", t->location.SpeedHorizontal, t->location.Direction);
         printf("  Messages   : basic=%d location=%d system=%d operator=%d self=%d\n", t->has_basic_id, t->has_location, t->has_system, t->has_operator_id, t->has_self_id);
-        printf("  Compliant  : %s (flags 0x%02X)\n", t->is_compliant ? "yes" : "no", t->flags);
+        printf("  Compliant  : %s (flags 0x%02X)\n", t->verdict.compliant ? "yes" : "no", t->verdict.flags);
         printf("\n");
     }
     return EXIT_SUCCESS;

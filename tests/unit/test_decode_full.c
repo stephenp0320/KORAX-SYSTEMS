@@ -460,7 +460,7 @@ static void test_output_json(void){
     t.location.AltitudeGeo = 40.5; t.location.AltitudeBaro = 40.5;
     t.location.SpeedHorizontal = 10.0; t.location.Direction = 74.0;
     t.location.TimeStamp = 12.3;
-    t.is_compliant = true; t.flags = 0;
+    t.verdict.compliant = true; t.verdict.flags = 0;
 
     char buf[512];
     int n = track_to_json(&t, buf, sizeof buf);
@@ -511,7 +511,7 @@ static void test_server_feed(void){
     track_table_t table; memset(&table, 0, sizeof table);
     table.num_tracks = 1;
     strcpy(table.tracks[0].uas_id, "TESTDRONE123");
-    table.tracks[0].is_compliant = true;
+    table.tracks[0].verdict.compliant = true;
 
     char buf[1024];
     ssize_t n;
@@ -745,9 +745,7 @@ static void test_golden_verdict(void){
     jt.has_basic_id = 1;   /* incomplete -> MISSING_REQUIRED_MSG */
     strcpy(jt.uas_id, "GOLDEN-0001");
     kx_verdict_t jv = magpie_evaluate(&jt, NULL, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
-    jt.flags = jv.flags; jt.is_compliant = jv.compliant;
-    jt.finding_count = jv.finding_count;
-    memcpy(jt.findings, jv.findings, sizeof jt.findings);
+    jt.verdict = jv;
 
     char buf[1024];
     int n = track_to_json(&jt, buf, sizeof buf);
@@ -854,20 +852,42 @@ static void test_ble_counter_replay_end_to_end(void){
     ble_adv_frame_t f1 = make_ble_frame(PKT_BASIC, mac, 1, -50);
     int idx = process_ble_frame(&f1, 5000, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
     ASSERT_TRUE(idx >= 0, "first frame creates the track");
-    ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
+    ASSERT_TRUE((table.tracks[idx].verdict.flags & KX_RULE_COUNTER_REPLAY) == 0,
                 "first frame received reports no replay flag, since there is nothing to compare against");
 
     /* second frame with an advanced counter -> still clean */
     ble_adv_frame_t f2 = make_ble_frame(PKT_BASIC, mac, 2, -50);
     process_ble_frame(&f2, 5001, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_TRUE((table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY) == 0,
+    ASSERT_TRUE((table.tracks[idx].verdict.flags & KX_RULE_COUNTER_REPLAY) == 0,
                 "normal counter increment over BLE reports no replay flag");
 
     /* replay the same counter value seen last time */
     ble_adv_frame_t f3 = make_ble_frame(PKT_BASIC, mac, 2, -50);
     process_ble_frame(&f3, 5002, &table, &MAGPIE_DEFAULT_THRESHOLDS, &MAGPIE_DEFAULT_PROFILE);
-    ASSERT_TRUE(table.tracks[idx].flags & KX_RULE_COUNTER_REPLAY,
+    ASSERT_TRUE(table.tracks[idx].verdict.flags & KX_RULE_COUNTER_REPLAY,
                 "repeated counter over BLE is flagged end to end");
+}
+
+/* Regression: the pipeline must store Magpie's full verdict on the track.
+   An earlier change added track_t.verdict but never wrote it, so every
+   exported verdict read as all-zero. */
+static void test_pipeline_stores_verdict(void){
+    track_table_t table; track_table_init(&table);
+    decoded_message_t msg; memset(&msg, 0, sizeof msg);
+    ASSERT_EQ_INT(decode_message(PKT_BASIC, 25, &msg), DECODE_OK, "pipeline verdict: basic ID decodes");
+
+    /* replay path (frame == NULL): Basic ID alone -> MISSING_REQUIRED_MSG */
+    int idx = process_decoded_message(&table, &msg, 5000, &MAGPIE_DEFAULT_THRESHOLDS, NULL, NULL, &MAGPIE_DEFAULT_PROFILE);
+    ASSERT_TRUE(idx >= 0, "pipeline verdict: track created");
+    if (idx < 0) return;
+
+    const kx_verdict_t *v = &table.tracks[idx].verdict;
+    ASSERT_TRUE(v->flags & KX_RULE_MISSING_REQUIRED_MSG, "pipeline verdict: flags stored on the track");
+    ASSERT_TRUE(!v->compliant, "pipeline verdict: compliant stored on the track");
+    ASSERT_EQ_INT(v->ruleset_version, KX_RULESET_VERSION, "pipeline verdict: ruleset_version stored on the track");
+    ASSERT_TRUE(v->finding_count >= 1, "pipeline verdict: finding_count stored on the track");
+    ASSERT_EQ_INT(v->findings[0].rule, KX_RULE_MISSING_REQUIRED_MSG, "pipeline verdict: findings stored on the track");
+    ASSERT_EQ_INT(v->findings[0].severity, KX_SEVERITY_ERROR, "pipeline verdict: finding severity stored on the track");
 }
 
 /* ---- Magpie P3 (integrity) + P4 (ID-format) rule tests ---- */
@@ -1128,6 +1148,7 @@ int main(void){
     test_mac_multi_drone();
     test_ble_frame_plumbing();
     test_ble_counter_replay_end_to_end();
+    test_pipeline_stores_verdict();
     test_previous_location_tracking();
     test_first_location_has_no_previous();
     test_previous_location_rolls_forward();

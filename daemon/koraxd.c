@@ -53,7 +53,7 @@ static int hexline_to_bytes(const char *line, uint8_t *out, int max){
     return n;
 }
 
-int export_track_to_json(const track_t *track){
+static int export_track_to_json(const track_t *track){
     if (track == NULL) return EXPORT_ERR;
     
     size_t fbuf_size = BUF_SIZE;
@@ -83,35 +83,6 @@ int export_track_to_json(const track_t *track){
     return (written == (size_t)json_content) ? EXPORT_SUCCESS : EXPORT_ERR;
 }
 
-int export_verdict_to_json(kx_verdict_t *verdict){
-    if (verdict == NULL) return EXPORT_ERR;
-    size_t fbuf_size = BUF_SIZE;
-    char *fbuf = malloc(fbuf_size);
-    if (fbuf == NULL) return EXPORT_ERR;
-
-    int verdict_content = verdict_to_json(verdict, verdict->finding_count, fbuf, fbuf_size);
-    if (verdict_content < 0) {
-        log_msg(LOG_ERROR, "Failed to convert verdict to JSON");
-        free(fbuf);
-        return EXPORT_ERR;
-    }
-
-    FILE *fp;
-    fp = fopen(g_daemon->verdict_export_path, "a");
-    if (fp == NULL){
-        log_msg(LOG_ERROR, "Failed to open %s for writing: %s", g_daemon->verdict_export_path, strerror(errno));
-        free(fbuf);
-        return EXPORT_ERR;
-    }
-    size_t written = fwrite(fbuf, 1, (size_t)verdict_content, fp);
-    if (written == (size_t)verdict_content){
-        fputc('\n', fp);
-    }
-    fclose(fp);
-    free(fbuf);
-    return (written == (size_t)verdict_content) ? EXPORT_SUCCESS : EXPORT_ERR;
-}
-
 static void on_track_expired(const track_t *track, void *user_data){
     if (track == NULL || user_data == NULL) return;
     koraxd_t *daemon = (koraxd_t *)user_data;
@@ -120,7 +91,6 @@ static void on_track_expired(const track_t *track, void *user_data){
     if (len < 0 || (size_t)len >= sizeof line) return;
     server_broadcast(&daemon->server, line, (size_t)len);
     export_track_to_json(track);
-    export_verdict_to_json(&track->findings);
 }
 
 static void broadcast_track_update(koraxd_t *daemon, int idx){

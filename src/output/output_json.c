@@ -113,7 +113,7 @@ static int findings_to_json(const kx_finding_t *f, uint8_t count, char *buf, siz
     return n + m;
 }
 
-int track_to_json(const track_t *track, char *buffer, size_t len){;
+int track_to_json(const track_t *track, char *buffer, size_t len){
     if (track == NULL || buffer == NULL || len == 0) return -1;
 
     char uas_esc[160];
@@ -129,7 +129,7 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     }
 
     char fbuf[FBUF_SIZE];
-    if (findings_to_json(track->findings, track->finding_count, fbuf, sizeof(fbuf)) < 0) return -2;
+    if (findings_to_json(track->verdict.findings, track->verdict.finding_count, fbuf, sizeof(fbuf)) < 0) return -2;
 
     int write_json = snprintf(buffer, len,
          "{"
@@ -154,9 +154,9 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
         track->location.SpeedHorizontal, track->location.SpeedVertical,
         track->location.Direction,
         _timestamp,
-        track->is_compliant ? "true" : "false",
+        track->verdict.compliant ? "true" : "false",
         (unsigned)KX_RULESET_VERSION,
-        (unsigned)track->flags,
+        (unsigned)track->verdict.flags,
         fbuf);
 
     if (write_json < 0) return -1;
@@ -164,10 +164,10 @@ int track_to_json(const track_t *track, char *buffer, size_t len){;
     return write_json;
 }
 
-int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t len){;
+int verdict_to_json(const kx_verdict_t *verdict, char *buffer, size_t len){
     if (verdict == NULL || buffer == NULL || len == 0) return -1;
     char fbuf[FBUF_SIZE];
-    if (findings_to_json(verdict->findings, count, fbuf, sizeof fbuf) < 0) return -1;
+    if (findings_to_json(verdict->findings, verdict->finding_count, fbuf, sizeof fbuf) < 0) return -1;
 
     int write_json = snprintf(buffer, len,
           "{"

@@ -48,11 +48,7 @@ typedef struct {
     int msg_count_self_id;
     time_t first_seen;
     time_t last_seen;
-    uint32_t flags;
-    bool is_compliant;
     int reserved_bits_seen;
-    uint8_t finding_count;
-    kx_finding_t findings[KX_MAX_FINDINGS];
     uint64_t arrival_ms[KX_RATE_WINDOW];  // ring buffer of recent arrival times, for broadcast-rate checks
     uint8_t head;                          // next write index into arrival_ms, wraps mod KX_RATE_WINDOW
     uint8_t last_msg_counter;
@@ -60,6 +56,7 @@ typedef struct {
     int8_t last_rssi_dbm;
     bool   has_rssi;
     uint8_t id_change_count;
+    kx_verdict_t verdict;
 } track_t;
 
 typedef struct {

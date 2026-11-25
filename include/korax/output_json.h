@@ -22,5 +22,5 @@ int track_to_json(const track_t *track, char *buffer, size_t len);
 /* Renders just the {"validation":{...}} block for a verdict/findings array.
  * Same -1 (bad args/encoding) / -2 (buffer too small) return convention as
  * track_to_json. */
-int verdict_to_json(kx_verdict_t *verdict, uint8_t count, char *buffer, size_t len);
+int verdict_to_json(const kx_verdict_t *verdict, char *buffer, size_t len);
 #endif

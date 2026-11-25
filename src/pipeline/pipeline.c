@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "korax/rook_track.h"
-#include <string.h>
 #include "korax/capture.h"
 #include "korax/magpie_validator.h"
 #include <stdbool.h>
@@ -37,15 +36,11 @@ int process_decoded_message(track_table_t *table, const decoded_message_t *msg, 
     if (rc != TRACK_OK) return rc;
 
     track->reserved_bits_seen |= msg->reserved_bits;
-    kx_verdict_t verdict = magpie_evaluate(track, msg, now, th, table, msg_counter, profile);
+    track->verdict = magpie_evaluate(track, msg, now, th, table, msg_counter, profile);
     if (msg_counter != NULL){
         track->last_msg_counter = *msg_counter;
         track->have_counter = true;
     }
-    track->flags = verdict.flags;
-    track->is_compliant = verdict.compliant;
-    track->finding_count = verdict.finding_count;
-    memcpy(track->findings, verdict.findings, sizeof track->findings);
     return idx;
 }
 

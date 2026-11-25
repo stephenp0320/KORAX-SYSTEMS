@@ -19,5 +19,4 @@ typedef struct {
     int mqtt_qos;
     bool mqtt_retain;
     char track_export_path[256];
-    char verdict_export_path[256];
 } koraxd_t;
